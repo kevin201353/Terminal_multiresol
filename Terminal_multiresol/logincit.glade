@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
+<interface>
+  <requires lib="gtk+" version="3.10"/>
+  <object class="GtkImage" id="image_login">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/btnlogin_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_loginout">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/loginout_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_shutdown">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/shutdown_nor.png</property>
+  </object>
+  <object class="GtkWindow" id="window_cit">
+    <property name="width_request">1920</property>
+    <property name="height_request">1080</property>
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkGrid" id="grid1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <object class="GtkLayout" id="layout1">
+            <property name="width_request">1920</property>
+            <property name="height_request">200</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="width">1920</property>
+            <property name="height">200</property>
+            <child>
+              <object class="GtkButton" id="btn_citPrev">
+                <property name="name">btn_citPrev</property>
+                <property name="width_request">28</property>
+                <property name="height_request">29</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_loginout</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">1783</property>
+                <property name="y">30</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">0</property>
+            <property name="width">1</property>
+            <property name="height">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLayout" id="layout2">
+            <property name="width_request">320</property>
+            <property name="height_request">625</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="width">320</property>
+            <property name="height">625</property>
+            <child>
+              <object class="GtkImage" id="image_logo">
+                <property name="width_request">100</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="x">850</property>
+                <property name="y">90</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_http">
+                <property name="name">label_http</property>
+                <property name="width_request">60</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">label</property>
+              </object>
+              <packing>
+                <property name="x">789</property>
+                <property name="y">243</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_http">
+                <property name="name">entry_http</property>
+                <property name="width_request">150</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="max_length">100</property>
+                <property name="width_chars">20</property>
+              </object>
+              <packing>
+                <property name="x">849</property>
+                <property name="y">243</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_citlogin">
+                <property name="name">btn_citlogin</property>
+                <property name="width_request">312</property>
+                <property name="height_request">58</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_login</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">807</property>
+                <property name="y">319</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">1</property>
+            <property name="width">1</property>
+            <property name="height">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLayout" id="layout3">
+            <property name="height_request">300</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkButton" id="btn_shutdown">
+                <property name="name">btn_shutdown</property>
+                <property name="width_request">100</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_shutdown</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">1713</property>
+                <property name="y">113</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">2</property>
+            <property name="width">1</property>
+            <property name="height">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

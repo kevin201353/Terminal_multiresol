@@ -1,0 +1,29 @@
+#layout_thrdtitle{
+   background-image: none;
+   background-color: #4A4A54;
+   border-image: none;
+   border-style: solid;
+}
+
+#layout_thrdtext{
+   background-image: none;
+   background-color: #EDF0F2;
+}
+
+#btnsymsg_close {
+  background-color: transparent;
+  background-image: none;
+  border-style: none;
+  border-image: none;
+  font-family: "Microsoft YaHei";
+}
+
+#btn_OK {
+  color: #282C34;
+  font-family: "Microsoft YaHei";
+}
+
+#btn_Cancel {
+  color: #282C34;
+  font-family: "Microsoft YaHei";
+}

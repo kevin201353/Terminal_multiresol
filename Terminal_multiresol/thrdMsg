@@ -1,0 +1,2 @@
+rm -rf thrdmsg
+gcc -g -std=gnu99 -o thrdmsg thrdMsgWindow.c `pkg-config --cflags --libs gtk+-3.0`

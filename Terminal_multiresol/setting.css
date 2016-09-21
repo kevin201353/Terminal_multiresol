@@ -1,0 +1,226 @@
+#layout1{
+   background-image: none;
+   background-color: #EDF0F2;
+   border-image: none;
+   border-style: solid;
+}
+
+#layout_network{
+   background-image: none;
+   background-color: #EDF0F2;
+}
+
+#layout_base{
+   background-image: none;
+   background-color: #EDF0F2;
+}
+
+#set_layout2{
+  background-image: none;
+  background-color: #4A4A54;
+}
+
+#label_title{
+  color: #ffffff;
+  font-family: "Microsoft YaHei"
+}
+
+#label_tip {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_serverip {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#setting_port {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#setting_user {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#setting_pass {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_resolution {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_wan {
+   color: #282C34;
+   font-family: "Microsoft YaHei"
+}
+
+#label_hotspot {
+   color: #282C34;
+   font-family: "Microsoft YaHei"
+}
+#label_netinter {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netip {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netmask {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netgatway {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netdns {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netdns2 {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_netdns3 {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#label_sysresol {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#rabtn_static {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#rabtn_dhcp {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#btn_connect {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#btn_advanced {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#btn_savenetwork {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#btn_save {
+  color: #282C34;
+  font-family: "Microsoft YaHei"
+}
+
+#comboboxtext_netinter {
+   border-image: none;
+   color: #282C34;
+}
+
+#comboboxtext_wan {
+   border-image: none;
+   color: #282C34;
+}
+
+#comboboxtext_resol {
+   border-image: none;
+   color: #282C34;
+}
+
+GtkComboBoxText  > .button {
+  background-image: none;
+  background-color: transparent;
+  border-image: none;
+}
+
+.menu {
+   color: #2D336F;
+   border-style: none;
+   background-image: none;
+   background-color: none;
+}
+
+GtkComboBoxText .menu {
+    background-image: none;
+    border-style: none;
+    padding: 0px;
+    color: #2D336F;
+}
+
+GtkComboBoxText .menuitem * {
+    background-image: none;
+    color: #2D336F;
+}
+
+GtkComboBoxText .menu .menuitem:hover {
+   background-image: none;
+   background-color: #F2F1F0;
+   border-style: none;
+   padding: 0px;
+   color: #2D336F;
+}
+
+#btnset_close {
+  background-color: transparent;
+  background-image: none;
+  border-style: none;
+  border-color: none;
+  border-image: none;
+  padding: 0px;
+  border-radius: 0px;
+  font-family: "Microsoft YaHei"
+}
+
+#button_loginout {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+.entry{
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}
+
+#entry_netdns2, #entry_netdns3
+{
+  border-image: none;
+  background-image: none;
+  background-color: #ffffff
+  border-style: solid;
+  border-width: 1px;
+  color: #282C34;
+  border-color: #282C34;
+  border-radius: 0.2px;
+}

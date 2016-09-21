@@ -1,0 +1,12 @@
+#!/bin/bash
+#shell script
+#gcc build and run loginwindow.c file
+#author:zhaosenhua
+#date:2016/6/22
+#read -p  'please input build file name:' file
+#echo $file
+#gcc -c Loginfo.c -o Loginfo.o
+#pkg=`pkg-config --cflags --libs gtk+-3.0`
+rm -rf test
+gcc -std=c99 \
+-o loginwindow loginwindow.c `pkg-config --cflags --libs gtk+-3.0`

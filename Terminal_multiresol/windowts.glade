@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
+<interface>
+  <requires lib="gtk+" version="3.10"/>
+  <object class="GtkImage" id="image_cit">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/cit_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_mirsoft">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/mirsoft_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_netstatus">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+  </object>
+  <object class="GtkImage" id="image_setting">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/set_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_sh">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/sh_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_shutdown">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/exit_nor.png</property>
+  </object>
+  <object class="GtkImage" id="image_vm">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/vm_nor.png</property>
+  </object>
+  <object class="GtkWindow" id="window1">
+    <property name="width_request">800</property>
+    <property name="height_request">600</property>
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="window_position">center</property>
+    <property name="gravity">center</property>
+    <child>
+      <object class="GtkLayout" id="layout1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <object class="GtkLayout" id="layout2">
+            <property name="width_request">800</property>
+            <property name="height_request">100</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLayout" id="layout3">
+            <property name="width_request">800</property>
+            <property name="height_request">350</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkButton" id="btn_vm">
+                <property name="name">btn_vm</property>
+                <property name="width_request">250</property>
+                <property name="height_request">250</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_vm</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">94</property>
+                <property name="y">128</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_cit">
+                <property name="name">btn_cit</property>
+                <property name="width_request">250</property>
+                <property name="height_request">250</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_cit</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">241</property>
+                <property name="y">128</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_mir">
+                <property name="name">btn_mir</property>
+                <property name="width_request">250</property>
+                <property name="height_request">250</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_mirsoft</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">402</property>
+                <property name="y">129</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_sh">
+                <property name="name">btn_sh</property>
+                <property name="width_request">250</property>
+                <property name="height_request">250</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_sh</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">571</property>
+                <property name="y">130</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="y">100</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLayout" id="layout4">
+            <property name="width_request">800</property>
+            <property name="height_request">170</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="hscroll_policy">natural</property>
+            <property name="vscroll_policy">natural</property>
+            <child>
+              <object class="GtkButton" id="btn_setting">
+                <property name="name">btn_setting</property>
+                <property name="width_request">80</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_setting</property>
+                <property name="yalign">0.52999997138977051</property>
+              </object>
+              <packing>
+                <property name="x">585</property>
+                <property name="y">106</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_shutdown">
+                <property name="name">btn_shutdown</property>
+                <property name="width_request">80</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="image">image_shutdown</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">694</property>
+                <property name="y">105</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_netstatus">
+                <property name="name">btn_netstatus</property>
+                <property name="width_request">80</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_netstatus</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">483</property>
+                <property name="y">107</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="y">429</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

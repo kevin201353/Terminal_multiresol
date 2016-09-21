@@ -1,0 +1,174 @@
+#btn_start {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   text-align: right;
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+ #btn_close {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   text-align: right;
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+ #btn_desktop {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   text-align: right;
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#btn_sleep {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   text-align: right;
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#button_exit {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#button_loginout {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_set {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_Prev {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_setting {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_shutdown, #btn_sh, #btn_mir, #btn_cit, #btn_vm, #btn_netstatus{
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#label_start {
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#label_close {
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#label_desktop {
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#label_sleep {
+   font-size: 10px;
+   font-family: "Microsoft YaHei"
+}
+
+#layout3 {
+   background-color: #F0F0F0;
+   background-image: none;
+   border-style: solid;
+   border-color: #F0F0F0;
+}
+
+#layout4 {
+   background-color: #ffffff;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 1px;
+   border-radius: 0px;
+}
+
+GtkComboBoxText {
+   border-style: solid;
+   border-color: #468264;
+   border-image: none;
+   background-color: transparent;
+   color : #ffffff;
+   font-size: 18px;
+}
+
+GtkTreeView {
+   border-style:none;
+   font-size: 13px;
+   color: #5C82A2;  /* x11 color "Indigo" (a dark purple)*/
+   padding: 1px;
+}
+
+column-header .button  {
+    border-radius: 0px;
+    background-color: transparent;
+    background-image: none;
+    border-width: 0px;
+    color: #5C82A2;  /* x11 color "Indigo" (a dark purple)*/
+    font-size: 14px;
+    padding: 0px;
+}

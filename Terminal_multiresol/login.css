@@ -1,0 +1,121 @@
+#layout_logo {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 1px;
+   border-radius: 0px;
+}
+
+#layout_mir {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 1px;
+   border-radius: 0px;
+}
+
+#layout_ctrl {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 1px;
+   border-radius: 0px;
+}
+
+#layout_login {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 1px;
+   border-radius: 0px;
+}
+
+#entry_user {
+   background-color: transparent;
+   background-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   -GtkEntry-inner-border: 0;
+   border-image: none;
+   border-style: solid;
+   color: #ffffff;
+}
+
+#entry_pass {
+   background-color: transparent;
+   background-image: none;
+   padding: 0px;
+   border-radius: 0px;
+   -GtkEntry-inner-border: 0px;
+   border-style: solid;
+   border-image: none;
+   color: #ffffff;
+   border-width: 1px;
+}
+
+#entry_ip {
+   background-color: transparent;
+   background-image: none;
+   border-style: solid;
+   border-image: none;
+   border-width: 1px;
+   border-color: #ffffff;
+   color: #ffffff;
+   border-radius: 0.2px;
+}
+
+#entry_port {
+   background-color: transparent;
+   background-image: none;
+   border-style: solid;
+   border-image: none;
+   color: #ffffff;
+   border-width: 1px;
+   border-color: #ffffff;
+   border-radius: 0.2px;
+}
+
+#btn_logout {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_login {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+
+#btn_shutdown {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
+}
+GtkComboBoxText > .button, .entry{
+   border-image: none;
+   background-color: transparent;
+   background-image: none;
+   color: #ffffff;
+   border-style: none;
+}
