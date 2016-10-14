@@ -31,6 +31,8 @@ void GetNetStaticInfo();
 extern char *rtspace(char *str);
 extern int check_ipv4_valid(char *s);
 extern void setfontcolor(GtkWidget * widget, char *value);
+static GtkWidget *btn_auto_dns;
+static GtkWidget *btn_manual_dns;
 
 void Msg2Dailog(char * sMsg)
 {
@@ -59,6 +61,55 @@ static void *SetNetthrd(void *arg)
     SaveSysNetwork();
 }
 
+static void net_static_data_clean()
+{
+	GObject *entry_netip;
+	GObject *entry_netmask;
+	GObject *entry_netgatway;
+	entry_netip = gtk_builder_get_object (g_builder, "entry_netip");
+	entry_netmask = gtk_builder_get_object (g_builder, "entry_netmask");
+	entry_netgatway = gtk_builder_get_object (g_builder, "entry_netgatway");
+	gtk_entry_set_text(GTK_ENTRY(entry_netip), "");
+	gtk_entry_set_text(GTK_ENTRY(entry_netmask), "");
+	gtk_entry_set_text(GTK_ENTRY(entry_netgatway), "");
+}
+static void dns_data_clean()
+{
+	GObject *entry_netdns;
+	GObject *entry_netdns2;
+	GObject *entry_netdns3;
+	entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
+	entry_netdns2 = gtk_builder_get_object (g_builder, "entry_netdns2");
+	entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
+	gtk_entry_set_text(GTK_ENTRY(entry_netdns), "");
+	gtk_entry_set_text(GTK_ENTRY(entry_netdns2), "");
+	gtk_entry_set_text(GTK_ENTRY(entry_netdns3), "");
+}
+
+static void SetDnsSensitive(unsigned short value)
+{
+	GObject *entry_netdns;
+	GObject *entry_netdns2;
+	GObject *entry_netdns3;
+	GObject *label_netdns;
+	GObject *label_netdns2;
+	GObject *label_netdns3;
+	entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
+	entry_netdns2 = gtk_builder_get_object (g_builder, "entry_netdns2");
+	entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
+	//
+	label_netdns = gtk_builder_get_object (g_builder, "label_netdns");
+	label_netdns2 = gtk_builder_get_object (g_builder, "label_netdns2");
+	label_netdns3 = gtk_builder_get_object (g_builder, "label_netdns3");
+	///
+	gtk_widget_set_sensitive(GTK_WIDGET(entry_netdns), value);
+	gtk_widget_set_sensitive(GTK_WIDGET(entry_netdns2), value);
+	gtk_widget_set_sensitive(GTK_WIDGET(entry_netdns3), value);
+	gtk_widget_set_sensitive(GTK_WIDGET(label_netdns), value);
+	gtk_widget_set_sensitive(GTK_WIDGET(label_netdns2), value);
+	gtk_widget_set_sensitive(GTK_WIDGET(label_netdns3), value);
+}
+
 static void netstaitc_entry_color(char *color)
 {
 	 GtkCssProvider *provider;
@@ -72,6 +123,25 @@ static void netstaitc_entry_color(char *color)
 	 GError *error = 0;
 	 char szTmp[MAX_BUFF_SIZE] = {0};
 	 sprintf(szTmp, "#entry_netip, #entry_netmask, #entry_netgatway{\n"
+                                         "background-color: %s;\n"
+                                         "}\n", color);
+	 gtk_css_provider_load_from_data (provider, szTmp, -1, NULL);
+	 g_object_unref (provider);
+}
+
+static void dns_entry_color(char *color)
+{
+	 GtkCssProvider *provider;
+	 GdkDisplay *display;
+	 GdkScreen *screen;
+	 provider = gtk_css_provider_new ();
+	 display = gdk_display_get_default ();
+	 screen = gdk_display_get_default_screen (display);
+	 gtk_style_context_add_provider_for_screen (screen, GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	 gsize bytes_written, bytes_read;
+	 GError *error = 0;
+	 char szTmp[MAX_BUFF_SIZE] = {0};
+	 sprintf(szTmp, "#entry_netdns, #entry_netdns2, #entry_netdns3{\n"
                                          "background-color: %s;\n"
                                          "}\n", color);
 	 gtk_css_provider_load_from_data (provider, szTmp, -1, NULL);
@@ -103,6 +173,29 @@ int findstr(char * szfile, char * str)
     }
     fclose(fp);
     system("sudo rm -rf net_tmp.txt");
+    return 0;
+}
+
+int findstr2(char * szfile, char * str, int nflag)
+{
+	if (nflag == 0)
+    		system("sudo cat /etc/resolv.conf > net_tmp1.txt");
+    FILE* fp=fopen("net_tmp1.txt", "r");
+    if (fp == NULL)
+       return -1;
+    char buf[MAX_BUFF_SIZE] = {0};
+    while(fgets(buf, MAX_BUFF_SIZE, fp) != NULL)
+    {
+        char * p = strstr(buf, str);//p为dhcp的出现位置,NULL则为没找到
+        if (p)
+        {
+            LogInfo("Debug: Network findstr find.\n");
+            fclose(fp);
+            return 1; //找到， 网络为dhcp
+        }
+    }
+    fclose(fp);
+    system("sudo rm -rf net_tmp1.txt");
     return 0;
 }
 
@@ -152,6 +245,10 @@ int isStatic()
     return findstr("net_tmp.txt", "static");
 }
 
+int isDynamic_dns()
+{
+	return findstr2("net_tmp.txt", "#", 0) && findstr2("net_tmp.txt", "Dynamic", 0);
+}
 int SetDhcpNet()
 {
     system("sudo ./dhcp.sh");
@@ -159,16 +256,22 @@ int SetDhcpNet()
 }
 
 int SetDns()
-{
-    if (strcmp(g_NetStaticInfo.szDns[0], "") >= 0 ||
-        strcmp(g_NetStaticInfo.szDns[1], "") >= 0 ||
-        strcmp(g_NetStaticInfo.szDns[2], "") >= 0)
-    {
-        char szTmp[MAX_BUFF_SIZE] = {0};
-        sprintf(szTmp, "sudo ./dns.sh %s %s %s", g_NetStaticInfo.szDns[0], g_NetStaticInfo.szDns[1], g_NetStaticInfo.szDns[2]);
-        LogInfo("Debug: set net dns cmd ---- %s .\n", szTmp);
-        system(szTmp);
-    }
+{  
+    if (g_auto_get_ns == 1)
+    	{
+		system("sudo ifdown eth0 \nifup eth0");	
+	}else
+	{
+	    if (strcmp(g_NetStaticInfo.szDns[0], "") >= 0 ||
+	        strcmp(g_NetStaticInfo.szDns[1], "") >= 0 ||
+	        strcmp(g_NetStaticInfo.szDns[2], "") >= 0)
+	    {
+	        char szTmp[MAX_BUFF_SIZE] = {0};
+	        sprintf(szTmp, "sudo ./dns.sh %s %s %s", g_NetStaticInfo.szDns[0], g_NetStaticInfo.szDns[1], g_NetStaticInfo.szDns[2]);
+	        LogInfo("Debug: set net dns cmd ---- %s .\n", szTmp);
+	        system(szTmp);
+	    }
+	}
     return 0;
 }
 
@@ -241,13 +344,16 @@ void initStaticNetctrl()
     if (isDhcp() == 1)
     {
         gtk_toggle_button_set_active(rabtn_static, FALSE);
-		netstaitc_entry_color("#EDF0F2");
+		 gtk_toggle_button_set_active(btn_auto_dns, TRUE);
+		  SetDnsSensitive(0);
+	    netstaitc_entry_color("#EDF0F2");
         LogInfo("Debug: initStaticNetctrl isDhcp .\n");
     }
 
     if (isStatic() == 1)
     {
         gtk_toggle_button_set_active(rabtn_static, TRUE);
+	    gtk_toggle_button_set_active(btn_auto_dns, FALSE);
         entry_netip = gtk_builder_get_object (g_builder, "entry_netip");
         entry_netmask = gtk_builder_get_object (g_builder, "entry_netmask");
         entry_netgatway = gtk_builder_get_object (g_builder, "entry_netgatway");
@@ -258,14 +364,22 @@ void initStaticNetctrl()
 		netstaitc_entry_color("#ffffff");
         LogInfo("Debug: initStaticNetctrl isStatic .\n");
     }
-    GetDns();
-    LogInfo("initStaticNetctrl  get dns, init control , dns1=%s, dns2=%s, dns3=%s.\n", g_NetStaticInfo.szDns[0], g_NetStaticInfo.szDns[1],g_NetStaticInfo.szDns[2]);
-    entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
-    gtk_entry_set_text(GTK_ENTRY(entry_netdns), g_NetStaticInfo.szDns[0]);
-    entry_netdns2 = gtk_builder_get_object (g_builder, "entry_netdns2");
-    gtk_entry_set_text(GTK_ENTRY(entry_netdns2), g_NetStaticInfo.szDns[1]);
-    entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
-    gtk_entry_set_text(GTK_ENTRY(entry_netdns3), g_NetStaticInfo.szDns[2]);
+	LogInfo("initStaticNetctrl  g_auto_get_us = %d.\n", g_auto_get_ns);
+	if (isDynamic_dns() == 0)
+	{
+		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
+		GetDns();
+	    LogInfo("initStaticNetctrl  get dns, init control , dns1=%s, dns2=%s, dns3=%s.\n", g_NetStaticInfo.szDns[0], g_NetStaticInfo.szDns[1],g_NetStaticInfo.szDns[2]);
+	    entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
+	    gtk_entry_set_text(GTK_ENTRY(entry_netdns), g_NetStaticInfo.szDns[0]);
+	    entry_netdns2 = gtk_builder_get_object (g_builder, "entry_netdns2");
+	    gtk_entry_set_text(GTK_ENTRY(entry_netdns2), g_NetStaticInfo.szDns[1]);
+	    entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
+	    gtk_entry_set_text(GTK_ENTRY(entry_netdns3), g_NetStaticInfo.szDns[2]);
+	}else 
+	{
+		gtk_toggle_button_set_active(btn_auto_dns, TRUE);
+	}
 }
 
 void SaveSysNetwork()
@@ -380,6 +494,9 @@ void rabtn_static_button_callback(GtkWidget *check_button, gpointer data)
         //到这里，是选这了Radio 静态IP地址
         SetNetCtrlSensitive(1);
 		netstaitc_entry_color("#ffffff");
+		dns_entry_color("#ffffff");
+		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(btn_auto_dns), FALSE);
         g_bnetstatic = 1;
     }
     else
@@ -387,9 +504,32 @@ void rabtn_static_button_callback(GtkWidget *check_button, gpointer data)
         printf("check button unselected\n");
         SetNetCtrlSensitive(0);
 		netstaitc_entry_color("#EDF0F2");
+		gtk_widget_set_sensitive(GTK_WIDGET(btn_auto_dns), TRUE);
+		net_static_data_clean();
         g_bnetstatic = 0;
     }
 }
+
+
+void selnet_static_button_callback(GtkWidget *check_button, gpointer data)
+{
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_button)))
+    {
+        printf("check button selnetwork selected\n");
+	   SetDnsSensitive(0);
+	   dns_entry_color("#EDF0F2");
+	   g_auto_get_ns = 1;
+	   dns_data_clean();
+    }
+    else
+    {
+        printf("check button selnetwork unselected\n");
+	   SetDnsSensitive(1);
+	   dns_entry_color("#ffffff");
+	   g_auto_get_ns = 0;
+    }
+}
+
 
 static gboolean checkbutton_wlan_press_callback(GtkWidget *event_box, GdkEventButton *event, gpointer data)
 {
@@ -426,10 +566,20 @@ void init_network_pos(GtkBuilder *g_builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	GtkWidget * widget = GetNetWorkSetLayout();
-	if (scr_width == 1024 && scr_height == 768  || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 1024) )
 	{
 		win_width = 500;
-		win_height = 470;
+		win_height = 470 + 60;
+		gtk_widget_set_size_request(GTK_WIDGET(widget), win_width, win_height);
+	}else if ( (scr_width == 1280 && scr_height == 720)  || 
+	    (scr_width == 1280 && scr_height == 768) ||
+	     (scr_width == 1280 && scr_height == 1024) ||
+	    (scr_width == 1366 && scr_height == 768) || ( scr_width == 1368 && scr_height == 768 ) ||
+	    ( scr_width == 1360 && scr_height == 768 ) )
+	{
+		win_width = 500;
+		win_height = 470 + 60;
 		gtk_widget_set_size_request(GTK_WIDGET(widget), win_width, win_height);
 	}
 	GObject *label_wan;
@@ -512,7 +662,8 @@ void init_network_pos(GtkBuilder *g_builder)
 	g_signal_connect(G_OBJECT(rabtn_static), "toggled", G_CALLBACK(rabtn_static_button_callback), NULL);
     g_signal_connect(G_OBJECT(btn_savenetwork), "clicked", G_CALLBACK(savenetwork_button_clicked), NULL);
 	int font_size = 0;
-	if (scr_width == 1024 && scr_height == 768  || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || 
+		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		font_size = 9;
 		setctrlFont(GTK_WIDGET(label_wan), font_size);
@@ -625,6 +776,8 @@ void init_network_pos(GtkBuilder *g_builder)
 		label_width = 70;
 		tmp_top = y;
 		y = tmp_top + delay_height;
+		init_dnssel_pos(widget, left, y);
+		y = y + 60;
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns), x, y);
 		x = left + 20 + label_width + delay_width;
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns), x, y);
@@ -642,10 +795,182 @@ void init_network_pos(GtkBuilder *g_builder)
 		delay_width = 10;
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_savenetwork), x + delay_width + label_width*3, y + 10);
 	}
-	else if (scr_width == 1920 && scr_height == 1080)
+	else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		setctrlFont(GTK_WIDGET(comboboxtext_wan), 12);
 		setctrlFont(GTK_WIDGET(comboboxtext_netinter), 12);
+		//set radio button pos
+		int left = 83;
+		int top = 309;
+		int x,y = 0;
+		int delay_width = 10;
+		int delay_height = 10;
+		x = left;
+		y = top + delay_height;
+		init_dnssel_pos(widget, x, y);
+		///set dns pos
+		left = 129;
+		top = 334;
+		x = 0;
+		y = 0;
+		delay_width = 10;
+		delay_height = 10;
+		y = top + 60;
+		x = left;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns), x, y);
+		x += 100;
+		x += delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns), x, y);
+		y += 30;
+		y += delay_height;
+		x = left;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns2), x, y);
+		x += 100;
+		x += delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns2), x, y);
+		y += 30;
+		y += delay_height;
+		x = left;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns3), x, y);
+		x += 100;
+		x += delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns3), x, y);
+	
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768)|| 
+	    (scr_width == 1280 && scr_height == 1024) ||
+	    (scr_width == 1366 && scr_height == 768) || 
+	    (scr_width == 1368 && scr_height == 768) ||
+	    (scr_width == 1360 && scr_height == 768))
+	{
+		font_size = 9;
+		setctrlFont(GTK_WIDGET(label_wan), font_size);
+		setctrlFont(GTK_WIDGET(label_hotspot), font_size);
+		setctrlFont(GTK_WIDGET(label_netinter ), font_size);
+		setctrlFont(GTK_WIDGET(label_netip), font_size);
+		setctrlFont(GTK_WIDGET(label_netmask), font_size);
+		setctrlFont(GTK_WIDGET(label_netgatway), font_size);
+		setctrlFont(GTK_WIDGET(label_netdns), font_size);
+		setctrlFont(GTK_WIDGET(label_netdns2), font_size);
+		setctrlFont(GTK_WIDGET(label_netdns3), font_size);
+
+		setctrlFont(GTK_WIDGET(btn_connect), font_size);
+		setctrlFont(GTK_WIDGET(rabtn_static), font_size);
+		setctrlFont(GTK_WIDGET(rabtn_dhcp), font_size);
+		setctrlFont(GTK_WIDGET(btn_advanced), font_size);
+		setctrlFont(GTK_WIDGET(btn_savenetwork), font_size);
+		setctrlFont(GTK_WIDGET(comboboxtext_wan), font_size);
+		setctrlFont(GTK_WIDGET(comboboxtext_netinter), font_size);
+
+		setctrlFont(GTK_WIDGET(entry_netip), font_size);
+		setctrlFont(GTK_WIDGET(entry_netmask), font_size);
+		setctrlFont(GTK_WIDGET(entry_netgatway), font_size);
+		setctrlFont(GTK_WIDGET(entry_netdns), font_size);
+		setctrlFont(GTK_WIDGET(entry_netdns2), font_size);
+		setctrlFont(GTK_WIDGET(entry_netdns3), font_size);
+
+		//set pos
+		int left = 20;
+		int top = 10;
+		int delay_width = 3;
+		int delay_height = 10;
+		int x, y = 0;
+		GObject *eventbox_wlan = gtk_builder_get_object (g_builder, "eventbox_wlan");
+		//set size
+		int label_width = 0;
+		int label_height = 0;
+		label_width = 60;
+		label_height = 20;
+		gtk_widget_set_size_request(GTK_WIDGET(label_wan), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_hotspot), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netinter), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netip), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netmask), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netgatway), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netdns), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netdns2), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(label_netdns3), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(comboboxtext_wan), 80, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(comboboxtext_netinter), 80, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(btn_connect), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(rabtn_dhcp), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(rabtn_static), label_width, label_height);
+		//entry
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netip), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netmask), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netgatway), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netdns), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netdns2), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(entry_netdns3), label_width, label_height);
+		gtk_widget_set_size_request(GTK_WIDGET(btn_savenetwork), label_width, label_height);
+		x = left;
+		y = top;
+		int image_width = 8;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_wlan), x, y);
+		x = left + image_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_wan), x, y);
+		x = left + image_width + delay_width + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_hotspot), x, y);
+		x = left + image_width + delay_width + label_width + delay_width + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(comboboxtext_wan), x, y);
+		x = left + image_width + delay_width + label_width + delay_width + label_width + delay_width + 80 + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_connect), x, y);
+		//netinter
+		x = left;
+		y = top + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netinter), x, y);
+		x = left + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(comboboxtext_netinter), x, y);
+		//dhcp
+		x = left;
+		y = top + label_height + delay_height + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(rabtn_dhcp), x, y);
+		x = left;
+		y = top + label_height + delay_height + label_height + delay_height + label_height + delay_height/2;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(rabtn_static), x, y);
+		//address
+		int tmp_top = top + label_height + delay_height + label_height + delay_height + label_height + delay_height;
+		x = left + 20;
+		delay_height = 15;
+		y = tmp_top + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netip), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netip), x, y);
+		x = left + 20;
+		y = tmp_top + delay_height + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netmask), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netmask), x, y);
+		x = left + 20;
+		y = tmp_top + delay_height + label_height + delay_height + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netgatway), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netgatway), x, y);
+		x = left + 20;
+		y = tmp_top + delay_height + label_height + delay_height + label_height + delay_height + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(separator1), x, y);
+		//dns
+		x = left + 20;
+		label_width = 70;
+		tmp_top = y;
+		y = tmp_top + delay_height;
+		init_dnssel_pos(widget, left, y);
+		y = y + 60;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns), x, y);
+		x = left + 20;
+		y = y + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns2), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns2), x, y);
+		x = left + 20;
+		y = y + label_height + delay_height;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_netdns3), x, y);
+		x = left + 20 + label_width + delay_width;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns3), x, y);
+		//btn_savenetwork
+		delay_width = 10;
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_savenetwork), x + delay_width + label_width*3, y + 10);
 	}
 }
 
@@ -699,6 +1024,51 @@ static void init_entry_event()
 	g_signal_connect(G_OBJECT(entry_netip), "insert-text", G_CALLBACK(on_entry_netip_insert_text), NULL);
 	g_signal_connect(G_OBJECT(entry_netmask), "insert-text", G_CALLBACK(on_entry_netmask_insert_text), NULL);
 	g_signal_connect(G_OBJECT(entry_netgatway), "insert-text", G_CALLBACK(on_entry_netgatway_insert_text), NULL);
+}
+
+void init_dnssel_pos(GtkWidget * widget, int x, int y)
+{
+	GtkWidget *box, *radio1, *radio2;
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+	gtk_box_set_homogeneous (GTK_BOX(box), TRUE);
+	radio1 = gtk_radio_button_new_with_label (NULL, "自动获得DNS服务器地址");
+	radio2 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (radio1),
+	                                                 "手动设置DNS服务器地址");
+	btn_auto_dns = radio1;
+	btn_manual_dns = radio2;
+	gtk_box_pack_start (GTK_BOX (box), radio1, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), radio2, TRUE, TRUE, 2);
+	gtk_container_add (GTK_CONTAINER (widget), box);
+	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(box), x, y);
+	GdkScreen* screen;
+	screen = gdk_screen_get_default();
+	int scr_width = gdk_screen_get_width(screen);
+	int scr_height = gdk_screen_get_height(screen);
+	int font_size = 0;
+	if ((scr_width == 1024 && scr_height == 768  ) || 
+		(scr_width == 1440 && scr_height == 900) || 
+		(scr_width == 1600 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 1080))
+	{
+		font_size = 9;
+	}else if ( (scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
+	{
+		font_size = 11;
+	}
+	else if ( (scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		font_size = 9;
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		font_size = 9;
+	}
+	setctrlFont(GTK_WIDGET(radio1), font_size);
+	setctrlFont(GTK_WIDGET(radio2), font_size);
+	setfontcolor(GTK_WIDGET(radio1),"#282C34");
+	setfontcolor(GTK_WIDGET(radio2),"#282C34");
+	gtk_widget_set_size_request(GTK_WIDGET(box), 100, 40);
+	g_signal_connect(G_OBJECT(radio1), "toggled", G_CALLBACK(selnet_static_button_callback), NULL);
+	gtk_widget_show (box);
 }
 
 int SY_NetworkSet_main()

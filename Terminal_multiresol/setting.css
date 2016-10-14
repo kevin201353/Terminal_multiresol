@@ -149,10 +149,17 @@
    color: #282C34;
 }
 
+GtkComboBoxText {
+   border-image: none;
+   background-color:transparent;
+   color : #282C34;
+}
+
 GtkComboBoxText  > .button {
   background-image: none;
   background-color: transparent;
   border-image: none;
+  color : #282C34;
 }
 
 .menu {

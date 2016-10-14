@@ -247,7 +247,7 @@ static init_ctrl_pos(GtkBuilder *builder)
 	int pic_login_height = 0;
 	int pic_logo_width = 0;
 	int pic_logo_height = 0;
-	if (scr_width == 1920 && scr_height == 1080)
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 	    layout1_height = 200;
 		layout3_height = 300;
@@ -278,7 +278,7 @@ static init_ctrl_pos(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_http), 9);
 		setctrlFont(GTK_WIDGET(entry_http), 9);
 		
-	}else if (scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		layout1_height = 100;
 		layout3_height = 200;
@@ -293,6 +293,36 @@ static init_ctrl_pos(GtkBuilder *builder)
 		gdk_pixbuf_get_file_info("images2/1440x900/cit_logo.png", &pic_logo_width, &pic_logo_height);
 		setctrlFont(GTK_WIDGET(label_http), 10);
 		setctrlFont(GTK_WIDGET(entry_http), 10);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		layout1_height = 100;
+		layout3_height = 200;
+		label_http_width = 60;
+		label_http_height = 20;
+		entry_http_width = 150;
+		entry_http_height = 20;
+		layout2_height = scr_height - layout1_height - layout3_height;
+		gdk_pixbuf_get_file_info("images2/1280x720/loginout_nor.png", &pic_loginout_width, &pic_loginout_height);
+		gdk_pixbuf_get_file_info("images2/1280x720/exit_nor.png", &pic_shutdown_width, &pic_shutdown_height);
+		gdk_pixbuf_get_file_info("images2/1280x720/btnlogin_nor.png", &pic_login_width, &pic_login_height);
+		gdk_pixbuf_get_file_info("images2/1280x720/cit_logo.png", &pic_logo_width, &pic_logo_height);
+		setctrlFont(GTK_WIDGET(label_http), 9);
+		setctrlFont(GTK_WIDGET(entry_http), 9);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		layout1_height = 100;
+		layout3_height = 200;
+		label_http_width = 60;
+		label_http_height = 20;
+		entry_http_width = 150;
+		entry_http_height = 20;
+		layout2_height = scr_height - layout1_height - layout3_height;
+		gdk_pixbuf_get_file_info("images2/1366x768/loginout_nor.png", &pic_loginout_width, &pic_loginout_height);
+		gdk_pixbuf_get_file_info("images2/1366x768/exit_nor.png", &pic_shutdown_width, &pic_shutdown_height);
+		gdk_pixbuf_get_file_info("images2/1366x768/btnlogin_nor.png", &pic_login_width, &pic_login_height);
+		gdk_pixbuf_get_file_info("images2/1366x768/cit_logo.png", &pic_logo_width, &pic_logo_height);
+		setctrlFont(GTK_WIDGET(label_http), 9);
+		setctrlFont(GTK_WIDGET(entry_http), 9);
 	}
 	gtk_widget_set_size_request(GTK_WINDOW(layout1), scr_width, layout1_height);
 	gtk_widget_set_size_request(GTK_WINDOW(layout2), scr_width, layout2_height);
@@ -326,6 +356,8 @@ static init_ctrl_pos(GtkBuilder *builder)
 	//set logo
 	if (scr_width == 1024 && scr_height == 768)
 		x = scr_width/2 - pic_logo_width/2 - 35;
+	else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+		x = scr_width/2 - pic_logo_width/2 - 28;
 	else
 		x = scr_width/2 - pic_logo_width/2;
 	y = y - delay_width - pic_logo_height;
@@ -359,7 +391,7 @@ void SY_logincit_main()
 	int scr_width = gdk_screen_get_width(screen1);
 	int scr_height = gdk_screen_get_height(screen1);
 	gtk_widget_set_size_request(GTK_WINDOW(g_window), scr_width, scr_height);
-	if (scr_width == 1920 && scr_height == 1080)
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file(IMAGE_BTN_LOGIN_PRES, NULL);
 	    g_loginNor = gdk_pixbuf_new_from_file(IMAGE_BTN_LOGIN_NOR, NULL);
@@ -377,18 +409,39 @@ void SY_logincit_main()
 	    g_prevNor = gdk_pixbuf_new_from_file("images2/1024x768/loginout_nor.png", NULL);
 		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1024x768/exit_press.png", NULL);
 	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1024x768/exit_nor.png", NULL);
-	}else if (scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_press.png", NULL);
 	    g_loginNor = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_nor.png", NULL);
-		if (scr_width == 1600 && scr_height == 900)
+		if ((scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 			surface = cairo_image_surface_create_from_png ("images2/1600x900/cit_login.png");
 		else if (scr_width == 1440 && scr_height == 900)
-	    	surface = cairo_image_surface_create_from_png ("images2/1440x900/cit_login.png");
+	    		surface = cairo_image_surface_create_from_png ("images2/1440x900/cit_login.png");
 	    g_prevPress = gdk_pixbuf_new_from_file("images2/1440x900/loginout_press.png", NULL);
 	    g_prevNor = gdk_pixbuf_new_from_file("images2/1440x900/loginout_nor.png", NULL);
 		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1440x900/exit_press.png", NULL);
 	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1440x900/exit_nor.png", NULL);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		g_loginPress = gdk_pixbuf_new_from_file("images2/1280x720/btnlogin_press.png", NULL);
+	    g_loginNor = gdk_pixbuf_new_from_file("images2/1280x720/btnlogin_nor.png", NULL);
+		if (scr_width == 1280 && scr_height == 1024)
+			surface = cairo_image_surface_create_from_png ("images2/1280x1024/cit_login.png");
+		else 
+			surface = cairo_image_surface_create_from_png ("images2/1280x720/cit_login.png");
+		g_prevPress = gdk_pixbuf_new_from_file("images2/1280x720/loginout_press.png", NULL);
+	    g_prevNor = gdk_pixbuf_new_from_file("images2/1280x720/loginout_nor.png", NULL);
+		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1280x720/exit_press.png", NULL);
+	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1280x720/exit_nor.png", NULL);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		g_loginPress = gdk_pixbuf_new_from_file("images2/1366x768/btnlogin_press.png", NULL);
+	    g_loginNor = gdk_pixbuf_new_from_file("images2/1366x768/btnlogin_nor.png", NULL);
+		surface = cairo_image_surface_create_from_png ("images2/1366x768/cit_login.png");
+		g_prevPress = gdk_pixbuf_new_from_file("images2/1366x768/loginout_press.png", NULL);
+	    g_prevNor = gdk_pixbuf_new_from_file("images2/1366x768/loginout_nor.png", NULL);
+		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1366x768/exit_press.png", NULL);
+	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1366x768/exit_nor.png", NULL);
 	}
 	loadcss();
 	set_ctrl_image(builder);

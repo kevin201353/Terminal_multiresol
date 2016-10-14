@@ -6,12 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-GObject  *window;
+static GObject  *window = NULL;
+static int running = 0;
 extern void setctrlFont(GtkWidget * widget, int nsize);
 static const gchar*  g_symsgcss = "systhrdmg.css";
 static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 {
     gtk_widget_destroy((GtkWidget *)window);
+	window = NULL;
     gtk_main_quit();
 }
 
@@ -19,20 +21,25 @@ static gboolean OK_button_clicked(GtkButton *button,  gpointer user_data)
 {
     system("sudo poweroff");
     gtk_widget_destroy((GtkWidget *)window);
+    window = NULL;
     gtk_main_quit();
 }
 
 static gboolean Cancel_button_clicked(GtkButton *button,  gpointer user_data)
 {
     gtk_widget_destroy((GtkWidget *)window);
+	window = NULL;
     gtk_main_quit();
 }
 
 static gboolean terminate(GThread *thread)
 {
     g_thread_join(thread);
-    gtk_widget_destroy((GtkWidget *)window);
-    gtk_main_quit();
+    if (window != NULL)
+    {
+	    gtk_widget_destroy((GtkWidget *)window);
+	    gtk_main_quit();
+    	}
     return FALSE;
 }
 
@@ -42,6 +49,8 @@ static void * MsgThrd(GtkLabel *data){
     char buf[50] = {0};
     sprintf(buf,"正在设置系统网络  %d", (int)i);
     gtk_label_set_text(GTK_LABEL(data), buf);
+	if (i == 1) 
+		break;
     sleep(1);
   }
   /* Make sure this thread is joined properly */
@@ -82,10 +91,20 @@ static void init_ctrl_size(GtkBuilder *builder)
 	{
 		win_width = 300;
 		win_height = 100;
-	}else if (scr_width == 1920 && scr_height == 1080 || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)||(scr_width == 1440 && scr_height == 900) || 
+	  (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 470;
 		win_height = 170;
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768) || (scr_width == 1368 && scr_height == 768))
+	{
+		win_width = 300;
+		win_height = 100;
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	   (scr_width == 1280 && scr_height == 1024))
+	{
+		win_width = 300;
+		win_height = 100;
 	}
 	GObject *layout_thrdtitle = gtk_builder_get_object(builder, "layout_thrdtitle");
 	GObject *layout_thrdtext = gtk_builder_get_object(builder, "layout_thrdtext");
@@ -115,7 +134,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtitle_height = 20;
 		layout_thrdtext_height = 90;
 		nsize = 8;
-	}else if (scr_width == 1920 && scr_height == 1080)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		win_width = 470;
 		win_height = 160;
@@ -128,7 +147,8 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtitle_height = 30;
 		layout_thrdtext_height = 90;
 		nsize = 12;
-	}else if (scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	  (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 470;
 		win_height = 160;
@@ -141,6 +161,20 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtitle_height = 30;
 		layout_thrdtext_height = 90;
 		nsize = 10;
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024) ||
+	  (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768) || (scr_width == 1368 && scr_height == 768))
+	{
+		win_width = 300;
+		win_height = 100;
+		btn_OK_width = 30;
+		btn_OK_height = 5;
+		btn_Cancel_width = 30;
+		btn_Cancel_height = 5;
+		label_text_width = 220;
+		label_text_height = 60;
+		layout_thrdtitle_height = 20;
+		layout_thrdtext_height = 90;
+		nsize = 8;
 	}
 	gtk_widget_set_size_request(GTK_WINDOW(window), win_width, win_height);
 	gtk_widget_set_size_request(GTK_WIDGET(layout_thrdtitle), win_width, layout_thrdtitle_height);
@@ -169,10 +203,21 @@ static void init_ctrl_size(GtkBuilder *builder)
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
-	}else if (scr_width == 1920 && scr_height == 1080 || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1440 && scr_height == 900) || 
+	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/close_set.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/logo.png", &pic_logo_width, &pic_logo_height);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	   (scr_width == 1280 && scr_height == 1024) )
+	{
+		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
+		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768) || 
+	  (scr_width == 1368 && scr_height == 768))
+	{
+		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
+		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
 	}
 	gtk_widget_set_size_request(GTK_WIDGET(image_syclose), pic_close_width, pic_close_height);
 	gtk_widget_set_size_request(GTK_WIDGET(image_sylogo), pic_logo_width, pic_logo_height);
@@ -221,10 +266,21 @@ static void init_ctrl_image(GtkBuilder *builder)
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
-	}else if (scr_width == 1920 && scr_height == 1080 || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1440 && scr_height == 900) || 
+	    (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/close_set_22.png", NULL);
+	}else if ((scr_width == 1360 && scr_height == 768) || 
+	   (scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768))
+	{
+		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
+		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	   (scr_width == 1280 && scr_height == 1024))
+	{
+		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
+		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
 	}
 	GObject *image_sylogo = gtk_builder_get_object (builder, "image_sylogo");
 	GObject *image_syclose = gtk_builder_get_object(builder, "image_syclose");
@@ -236,6 +292,9 @@ static void init_ctrl_image(GtkBuilder *builder)
 void ShowMsgWindow()
 {
     ///////////////////////////////////////////////////////////////////////////////
+    if (running == 1)
+		return;
+	running = 1;
     GtkBuilder *builder;
     builder = gtk_builder_new();
     GError *error1 = NULL;
@@ -279,6 +338,7 @@ void ShowMsgWindow()
     gtk_main();
     printf("ShowMsgWindow main exit.\n");
     g_object_unref (G_OBJECT (builder));
+	running = 0;
 }
 
 //int main( int	argc,char **argv){

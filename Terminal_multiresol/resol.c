@@ -91,9 +91,18 @@ int GetResol()
         LogInfo("Debug : resol del lower resolution, szw :%s, szh :%s.\n", szw, szh);
         //if (strcmp(szw, "1000") > 0 &&
         //    strcmp(szh, "800") >= 0)
-        if ( (strcmp(szw, "1920") == 0 && strcmp(szh, "1080") == 0) ||
+        if ( (strcmp(szw, "1920") == 0 && strcmp(szh, "1080") == 0) || 
+			(strcmp(szw, "1920") == 0 && strcmp(szh, "1200") == 0) ||
 			 (strcmp(szw, "1440") == 0 && strcmp(szh, "900") == 0) ||
-			 (strcmp(szw, "1024") == 0 && strcmp(szh, "768") == 0) )
+			 (strcmp(szw, "1024") == 0 && strcmp(szh, "768") == 0) ||
+			(strcmp(szw, "1280") == 0 && strcmp(szh, "720") == 0) || 
+			(strcmp(szw, "1280") == 0 && strcmp(szh, "768") == 0) || 
+			(strcmp(szw, "1280") == 0 && strcmp(szh, "1024") == 0) ||
+			(strcmp(szw, "1360") == 0 && strcmp(szh, "768") == 0) ||
+			(strcmp(szw, "1366") == 0 && strcmp(szh, "768") == 0) ||
+			(strcmp(szw, "1600") == 0 && strcmp(szh, "900") == 0) ||
+			(strcmp(szw, "1600") == 0 && strcmp(szh, "1080") == 0) ||
+			(strcmp(szw, "1368") == 0 && strcmp(szh, "768") == 0))
         {
            char sztmp[100] = {0};
            sprintf(sztmp, "%s", g_resol[i]);

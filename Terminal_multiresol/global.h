@@ -47,8 +47,9 @@ unsigned int g_resolCount;
 
 GObject *g_mainWindow;
 int   g_citExit;
+static int g_auto_get_ns = 1;
 
-enum Error{
+enum Error {
   SY_USER_ISNULL = ERROR_START_VALUE + 1,
   SY_PASSWORD_ISNULL,
   SY_OVIRT_LOGIN_FAILED,
@@ -57,8 +58,27 @@ enum Error{
   SY_OVIRT_STARTVMS_FAILED,
   SY_OVIRT_SHUTDOWNVMS_FAILED,
   SY_OVIRT_SUSPENDVMS_FAILED,
-  SY_OVIRT_GETVMSTICKET_FAILED,
+  SY_OVIRT_GETVMSTICKET_FAILED
 };
+
+enum LOGIN_STATUS{
+    LOGIN_STATUS_CONNECTING = 1001, //connecting, wait
+    LOGIN_STATUS_FAILED, //login failed
+    LOGIN_STATUS_GETVMS_FAILD,  //get vms list failed
+    LOGIN_STATUS_GETVMS,  //connect successed , get vms
+    LOGIN_STATUS_USER_PASS_ERROR,  //user and password is error
+    LOGIN_STATUS_CONNECT_FAILED_AIR,  //the connection failed, make sure information
+    LOGIN_STATUS_IP_ERROR, // ip error
+    LOGIN_STATUS_IP_NONULL,  //ip not NULL
+    LOGIN_STATUS_TYPE_ERROR, //ip type error
+    LOGIN_STATUS_PORT_NONULL,  //port not NULL
+    LOGIN_STATUS_USERNAME_NONULL,  //user name not NULL
+    LOGIN_STATUS_PASS_NONULL,  //password not null
+    LOGIN_STATUS_VM_DESKTOP, //connect vm desktop failed
+    LOGIN_SUCCESSED
+ };
+
+int g_loginstatus;
 
 struct Vms{
    char name[MAX_BUFF_SIZE];  //name
@@ -166,8 +186,12 @@ int GetResol();
 void SY_logincit_main();
 void SYMsgDialog(int nflag, char *msg);
 int ShenCloud_login();
-void SetSymsgContext(char* msg);
+void SetSymsgContext(int msg);
 int ShowMsgWindow();
 void Checking_log();
+void SYMsgDialog2(int nflag, char *msg);
+void SYMsgDialogVm(int nflag, char *msg);
+
+
 
 #endif //_GLOBAL_H

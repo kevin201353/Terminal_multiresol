@@ -2,10 +2,32 @@
 #include <stdlib.h>
 #include "global.h"
 #include "buildtime.h"
+#include <string.h>
 
+#define MAIN_VERSION "Thin View"
+#define SUBVERSION_NUMBER "1.0."
 GtkLayout *g_aboutlayout;
 int about_win_width = 0;
 int about_win_height = 0;
+extern void setctrlFont(GtkWidget * widget, int nsize);
+
+/************************************************************************/
+/* ɾ���ַ�����ָ���ַ� */
+/************************************************************************/
+void del_char(char* str,char ch)
+{
+	char *p = str;
+	char *q = str;
+	while(*q)
+	{
+		if (*q !=ch)
+		{
+			*p++ = *q;
+		}
+		q++;
+	}
+	*p='\0';
+}
 
 GtkLayout * GetAboutLayout()
 {
@@ -56,12 +78,20 @@ void SY_AboutWindow()
 	if (scr_width == 1024 && scr_height == 768)
 	{
 		nsize = 9;
-	}else if (scr_width == 1920 && scr_height == 1080)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
 	{
 		nsize = 12;
-	}else if (scr_width == 1440 && scr_height == 900)
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 		nsize = 10;
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
+	  (scr_width == 1280 && scr_height == 1024) )
+	{
+		nsize = 9;
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) ||
+	  ((scr_width == 1360 && scr_height == 768)))
+	{
+		nsize = 9;
 	}
 	GObject * layout1 = gtk_builder_get_object(builder, "layout1");
 	g_aboutlayout = (GtkLayout *)layout1;
@@ -79,6 +109,14 @@ void SY_AboutWindow()
 	y = (about_win_height - height_label)/2;
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(label_about), x, y);
 	char sztext[MAX_BUFF_SIZE] = {0};
-	sprintf(sztext, "终端登录软件 \n版本 ：%s \n深圳市神云科技有限公司 ", buildtime);
+  char szTmp[MAX_BUFF_SIZE] = {0};
+  strcpy(szTmp, MAIN_VERSION);
+  strcat(szTmp, SUBVERSION_NUMBER);
+  char szDest[20] = {0};
+	strtok(buildtime, " ");
+	del_char(buildtime, '-');  //20161014
+	strcpy(szDest, buildtime+2);
+	strcat(szTmp, szDest);
+	sprintf(sztext, "终端登录软件 \n版本 ：%s \n深圳市神云科技有限公司 ", szTmp);
 	gtk_label_set_text(GTK_LABEL(label_about), sztext);
 }

@@ -1,6 +1,8 @@
 #include <gtk/gtk.h>
 #include "global.h"
 #include <string.h>
+#include <stdbool.h>
+
 
 static const gchar*  g_settingcss = "setting.css";
 #define IMAGE_CHECKBUTTON_NOR    "images2/checkbtnset_nor.png"
@@ -33,7 +35,30 @@ extern GtkLayout * GetAboutLayout();
 extern void setAbout_win_Size(int width, int height);
 extern void SY_AboutWindow();
 
-
+static const char* resol_adjust()
+{
+    static char szResol_retun[MAX_BUFF_SIZE] = {0};
+    char szTmp[MAX_BUFF_SIZE] = {0};
+    sprintf(szTmp, "%dx%d", g_screen_width, g_screen_height);
+    bool bflag = false;
+	int i = 0;
+	for (; i< g_resolCount; i++)
+    {
+        LogInfo("Debug: setting.c resol_adjust  manual resolution = %s .\n", szResol[i]);
+        if (strcmp(szResol[i], szTmp) == 0)
+        {
+             bflag = true;
+        }
+    }
+	if (bflag)
+	{
+		strcpy(szResol_retun, szTmp);
+	}else
+	{
+		strcpy(szResol_retun, szResol[0]);
+	}
+	return szResol_retun;
+}
 
 gboolean on_window_state_event (GtkWidget *widget, GdkEventWindowState  *event, gpointer  user_data)
 {
@@ -59,27 +84,29 @@ static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 static gboolean save_button_clicked(GtkButton *button,  gpointer user_data)
 {
     //设置分辨率
-    saveServerInfo();
     char szTmp[MAX_BUFF_SIZE] = {0};
     if (g_checkrepass == 1)
     {
         //根据终端屏幕分辩率自动调整
-        LogInfo("Debug: setting.c main exit, selected resolution, screen_width: %d, screen_height: %d. \n", g_screen_width, g_screen_height);
-        sprintf(szTmp, "sudo xrandr -s  %dx%d", g_screen_width, g_screen_height);
-        system(szTmp);
+        char * szadjut = resol_adjust();
+        sprintf(szTmp, "sudo xrandr -s  %s", szadjut);
         LogInfo("Debug: setting.c main exit, selected resolution, cmd: %s .\n", szTmp);
         char szCmd[MAX_BUFF_SIZE] = {0};
         sprintf(szCmd, "sudo echo  %s > manual_resol.sh", szTmp);  //暂时这样处理，开机启动显示分辨率
         system(szCmd);
 		memset(szCmd, 0, sizeof(char) * MAX_BUFF_SIZE);
-		sprintf(szCmd, "%dx%d", g_screen_width, g_screen_height);
+		strcpy(szCmd, szadjut);
 		LogInfo("changed resolution g_serverinfo.szResol = %s, szCmd = %s.\n", g_serverinfo.szResol, szCmd);
-		if (strcmp(g_serverinfo.szResol, szCmd) != 0)
-    	{
-          char sztmp[MAX_BUFF_SIZE] = {0};
-          sprintf(sztmp, "确定将分辨率改为 %s ？", (char *)szCmd);
-        	SYMsgDialog(20, sztmp);
-    	}
+		memset(szTmp, 0, MAX_BUFF_SIZE);
+		strcpy(szTmp, g_serverinfo.szResol);
+		strcpy(g_serverinfo.szResol, szCmd);
+		saveServerInfo();
+		if (strcmp(szTmp, szCmd) != 0)
+    		{
+          	char sztmp[MAX_BUFF_SIZE] = {0};
+          	sprintf(sztmp, "确定将分辨率改为 %s ？", (char *)szCmd);
+        		SYMsgDialog(20, sztmp);
+    		}
     }
     if (g_checkmanresol == 1)
     {
@@ -95,6 +122,7 @@ static gboolean save_button_clicked(GtkButton *button,  gpointer user_data)
         gchar *active = gtk_combo_box_text_get_active_text((GtkComboBoxText *)comboboxtext_resol);
         LogInfo("setting.c main exit, old resolution: %s, selected resolution: %s\n", szold_screen, (char *)active);
         strcpy(g_serverinfo.szResol, (char *)active);
+	    saveServerInfo();
         if (strcmp(szold_screen, (char *)active) != 0)
         {
 
@@ -540,7 +568,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
     box_menu = gtk_builder_get_object (builder, "box_menu");
 	box_window = gtk_builder_get_object (builder, "box_window");
 	label_title = gtk_builder_get_object (builder, "label_title");
-	if (scr_width == 1920 && scr_height == 1080)
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 	 	win_width = 800;
 		win_height = 600;
@@ -557,10 +585,43 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		font_size = 12;
 		setctrlFont(GTK_WIDGET(label_title), 14);
 	}
-	else if (scr_width == 1024 && scr_height == 768  || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+		 (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 500;
-	 	win_height = 400;
+	 	win_height = 400 + 60;
+		layout2_width = 500;
+		layout2_height = 30;
+		layout3_width = 500;
+		layout3_height = win_height - layout2_height;
+		box1_width = win_width;
+		box1_height = layout3_height;
+		box_menu_width = 80;
+		box_menu_height = box1_height;
+		box_window_width = win_width - box_menu_width;
+		box_window_height = box1_height;
+		font_size = 10;
+		setctrlFont(GTK_WIDGET(label_title), 12);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		win_width = 500;
+	 	win_height = 400 + 60;
+		layout2_width = 500;
+		layout2_height = 30;
+		layout3_width = 500;
+		layout3_height = win_height - layout2_height;
+		box1_width = win_width;
+		box1_height = layout3_height;
+		box_menu_width = 80;
+		box_menu_height = box1_height;
+		box_window_width = win_width - box_menu_width;
+		box_window_height = box1_height;
+		font_size = 9;
+		setctrlFont(GTK_WIDGET(label_title), 10);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		win_width = 500;
+	 	win_height = 400 + 60;
 		layout2_width = 500;
 		layout2_height = 30;
 		layout3_width = 500;
@@ -589,6 +650,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
     label_resolution = gtk_builder_get_object (builder, "label_resolution");
 	separator1 = gtk_builder_get_object (builder, "separator1");
 	separator2 = gtk_builder_get_object (builder, "separator2");
+	label_sysresol = gtk_builder_get_object (builder, "label_sysresol");
 	setctrlFont(GTK_WIDGET(label_serverip), font_size);
 	setctrlFont(GTK_WIDGET(label_port), font_size);
 	setctrlFont(GTK_WIDGET(label_user), font_size);
@@ -609,7 +671,8 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	image_logo = gtk_builder_get_object (builder, "image_logo");
 	image_resolution = gtk_builder_get_object (builder, "image_resolution");
 	image_close = gtk_builder_get_object(builder, "image_close");
-	if (scr_width == 1024 && scr_height == 768  || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -618,7 +681,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		gtk_widget_set_size_request(GTK_WIDGET(label_serverip), 80, 20);
 		label_tip_width = 200;
 		label_tip_height = 60;
-	}else if (scr_width == 1920 && scr_height == 1080)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		label_tip_width = 400;
 		label_tip_height = 100;
@@ -626,10 +689,21 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		gdk_pixbuf_get_file_info("images2/logo.png", &pic_logo_width, &pic_logo_height);
 		gtk_widget_set_size_request(GTK_WIDGET(image_logo), 113, 26);
 		gtk_widget_set_size_request(GTK_WIDGET(image_close), 14, 12);
+	}else if ( (scr_width == 1280 && scr_height == 720)  || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024) || (scr_width == 1366 && scr_height == 768) || 
+			(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
+		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
+		gtk_widget_set_size_request(GTK_WIDGET(image_logo), 65, 15);
+		gtk_widget_set_size_request(GTK_WIDGET(image_close), 10, 8);
+		gtk_widget_set_size_request(GTK_WIDGET(label_serverip), 80, 20);
+		label_tip_width = 200;
+		label_tip_height = 60;
 	}
 	LogInfo("init_ctrl_pos  pic_close_width = %d, pic_close_height =%d .\n", pic_close_width, pic_close_height);
 	LogInfo("init_ctrl_pos  pic_logo_width = %d, pic_logo_height =%d .\n", pic_logo_width, pic_logo_height);
-	if (scr_width == 1024 && scr_height == 768  || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 1080))
 	{
 		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
 		//cal position
@@ -668,8 +742,89 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_pass), x, y);
 		x = left + width + delay_width;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entryset_pass), x, y);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		label_tip_width = 200;
+		label_tip_height = 60;
+		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
+		//cal position
+		x = layout2_width/2 - label_tiltle_width/2;
+		y = (layout2_height - label_tiltle_height)/2;
+		int tmp_tilte_y = (layout2_height - label_tiltle_height)/2 - 4;
+		gtk_layout_move((GtkLayout *)layout2, GTK_WIDGET(label_title), x, tmp_tilte_y);
+		x = layout2_width - pic_close_width - 10;
+		y = (layout2_height - pic_close_height)/2;
+		gtk_layout_move((GtkLayout *)layout2, GTK_WIDGET(image_close), x, y);
+		x = left*2;
+		y = top;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_tip), x, y);
+		y = top + delay_height + height + delay_height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(separator1), x, y);
+		y = top + delay_height + label_tip_height;
+		x = left;
+		top = top + delay_height + label_tip_height;
+		int tmp_serverip = left + 20;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_serverip), tmp_serverip, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entry_serverip), x, y);
+		x = left;
+		y = top + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_port), x, y);
+		x = left + width + delay_width;
+		y = top + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entry_port), x, y);
+		x = left;
+		y = top + delay_height + height + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_user), x, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entryset_user), x, y);
+		x = left;
+		y = top + delay_height + height + delay_height + height + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_pass), x, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entryset_pass), x, y);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		label_tip_width = 200;
+		label_tip_height = 60;
+		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
+		//cal position
+		x = layout2_width/2 - label_tiltle_width/2;
+		y = (layout2_height - label_tiltle_height)/2;
+		int tmp_tilte_y = (layout2_height - label_tiltle_height)/2 - 4;
+		gtk_layout_move((GtkLayout *)layout2, GTK_WIDGET(label_title), x, tmp_tilte_y);
+		x = layout2_width - pic_close_width - 10;
+		y = (layout2_height - pic_close_height)/2;
+		gtk_layout_move((GtkLayout *)layout2, GTK_WIDGET(image_close), x, y);
+		x = left*2;
+		y = top;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_tip), x, y);
+		y = top + delay_height + height + delay_height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(separator1), x, y);
+		y = top + delay_height + label_tip_height;
+		x = left;
+		top = top + delay_height + label_tip_height;
+		int tmp_serverip = left + 20;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_serverip), tmp_serverip, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entry_serverip), x, y);
+		x = left;
+		y = top + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_port), x, y);
+		x = left + width + delay_width;
+		y = top + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entry_port), x, y);
+		x = left;
+		y = top + delay_height + height + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_user), x, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entryset_user), x, y);
+		x = left;
+		y = top + delay_height + height + delay_height + height + delay_height + height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_pass), x, y);
+		x = left + width + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(entryset_pass), x, y);
 	}
-
 }
 
 static void loadimage(GtkBuilder *builder)
@@ -679,14 +834,23 @@ static void loadimage(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 
-	if (scr_width == 1024 && scr_height == 768 || scr_width == 1440 && scr_height == 900 || scr_width == 1600 && scr_height == 900)
+	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 1080) )
 	{
 		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
 	    g_imagelogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
-	}else if (scr_width == 1920 && scr_height == 1080)
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		g_imageclose = gdk_pixbuf_new_from_file("images2/close_set.png", NULL);
 	    g_imagelogo = gdk_pixbuf_new_from_file("images2/logo.png", NULL);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
+	{
+		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
+	    g_imagelogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
+	}else if ((scr_width == 1366 && scr_height == 768) || (scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
+	    g_imagelogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 	}
 	GObject *image_logo;
 	GObject *image_close;
@@ -720,7 +884,7 @@ void int_tmp(GtkBuilder *builder)
 	int layout2_height = 0;
 	int pic_close_width = 0;
 	int pic_close_height = 0;
-	if (scr_width == 1920 && scr_height == 1080)
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 	 	layout3_width = 800;
 		layout3_height = 560;
@@ -735,8 +899,8 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_sysresol), 12);
 		setctrlFont(GTK_WIDGET(label_resolution), 12);
 	}
-	else if (scr_width == 1024 && scr_height == 768 || scr_width == 1440 && scr_height == 900 ||
-		scr_width == 1600 && scr_height == 900)
+	else if ( (scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
 	{
 	    layout2_width = 500;
 		layout2_height = 30;
@@ -783,6 +947,56 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_sysresol), 9);
 		setctrlFont(GTK_WIDGET(comboboxtext_resol), 9);
 		setctrlFont(GTK_WIDGET(label_resolution), 9);
+		setctrlFont(GTK_WIDGET(btn_save), 9);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024)|| (scr_width == 1366 && scr_height == 768) || 
+		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
+	{
+		layout2_width = 500;
+		layout2_height = 30;
+		layout3_width = 500;
+	 	layout3_height = 470;
+		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_resolution), 8, 8);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_manualresol), 8, 8);
+		gtk_widget_set_size_request(GTK_WIDGET(label_resolution), 100, 20);
+		gtk_widget_set_size_request(GTK_WIDGET(label_sysresol), 60, 20);
+		gtk_widget_set_size_request(GTK_WIDGET(btnset_close), pic_close_width, pic_close_height);
+		int x,y = 0;
+		int left = 30;
+		int delay_height = 10;
+		int delay_width = 10;
+		int width_image = 15;
+		int height_image = 15;
+		int top = layout3_height - 240;
+		x = left;
+		y = top;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(separator2), x, y);
+		x = left * 2;
+		y = top + delay_height * 2;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_resolution), x, y);
+		x = left * 2 + width_image + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_resolution), x, y);
+		//manual_resol
+		x = left * 2;
+		y = top + delay_height * 2 + height_image + delay_height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_manualresol), x, y);
+		x = left *2 + width_image;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_sysresol), x, y);
+		x = left *2 + width_image + delay_width + 60 + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(comboboxtext_resol), x, y);
+		//btn_save
+		x = 420 - delay_width - 62;
+		y = 370 - 29 - delay_height*2;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(btn_save), x, y);
+		//btn_close
+	    x = layout2_width - delay_width - pic_close_width;
+		y = (layout2_height - pic_close_height)/2;
+		gtk_layout_move((GtkLayout *)layout2, GTK_WIDGET(btnset_close), x, y);
+		setctrlFont(GTK_WIDGET(box_menu), 11);
+		setctrlFont(GTK_WIDGET(label_sysresol), 9);
+		setctrlFont(GTK_WIDGET(comboboxtext_resol), 9);
+		setctrlFont(GTK_WIDGET(label_resolution), 9);
+		setctrlFont(GTK_WIDGET(btn_save), 9);
 	}
 }
 
@@ -865,11 +1079,20 @@ int  SY_Setting_main ()
   screen = gdk_screen_get_default();
   int scr_width = gdk_screen_get_width(screen);
   int scr_height = gdk_screen_get_height(screen);
-  if (scr_width == 1024 && scr_height == 768 ||
-  	   scr_width == 1440 && scr_height == 900 ||
-  	   scr_width == 1600 && scr_height == 900)
+  if ((scr_width == 1024 && scr_height == 768) ||
+  	   (scr_width == 1440 && scr_height == 900) ||
+  	   (scr_width == 1600 && scr_height == 900) || 
+  	  (scr_width == 1600 && scr_height == 1080) )
   {
 	 setctrlFont(GTK_WIDGET(view), 10);
+  }else if ((scr_width == 1280 && scr_height == 720) || 
+        (scr_width == 1280 && scr_height == 768) ||
+        (scr_width == 1280 && scr_height == 1024) ||
+        (scr_width == 1366 && scr_height == 768) || 
+        (scr_width == 1368 && scr_height == 768) ||
+        (scr_width == 1360 && scr_height == 768) )
+  {
+	 setctrlFont(GTK_WIDGET(view), 9);
   }
   selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
   gtk_box_pack_start(GTK_BOX(boxmenu), view, TRUE, TRUE, 1);
@@ -916,7 +1139,7 @@ int  SY_Setting_main ()
   /* Connect signal handlers to the constructed widgets. */
   gtk_window_set_title(window, "配置");
   g_signal_connect(selection, "changed", G_CALLBACK(on_changed), NULL);
-  g_signal_connect(window, "window-state-event", G_CALLBACK(on_window_state_event), NULL);
+  //g_signal_connect(window, "window-state-event", G_CALLBACK(on_window_state_event), NULL);
 //  g_signal_connect (button_11, "clicked", G_CALLBACK (on_button_11_clicked), NULL);
   GObject *eventbox_resolution;
   eventbox_resolution = gtk_builder_get_object (builder, "eventbox_resolution");
@@ -950,8 +1173,7 @@ int  SY_Setting_main ()
   btnset_close = gtk_builder_get_object (builder, "btnset_close");
   gtk_label_set_text(GTK_LABEL(label_title), "配 置");
   g_signal_connect(GTK_BUTTON(btnset_close), "clicked", G_CALLBACK(close_button_clicked), NULL);
-  //end
-  gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  //end                 
   gtk_widget_show_all((GtkWidget *)window);
   gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);

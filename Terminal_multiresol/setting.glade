@@ -17,6 +17,7 @@
     <property name="window_position">center</property>
     <property name="decorated">False</property>
     <property name="gravity">center</property>
+    <property name="type">GTK_WINDOW_TOPLEVEL</property>
     <property name="has_resize_grip">False</property>
     <child>
       <object class="GtkLayout" id="layout1">

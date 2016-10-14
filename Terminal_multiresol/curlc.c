@@ -119,12 +119,15 @@ int Http_Request(char *url, char *user, char* password)
     if (p == NULL)
     {
         headers = curl_slist_append(headers, "filter: true");
+	    headers = curl_slist_append(headers, "Prefer: persistent-auth"); //add by kevin 2016/9/30
+		headers = curl_slist_append(headers, "Connection: close"); //add by kevin 2016/9/30
         curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(g_curl, CURLOPT_URL, url);
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+	    curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
         res = curl_easy_perform(g_curl);
         curl_slist_free_all(headers);
     }else{
@@ -190,6 +193,7 @@ int Http_Post(char *url, char *user, char* password, char *data)
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(g_curl, CURLOPT_POSTFIELDSIZE, strlen(data));
     curl_easy_setopt(g_curl, CURLOPT_COPYPOSTFIELDS, data);
+	curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
     //printf("Http_Post url :%s.\n", szbuf);
     //printf("Http_Post user and password :%s.\n", szbuf);
 
@@ -241,6 +245,7 @@ int Http_Request2(char *url, char *user, char* password, char *path)
     curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+	 curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
     //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(szbuf));
     //curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, szbuf);
     //printf("Http_request2 url :%s.\n", url);
