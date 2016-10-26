@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h> 
+#include <time.h>
 
 
 #define MAX_CTRL_SIZE   10
@@ -69,11 +69,14 @@ static cairo_surface_t *surface_topwindow = NULL;
 static cairo_surface_t *surface_vmlistwindow = NULL;
 static GtkBuilder *g_builder;
 static pthread_t tid;
-static GObject *g_window; 
+static GObject *g_window;
 
 extern void Net_status_checking(GtkBuilder *builder, GtkWidget *widget);
 extern GdkPixbuf *create_pixbuf(const gchar * filename);
 int g_mainExit = 0;
+extern GObject *g_settingwindow;
+static gint my_button_handler(GtkWidget *widget,GdkEvent *event);
+
 
 static void setfontcolor(GtkWidget * widget, char *value)
 {
@@ -92,7 +95,7 @@ static void setctrlFont(GtkWidget * widget, int nsize)
 static gboolean update_label (GtkLabel *label)
 {
 	//gtk_entry_progress_pulse (label);
-	// time_t   timep;   
+	// time_t   timep;
 	// time   (&timep);
 	// printf( "%s ",ctime(&timep));
 	struct tm *ptm;
@@ -100,12 +103,12 @@ static gboolean update_label (GtkLabel *label)
 	int y,m,d,h,n,s;
 	ts = time(NULL);
 	ptm = localtime(&ts);
-	y = ptm-> tm_year+1900;     //��
-	m = ptm-> tm_mon+1;        //��
-	d = ptm-> tm_mday;         //��
+	y = ptm-> tm_year+1900;     //��
+	m = ptm-> tm_mon+1;        //��
+	d = ptm-> tm_mday;         //��
 	h = ptm-> tm_hour;         //ʱ
-	n = ptm-> tm_min;          //��
-	s = ptm-> tm_sec;          //��
+	n = ptm-> tm_min;          //��
+	s = ptm-> tm_sec;          //��
 	char sztime[100] = {0};
 	sprintf(sztime, "%d : %02d", h, n);
 	gtk_label_set_text(label, sztime);
@@ -213,6 +216,8 @@ static void  on_btn_setting_leave(GtkButton *button,  gpointer   user_data)
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_setNor);
 }
 
+extern int showsettingwindow;
+
 static void  on_btn_setting_pressed(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_setPress);
@@ -233,10 +238,10 @@ static void  on_btn_exit_leave(GtkButton *button,  gpointer   user_data)
 
 static void  on_btn_exit_pressed(GtkButton *button,  gpointer   user_data)
 {
-   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_shutdownPress);
-   SettopSensitive(0);
-	 SYMsgDialog(11, "您确定要关闭系统吗？");
-	 SettopSensitive(1);
+	gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_shutdownPress);
+	SettopSensitive(0);
+	SYMsgDialog(11, "您确定要关闭系统吗？");
+	SettopSensitive(1);
 }
 
 static void  on_btn_exit_enter(GtkButton *button,  gpointer   user_data)
@@ -338,7 +343,7 @@ static void get_cirfour(int scr_width, int scr_height, int *cir_width, int *cir_
 		//do code
 	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
-		//do code 
+		//do code
 		*cir_width = 178;
 		*cir_height = 178;
 	}
@@ -357,7 +362,7 @@ static void create_surfaces()
 	screen = gdk_screen_get_default();
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
-	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)  || 
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)  ||
 		(scr_width == 1280 && scr_height == 1024) )
 	{
 	    surface1 = cairo_image_surface_create_from_png (IMAGE_MAIN_BACKGROUD);
@@ -633,7 +638,7 @@ static void loadImage()
 		//do code
 	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
-		//do code 
+		//do code
 	    g_shPress = gdk_pixbuf_new_from_file("images2/1366x768/sh_press.png", NULL);
 	    g_shNor = gdk_pixbuf_new_from_file("images2/1366x768/sh_nor.png", NULL);
 
@@ -761,6 +766,13 @@ gboolean on_draw_event (GtkWidget * widget,
     return FALSE;
 }
 
+static void show_netInfo_window()
+{
+	printf("Debug : show_netInfo_window(). \n");
+	SYNetInfoWin();
+}
+
+
 static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout4_height)
 {
 	//cal subctrl button
@@ -802,13 +814,13 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout
 		gdk_pixbuf_get_file_info("images2/1280x720/set_nor.png", &picset_width, &picset_height);
 		gdk_pixbuf_get_file_info("images2/1280x720/exit_nor.png", &picexit_width, &picexit_height);
 		gdk_pixbuf_get_file_info("images2/1280x720/netstatus_up.png", &picnet_width, &picnet_height);
-		//do code 
+		//do code
 	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
 		gdk_pixbuf_get_file_info("images2/1366x768/set_nor.png", &picset_width, &picset_height);
 		gdk_pixbuf_get_file_info("images2/1366x768/exit_nor.png", &picexit_width, &picexit_height);
 		gdk_pixbuf_get_file_info("images2/1366x768/netstatus_up.png", &picnet_width, &picnet_height);
-		//do code 
+		//do code
 	}
 	setctrl_size((GtkWidget *)button2, picexit_width, picexit_height);
 	setctrl_size((GtkWidget *)button1, picset_width, picset_height);
@@ -829,8 +841,69 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout
 	//net button
 	x = scr_width - nspace_width - picexit_width - ndelay - picset_width - ndelay - picnet_width;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_netstatus), x, y);
-
+	GtkWidget *menu_item;
+	//GtkWidget *menubar;
+	//GtkWidget *vbox;
+	//vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	//gtk_container_add(GTK_WINDOW(g_window), vbox);
+	//menubar = gtk_menu_bar_new();
+	//gtk_box_pack_start((GtkBox *)vbox, menubar, FALSE, FALSE, 0);
+	//menu_item = gtk_menu_item_new_with_label("Network Info");
+	//gtk_menu_shell_append(GTK_MENU_BAR(menubar),menu_item);
+	GtkWidget * menu = gtk_menu_new();
+	//gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),menu);
+	menu_item = gtk_menu_item_new_with_label("详细信息");
+	gtk_menu_shell_append(GTK_MENU(menu), menu_item);
+	//gtk_widget_show(vbox);
+	//gtk_widget_show(menubar);
+	gtk_widget_show(menu_item);
+	gtk_widget_show(menu);
+	g_signal_connect_swapped(G_OBJECT(btn_netstatus),"button_press_event",G_CALLBACK(my_button_handler),G_OBJECT(menu));
+	g_signal_connect(GTK_MENU_ITEM(menu_item), "activate", G_CALLBACK(show_netInfo_window),"详细信息");
 }
+
+//gboolean window_press_event(GtkWidget *widget, GdkEventButton *event, GdkWindowEdge edge)
+//{
+//    if (event->button == 1)
+//    {
+//         if (showsettingwindow == 1)
+//         {
+//             printf("^^^^^^^^^^^^^^^^^^^^^^.\n");
+//			gtk_window_set_keep_above(GTK_WINDOW(g_window), FALSE);
+//			gtk_window_set_keep_above(GTK_WINDOW(g_settingwindow), TRUE);
+//		 	return FALSE;
+//         }
+//    }
+//    return FALSE;
+//}
+
+static gint my_button_handler(GtkWidget *widget,GdkEvent *event)
+{
+	GtkMenu *menu;
+	GdkEventButton *event_button;
+
+	g_return_val_if_fail (widget != NULL, FALSE);
+	g_return_val_if_fail (GTK_IS_MENU (widget), FALSE);
+	g_return_val_if_fail (event != NULL, FALSE);
+
+	// The "widget" is the menu that was supplied when
+	// g_signal_connect_swapped() was called.
+	menu = GTK_MENU(widget);
+
+	if (event->type == GDK_BUTTON_PRESS)
+	{
+	  event_button = (GdkEventButton *) event;
+	  if (event_button->button == GDK_BUTTON_SECONDARY)
+	    {
+	      gtk_menu_popup(menu, NULL, NULL, NULL, NULL,
+	                      event_button->button, event_button->time);
+	      return TRUE;
+	    }
+	}
+
+	return FALSE;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -860,6 +933,7 @@ int main(int argc, char *argv[])
 	int nRet = gtk_builder_add_from_file (builder, "windowts.glade", &error);
 	window = gtk_builder_get_object (builder, "window1");
 	g_window = window;
+	g_mainWindow = window;
 	g_builder = builder;
 	loadcss();
 	create_surfaces();
@@ -917,7 +991,10 @@ int main(int argc, char *argv[])
 	gtk_window_set_icon(GTK_WINDOW(window), create_pixbuf("images2/logo.png"));
 	gtk_window_fullscreen(GTK_WINDOW(window));
 	gtk_window_set_decorated(GTK_WINDOW(window), FALSE); /* hide the title bar and the boder */
-	gtk_widget_show_all((GtkWidget *)window); 
+	//g_signal_connect(G_OBJECT(window), "button-press-event", G_CALLBACK(window_press_event), NULL);
+	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);                    
+	 gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+	gtk_widget_show_all((GtkWidget *)window);
 	gtk_main();
     g_object_unref(G_OBJECT(builder));
 	destroy_surfaces();

@@ -45,54 +45,44 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
+            <child>
+              <object class="GtkButton" id="button_loginout">
+                <property name="name">button_loginout</property>
+                <property name="width_request">28</property>
+                <property name="height_request">29</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
                 <child>
-                  <object class="GtkButton" id="button_loginout">
-                    <property name="name">button_loginout</property>
+                  <object class="GtkImage" id="image_loginout">
                     <property name="width_request">28</property>
                     <property name="height_request">29</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="relief">none</property>
-                    <child>
-                      <object class="GtkImage" id="image_loginout">
-                        <property name="width_request">28</property>
-                        <property name="height_request">29</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="pixbuf">images2/loginout_nor.png</property>
-                      </object>
-                    </child>
+                    <property name="can_focus">False</property>
+                    <property name="pixbuf">images2/loginout_nor.png</property>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
                 </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_exit">
+                <property name="name">button_exit</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="relief">none</property>
                 <child>
-                  <object class="GtkButton" id="button_exit">
-                    <property name="name">button_exit</property>
+                  <object class="GtkImage" id="image_exit">
+                    <property name="width_request">24</property>
+                    <property name="height_request">24</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="relief">none</property>
-                    <child>
-                      <object class="GtkImage" id="image_exit">
-                        <property name="width_request">24</property>
-                        <property name="height_request">24</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="pixbuf">images2/exit_nor.png</property>
-                      </object>
-                    </child>
+                    <property name="can_focus">False</property>
+                    <property name="pixbuf">images2/exit_nor.png</property>
                   </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
                 </child>
+              </object>
+            </child>
             <child>
               <object class="GtkLabel" id="label_login">
                 <property name="name">label_login</property>
@@ -135,15 +125,25 @@
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
                     <child>
-                      <object class="GtkTreeView" id="treeview_vm">
-                        <property name="width_request">1520</property>
+                      <object class="GtkScrolledWindow" id="scrolledwindow1">
+                        <property name="width_request">1522</property>
                         <property name="height_request">1001</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection" id="treeview-selection1"/>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTreeView" id="treeview_vm">
+                            <property name="width_request">1520</property>
+                            <property name="height_request">1001</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="valign">end</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection" id="treeview-selection1"/>
+                            </child>
+                          </object>
                         </child>
                       </object>
                     </child>

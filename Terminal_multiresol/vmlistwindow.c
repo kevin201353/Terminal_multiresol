@@ -64,6 +64,7 @@ char g_shellcmd[MAX_BUFF_SIZE] = {0};
 char g_szUser[MAX_BUFF_SIZE] = {0};  //login user
 char g_szPass[MAX_BUFF_SIZE] = {0};  //login pass
 char g_szVMid[MAX_BUFF_SIZE] = {0};
+static int g_nstate = 0;
 struct Vms_Update g_upVms[MAX_BUFF_SIZE];
 
 static int columnwidth_array[9] = {80,200,200,100,150,100,100,200,200};
@@ -97,6 +98,7 @@ static void get_string_width(char *str, int* width, int* height);
 static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_width, int lay_height);
 
 extern void setctrlFont(GtkWidget * widget, int nsize);
+extern void shell_exec(char *cmd);
 
 //
 static GtkTreeIter * g_iter = NULL;
@@ -117,7 +119,7 @@ static int column_len()
 		columnwidth_array[5] = 60;
 		columnwidth_array[6] = 60;
 		columnwidth_array[7] = 120;
-		columnwidth_array[8] = 60;
+		columnwidth_array[8] = 90;
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		columnwidth_array[0] = 80;
@@ -179,6 +181,8 @@ static void init_ctrl_posit(GtkBuilder *builder)
     layout4 = gtk_builder_get_object (builder, "layout4");
 	layout1 = gtk_builder_get_object (builder, "layout1");
 	treeview_vm = gtk_builder_get_object (builder, "treeview_vm");
+	GtkWidget *scrolled_win;
+	scrolled_win = gtk_builder_get_object(builder, "scrolledwindow1");
 
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
@@ -202,7 +206,7 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		layout1_height = 42;
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
-		layout3_width = 700;
+		layout3_width = 750;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
@@ -266,7 +270,11 @@ static void init_ctrl_posit(GtkBuilder *builder)
 	gtk_widget_set_size_request(GTK_WIDGET(layout1), layout1_width, layout1_height);
 	gtk_widget_set_size_request(GTK_WIDGET(layout4), layout4_width, layout4_height);
 	gtk_widget_set_size_request(GTK_WIDGET(layout3), layout3_width, layout3_height);
+	gtk_widget_set_size_request(GTK_WIDGET(treeview_vm),layout3_width, layout3_height);
+	gtk_widget_set_size_request(GTK_WIDGET(scrolled_win), layout3_width, layout3_height);
 
+	GtkAdjustment *adjust = gtk_adjustment_new(1, 2, layout3_height - 2, 5, 5, 50);
+	gtk_scrolled_window_set_vadjustment((GtkScrolledWindow *)scrolled_win, adjust);
 	//loginout, exit buttion
 	GObject *button_loginout;
 	GObject *button_exit;
@@ -481,6 +489,7 @@ void GetVmsId()
             memset(g_szVMid, 0, sizeof(g_szVMid));
             printf("vmlist window get vms id: %s\n", node->val.vmid);
             strcpy(g_szVMid, node->val.vmid);
+		   g_nstate = node->val.status;
         }
     }
 }
@@ -491,14 +500,24 @@ int UpdateVmsStatus()
     {
          if (g_exitvm)
 			break;
-        //LogInfo(" Debug: vmlist window UpdateVmsStatus ovirt getvm2 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
-        if (Ovirt_GetVm2(ovirt_url, g_szUser, g_szPass, g_upVms[i].szvmid) < 0)
-        {
-            printf("Update vms status failed.\n");
-            return -1;
-        }
-        int nstate = SY_GetVmState(g_upVms[i].szvmid);
-        printf(" 333333 update vm id: %s,  vm state: %d .\n", g_upVms[i].szvmid, nstate);
+        LogInfo(" Debug: vmlist window UpdateVmsStatus ovirt getvm2 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
+//        if (Ovirt_GetVm2(ovirt_url, g_szUser, g_szPass, g_upVms[i].szvmid) < 0)
+//        {
+//            printf("Update vms status failed.\n");
+//            return -1;
+//        }
+//        int nstate = SY_GetVmState(g_upVms[i].szvmid);
+//        printf(" 333333 update vm id: %s,  vm state: %d .\n", g_upVms[i].szvmid, nstate);
+         int nstate = 0;
+		if (Ovirt_GetVms(ovirt_url, g_szUser, g_szPass) < 0)
+		{
+		  LogInfo("UpdateVmsStatus Ovirt get vms failed.\n");
+		  return -1;
+		}
+		if (SY_GetVms() < 0)
+		{
+		    return -1;
+		}
         list_for_each(plist, &head)
         {
             if (g_exitvm)
@@ -506,11 +525,12 @@ int UpdateVmsStatus()
             struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
             if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
             {
-                printf("vms status : %d , nstate : %d.\n", node->val.status, nstate);
+                printf("vms status : %d , old nstate : %d.\n", node->val.status, g_upVms[i].state);
                 char szTmp[20] = {0};
-                if (node->val.status != nstate)
+                if (node->val.status != g_upVms[i].state)
                 {
-                   printf("vmlist window UpdateVmsStatus vms name: %s, vms status : %d , nstate : %d.\n", node->val.name, node->val.status, nstate);
+                    nstate = node->val.status; 
+                   //printf("vmlist window UpdateVmsStatus vms name: %s, vms status : %d , nstate : %d.\n", node->val.name, node->val.status, g_nstate);
                     if (nstate == 0)
                         strcpy(szTmp, "鍏抽棴");
                     else if (nstate == 1)
@@ -524,7 +544,7 @@ int UpdateVmsStatus()
                     else if (nstate == 5)
                         strcpy(szTmp, "姝ｅ湪淇濆瓨");
                     gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
-                    node->val.status = nstate;
+                    g_upVms[i].state = node->val.status;
                 }//if
             }
         } //list
@@ -630,80 +650,89 @@ extern void connectVms()
         { 
         	   SetSymsgContextVm(LOGIN_STATUS_CONNECTING);
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
-		   if (node->val.status == 1)
+		   if (node->val.status != 0)
 		   {
-	            Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid);
-	            SY_GetVmsTicket(szTicket);
-	            //find vm
-	            sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log");
-	            LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
+				Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid);
+				SY_GetVmsTicket(szTicket);
+				//find vm
+				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log");
+				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
 				strcpy(report.uname, g_szUser);
 				strcpy(report.vname, g_vmName);
 				report.action = 2;
-			   send_data(report);
-			   SetSymsgContextVm(LOGIN_SUCCESSED);
-	            system(g_shellcmd);
-	            //Run_Spicy(node->val.ip, node->val.port, szTicket);
+				send_data(report);
+				SetSymsgContextVm(LOGIN_SUCCESSED);
+				//shell_exec(g_shellcmd);
+				wirte_conflag_data("/tmp/syp_reconnect", g_shellcmd);
+				wirte_conflag_data("/tmp/host", node->val.ip);
+				int nRet = system(g_shellcmd);
+				printf("Debug: vmlist connect vm system return = %d.\n", nRet);
 				report.action = 3;
 				send_data(report);
 				break;
-		   }else
-		   {
-				if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
-				{
-				    LogInfo("Debug: vmlistwindow connectVms Ovirt_StartVms() < 0, start vm failed.\n");
-					SetSymsgContextVm(LOGIN_SUCCESSED); // 这里只是让退出提示界面
-					return;
-				}
-				int nRet = 0;
-				int i = 0;
-				for (; i<=10; i++)
-				{ 
-				    if (g_exitvm == 1)
-				    	{
-						SetSymsgContextVm(LOGIN_SUCCESSED); // 这里只是让退出提示界面
-						return;
-					}
-					if (Ovirt_GetVm2(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
-					{
-						LogInfo("Debug: vmlistwindow connectVms Ovirt_GetVm2() < 0, loop 4 number.\n");
-						SetSymsgContextVm(LOGIN_SUCCESSED); // 这里只是让退出提示界面
-						return;
-					}
-					int nstate = SY_GetVmState(node->val.vmid);
-					if (nstate == 1)
-					{
-					    Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid);
-			            SY_GetVmsTicket(szTicket);
-			            //find vm
-			            sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log");
-			            LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
-						strcpy(report.uname, g_szUser);
-						strcpy(report.vname, g_vmName);
-						report.action = 2;
-					   send_data(report);
-			            nRet = system(g_shellcmd);
-						report.action = 3;
-						send_data(report);
-						SetSymsgContextVm(LOGIN_SUCCESSED);
-					   break;
-					}
-					if (nstate == 0 && i==10)
-					{
-					    printf("Debug:  connectVms vm state == 0 , i== 10.\n");
-						nRet = -1;
-						break;
-					}
-					sleep(1);
-				}
-				if (nRet != 0)
-				{
-				     printf("Debug:  connectVms symsgdialog param 7.\n");
-					 SetSymsgContextVm(LOGIN_STATUS_VM_DESKTOP);
-				}
-		   }//else
-        }
-    }
+		   	}else
+		   	{
+		   		SetSymsgContextVm(LOGIN_STATUS_VM_DESKTOP);
+				SetSymsgContextVm(LOGIN_SUCCESSED);
+			}
+//		   else
+//		   {
+//		   		char szIP[MAX_BUFF_SIZE] = {0};
+//				int nport = 5900;
+//				if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
+//				{
+//					LogInfo("Debug: vmlistwindow connectVms Ovirt_StartVms() < 0, start vm failed.\n");
+//					SetSymsgContextVm(LOGIN_SUCCESSED); // 这里只是让退出提示界面
+//					return;
+//				}
+//				SetSymsgContext(LOGIN_STATUS_GETVMS);
+//				sleep(3);
+//				if (Ovirt_Login(ovirt_url, g_szUser, g_szPass) < 0)
+//				{
+//					LogInfo("main Ovirt login failed.\n");
+//					SetSymsgContext(LOGIN_STATUS_FAILED);
+//					return;
+//				}
+//				if (Ovirt_GetVms(ovirt_url, g_szUser, g_szPass) < 0)
+//				{
+//					LogInfo("main Ovirt get vms failed.\n");
+//					SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+//					return;
+//				}
+//				if (SY_GetVms() < 0)
+//				{
+//					SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+//					return;
+//				}
+//				list_for_each(plist, &head)
+//				{
+//					struct Vms_Node *node1 = list_entry(plist, struct Vms_Node, list);
+//					if (strcmp(node1->val.vmid, node->val.vmid) == 0)
+//					{
+//						strcpy(szIP, node->val.ip);
+//						nport = node->val.port;
+//						break;
+//					}
+//				}
+//				if (strlen(szIP) <= 0)
+//					return;
+//				printf("connectDisVm 222 .\n");
+//				Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid);
+//				SY_GetVmsTicket(szTicket);
+//				//find vm
+//				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log");
+//				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
+//				strcpy(report.uname, g_szUser);
+//				strcpy(report.vname, g_vmName);
+//				report.action = 2;
+//				send_data(report);
+//				system(g_shellcmd);
+//				report.action = 3;
+//				send_data(report);
+//				SetSymsgContextVm(LOGIN_SUCCESSED);
+//		   }//else
+        }//if
+    }//list
 }
 
 static void on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
@@ -817,7 +846,7 @@ static void operate_vm(int nflag)
 			break;
 		case 1:
 			{
-				if (nstatus == 0)
+				if (nstatus == 0 || nstatus == 2)
 				{
 					if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
 					{
@@ -877,10 +906,13 @@ static void  on_btn_logout_pressed(GtkButton *button,  gpointer   user_data)
 	showvmlistwindow = 0;
 	cleanVms();
 	if (g_window != NULL)
-	{
+	{  
+	    printf("ddddddddddddddddd.\n");
 	    gtk_widget_destroy((GtkWidget *)g_window);
+		printf("ffffffffffffffffff.\n");
 		g_window = NULL;
 	    gtk_main_quit();
+		printf("cccccccccccccccc.\n");
 	}
 }
 
@@ -914,10 +946,10 @@ static void  on_btn_exit_enter(GtkButton *button,  gpointer   user_data)
 
 static void  on_vmlist_changed(GtkWidget *widget,  GtkTreeModel *model)
 {
-   GtkTreeIter iter;
+   //GtkTreeIter iter;
    char *value;
-   if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &iter)) {
-       gtk_tree_model_get(model, &iter, NAME_1, &value, -1);
+   if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &g_iter)) {
+       gtk_tree_model_get(model, &g_iter, NAME_1, &value, -1);
        //printf("list changed 4444444  NAME_1: %s\n", value);
        memset(g_vmName, 0, sizeof(g_vmName));
        memcpy(g_vmName, value, strlen(value));
@@ -1469,6 +1501,7 @@ void SY_vmlistwindow_main()
 	report.action = 4;
 	send_data(report);
 	close_tcpclient();
+	//Oivrt_closeSession();
 }
 
 /* 鍔熻兘:      璁剧疆鎺т欢瀛椾綋澶у皬
@@ -1568,6 +1601,7 @@ void adddata()
   /* Add all of the products to the GtkListStore. */
   //vms data deal with
   //insert vms data into list
+
   list_for_each(plist, &head)
   {
       struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);

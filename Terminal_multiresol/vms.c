@@ -263,7 +263,6 @@ void FindNode(char* value)
                         strcpy(pNode->val.ip, tmp_node->child->value.text.string);
                     }
 
-                    //port
                     tmp_node = mxmlFindElement(heading, node, "port",
                                               NULL, NULL,
                                               MXML_DESCEND);
@@ -273,6 +272,8 @@ void FindNode(char* value)
                        printf("pNode-val.port : %d.\n", pNode->val.port);
                        LogInfo("Debug: pNode-val.port :%d.\n", pNode->val.port);
                     }//os
+
+				  //sc
                     g_nVmCount++;
                     list_add(&pNode->list, &head);
                  }//if vm

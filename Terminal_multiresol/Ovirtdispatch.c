@@ -111,6 +111,30 @@ int Ovirt_GetVm2(char *url, char *user, char* password, char *vm)
     return 0;
 }
 
+int Ovirt_GetVm3(char *url, char *vm)
+{
+    if (url == NULL && strlen(url) <= 0)
+        return -1;
+    memset(g_szUrl, 0, MAX_DATA_SIZE);
+    strcat(g_szUrl, url);
+    strcat(g_szUrl, STR_OVIRT_GET_VMS);
+    strcat(g_szUrl, "/");
+    strcat(g_szUrl, vm);
+    LogInfo("Debug: Ovirt_GetVm3 url : %s.\n", g_szUrl);
+    char szPath[MAX_BUFF_SIZE] = {0};
+    strcpy(szPath, "tmp/");
+    strcat(szPath, vm);
+    strcat(szPath,  ".xml");
+    if (Http_Request3(g_szUrl, szPath) < 0)
+    {
+       printf("Ovirt get vm3 failed.\n");
+       LogInfo("Debug: Ovirt get vm3 failed.\n");
+       return SY_OVIRT_GETVMS_FAILED;
+    }
+    return 0;
+}
+
+
 int Ovirt_GetClusters(char *url, char *user, char* password)
 {
     if (url == NULL && strlen(url) <= 0)

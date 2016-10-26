@@ -9,11 +9,11 @@ TIME=`date +"%Y-%m-%d %T"`
 
 ALLFILE=thrdMsgWindow.c checkaddress.c SYMsgDialog.c resol.c loginwindow.c vmlistwindow.c\
           resolts_main.c networkSet.c setting.c curlc.c \
-					Ovirtdispatch.c  Loginfo.c vms.c configxml.c logincit.c aboutwindow.c testnet.c SYMsgDialog2.c tcpclient.c  SYMsgDialogVm.c
+					Ovirtdispatch.c  Loginfo.c vms.c configxml.c logincit.c aboutwindow.c testnet.c SYMsgDialog2.c tcpclient.c  SYMsgDialogVm.c  netInfoWin.c
 ALLOBJECT=shencloud-ui thrdMsgWindow.o checkaddress.o SYMsgDialog.o resol.o \
 									resolts_main.o networkSet.o setting.o loginwindow.o \
 									curlc.o Ovirtdispatch.o \
-									Loginfo.o vms.o configxml.o vmlistwindow.o  logincit.o aboutwindow.o testnet.o SYMsgDialog2.o tcpclient.o  SYMsgDialogVm.o
+									Loginfo.o vms.o configxml.o vmlistwindow.o  logincit.o aboutwindow.o testnet.o SYMsgDialog2.o tcpclient.o  SYMsgDialogVm.o  netInfoWin.o
 all: .INIT clean shencloudui
 
 shencloudui:

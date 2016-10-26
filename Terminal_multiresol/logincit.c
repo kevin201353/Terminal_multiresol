@@ -338,7 +338,10 @@ static init_ctrl_pos(GtkBuilder *builder)
 	int delay_width = 40;
 	int space_width = 10;
 	x = scr_width - delay_width - pic_loginout_width;
-	y = (layout1_height - pic_loginout_height)/2;
+	if (scr_width == 1920 && scr_height == 1080)
+		y = (layout1_height - pic_loginout_height)/2 - 30;
+	else 
+		y = (layout1_height - pic_loginout_height)/2;
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(btn_citPrev), x, y);
 	x = scr_width - delay_width - pic_shutdown_width;
 	y = layout3_height - delay_width - pic_shutdown_height;

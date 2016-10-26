@@ -6,6 +6,7 @@
 #include <string.h>
 #include <pango/pango.h>
 #include "tcpclient.h"
+#include <unistd.h>
 
 #define IMAGE_MAIN_BACKGROUD          "images2/login.png"
 #define IMAGE_LOGO_VM                 "images2/wm_logo.png"
@@ -70,6 +71,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
     {
         case GDK_KEY_Return:
             {
+			  printf("Debug : key press enter , gdk_key_return.\n");
                SYMsgDialog(0, "�������ӣ����Ժ� ... ");
             }
             break;
@@ -167,7 +169,7 @@ int initOvirtUrl()
      }
      strcpy(ovirt_url, "https://");
      strcat(ovirt_url, serverInfo.szIP);
-     strcat(ovirt_url, "/ovirt-engine/");
+     strcat(ovirt_url, "/");
      return 0;
 }
 
@@ -266,20 +268,43 @@ static char* GetVmsName(char *vmid)
 	return szName;
 }
 
+static int g_xtid = 0;
+static char szcmd[MAX_BUFF_SIZE] = {0};
+static void thrd_exec()
+{
+    printf("thrd_exec @@@@@  cmd = %s.\n", szcmd);
+	FILE *fp;
+	if((fp = popen(szcmd, "r")) == NULL) {
+         perror("file open failed.");
+		 return;
+	}
+	pclose(fp);
+}
+
+void shell_exec(char *cmd)
+{
+   strcpy(szcmd, cmd);
+   if ( pthread_create(&g_xtid, NULL, thrd_exec, NULL) !=0 ) {
+	    printf("shell_exec , Create thread error!\n");
+	};
+}
 static void connectDisVm(char *ip, int port, char *vmid)
 {
     if ( vmid == NULL || strlen(vmid) <= 0 )
 		return;
-    if ( ip == NULL || strlen(ip) <= 0 )
-		return;
-
+    printf("connectDisVm 111 .\n");
+	char szIP[MAX_BUFF_SIZE] = {0};
+	int nport = port;
+	strcpy(szIP, ip);
 	//one vm
 	//add by kevin
+	SetSymsgContext(LOGIN_STATUS_CONNECTING);
 	if (Ovirt_GetVm2(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
 	{
 	    LogInfo("Debug: connectDisVm Ovirt_GetVm2() < 0.\n");
 	    return;
 	}
+	printf("connectDisVm 222 .\n");
 	int nstate = SY_GetVmState(vmid);
 	if (nstate == 0) //vm is close
 	{
@@ -288,22 +313,46 @@ static void connectDisVm(char *ip, int port, char *vmid)
 		    LogInfo("Debug: connectDisVm Ovirt_StartVms() < 0, start vm failed.\n");
 			return;
 		}
-		int i=0;
-		for (; i<=10; i++)
+		SetSymsgContext(LOGIN_STATUS_GETVMS);
+		if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt login failed.\n");
+	        SetSymsgContext(LOGIN_STATUS_FAILED);
+	        return;
+	    }
+		int nflag = 0;
+		for(;;)
 		{
-			if (Ovirt_GetVm2(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
-			{
-				LogInfo("Debug: connectDisVm Ovirt_GetVm2() < 0, loop 4 number.\n");
-				return;
-			}
-			int nstate = SY_GetVmState(vmid);
-			if (nstate == 1)
-			{
-			   break;
-			}
-			sleep(1);
+			if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+		    {
+		        LogInfo("main Ovirt get vms failed.\n");
+		        SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+		        return;
+		    }
+			if (SY_GetVms() < 0)
+	        {
+	            SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+	            return;
+	        }
+			 list_for_each(plist, &head)
+	          {
+				struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+				if (strcmp(node->val.vmid, vmid) == 0 && node->val.status != 0)
+				{
+					strcpy(szIP, node->val.ip);
+					nport = node->val.port;
+					SetSymsgContext(LOGIN_SUCCESSED);
+					nflag = 1;
+					break;
+				}
+			 }
+			 if (nflag == 1)
+			 	break;
+			 sleep(2);
 		}
+		printf("connectDisVm 222 .\n");
 	}
+	printf("connectDisVm 444 .\n");
 	Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid);
     char szTicket[MAX_BUFF_SIZE] = {0};
     char shellcmd[MAX_BUFF_SIZE] = {0};
@@ -314,20 +363,39 @@ static void connectDisVm(char *ip, int port, char *vmid)
 		LogInfo("Debug: ShenCloud_login, SY_GetVms() failed. \n");
 		return;
 	}
+	printf("connectDisVm 555 .\n");
 	strcpy(report.uname, g_loginfo.user);
 	strcpy(report.vname, GetVmsName(vmid));
 	report.action = 1; 
 	send_data(report);
 	report.action = 2;
 	send_data(report);
-    sprintf(shellcmd, "spicy -h %s -p %d -w %s -f >> %s", ip, port, szTicket, "/var/log/shencloud/spicy.log");
+	if (strcmp(szTicket, "") == 0)
+		sprintf(shellcmd, "spicy -h %s -p %d -f >> %s", szIP, nport, "/var/log/shencloud/spicy.log");
+    else
+    		sprintf(shellcmd, "spicy -h %s -p %d -w %s -f >> %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log");
     LogInfo("Debug: login window directly connect vms  : %s. \n", shellcmd);
+    wirte_conflag_data("/tmp/syp_reconnect", shellcmd);
+	wirte_conflag_data("/tmp/host", szIP);
+    //shell_exec(shellcmd);
     system(shellcmd);
 	report.action = 3;
     send_data(report);
 	report.action = 4;
 	send_data(report);
 	close_tcpclient();
+	close_loginwindow();
+}
+
+void close_loginwindow()
+{
+	 if (g_window != NULL)
+    {
+	    gtk_widget_destroy((GtkWidget *)g_window);
+	    gtk_main_quit();
+    	}
+    showloginwindow = 0;
+    g_loginExit = 0;
 }
 
 int ShenCloud_login()
@@ -336,26 +404,23 @@ int ShenCloud_login()
     if (get_ctrldata() < 0)
       return -1;
     SetSymsgContext(LOGIN_STATUS_CONNECTING);
-    if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
-    {
-        LogInfo("main Ovirt login failed.\n");
-        SetSymsgContext(LOGIN_STATUS_FAILED);
-        g_loginExit = 1;
-        return -1;
-    }
-    //write login info
-    if (g_selectProto == 0)
-        SaveLogin(g_loginfo);
-    if (g_selectProto == 1)
-        SaveMirLogin(g_loginfo);
-    /*if (g_selectProto == 3)
-        SaveVMareLogin(g_loginfo);*/
-    if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
-    {
-        LogInfo("main Ovirt get vms failed.\n");
-        SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
-        return -1;
-    }
+	if (g_selectProto == 0)
+	{
+	    if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt login failed.\n");
+	        SetSymsgContext(LOGIN_STATUS_FAILED);
+	        g_loginExit = 1;
+	        return -1;
+	    }
+	        SaveLogin(g_loginfo);
+	    if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt get vms failed.\n");
+	        SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+	    }
+	}
     //获取服务器虚拟机列表数据
     if (g_selectProto == 0)  //shencloud
     {
@@ -364,7 +429,6 @@ int ShenCloud_login()
             SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
             return -1;
         }
-        //SYmsgCaller(SYMsgFun, "连接成功，获取虚拟机信息 ... ");
         SetSymsgContext(LOGIN_STATUS_GETVMS);
         LogInfo("login server shencloud, get vm  count : %d.\n", g_nVmCount);
         if (g_nVmCount == 1)
@@ -374,15 +438,20 @@ int ShenCloud_login()
             list_for_each(plist, &head)
             {
                 struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-                LogInfo("Debug: login window directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s.\n", g_loginfo.user, g_loginfo.pass);
-			   connectDisVm(node->val.ip, node->val.port, /*"f8a215b5-1487-4de7-9cb5-a971ff413566"*/node->val.vmid); //add by kevin 2016/9/30
+				if (node != NULL)
+				{
+					LogInfo("Debug: login window directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s, vmid = %s, ip = %s.\n", g_loginfo.user, g_loginfo.pass, node->val.vmid, node->val.ip);
+					connectDisVm(node->val.ip, node->val.port, node->val.vmid); //add by kevin 2016/9/30
+					return 0;
+				}
             }
         }
     }
     int nRet = 0;
     if (g_selectProto == 1)
     {
-        LogInfo("login server mirfeerdp , directly connect vm.\n");
+        SaveMirLogin(g_loginfo);
+        LogInfo("login server mirfeerdp , directly connect vm, user = %s, pass = %s , ip =%s.\n", g_loginfo.user, g_loginfo.pass, g_loginfo.ip);
         nRet = Run_FreeRDP(g_loginfo.user, g_loginfo.pass, g_loginfo.ip);
         if (nRet < 0)
         {
@@ -398,36 +467,7 @@ int ShenCloud_login()
             return -1;
         }
     }
-    /*if (g_selectProto == 3)
-    {
-        // 创建线程tid，且线程函数由thrd_func指向，是thrd_func的入口点，即马上执行此线程函数
-        if ( pthread_create(&tid, NULL, thrd_Vmarefunc, NULL) !=0 ) {
-            printf("Create vmare thread error!\n");
-        }
-    }*/
-    //SYmsgCaller(SYMsgFun, "登录完成!");
     SetSymsgContext(LOGIN_SUCCESSED);
-    //打印从服务器获取的虚拟机列表数据
-  /*  //test use
-    list_for_each(plist, &head)
-    {
-        struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-        printf("main get vms name = %s.\n", node->val.name);
-        printf("main get vms os = %s.\n", node->val.os);
-        printf("main get vms status = %d.\n", node->val.status);
-        printf("main get vms cpu count = %d.\n", node->val.vcpu);
-        printf("main get vms memory = %ld.\n", node->val.memory);
-        printf("main get vms ip = %s.\n", node->val.ip);
-        printf("main get vms usb strategy = %d.\n", node->val.usb);
-    }*/
-    //test
-    if (g_window != NULL)
-    {
-	    gtk_widget_destroy((GtkWidget *)g_window);
-	    gtk_main_quit();
-    	}
-    showloginwindow = 0;
-    g_loginExit = 0;
     return 0;
 }
 
@@ -1390,7 +1430,6 @@ static void init_entry_event()
 	g_signal_connect(G_OBJECT(entry_port), "insert-text", G_CALLBACK(on_entry_port_insert_text), NULL);
 }
 
-
 void SY_loginwindow_main()
 {
 	if (showloginwindow == 1)
@@ -1481,6 +1520,11 @@ void SY_loginwindow_main()
 	gtk_window_fullscreen(GTK_WINDOW(window));
 	gtk_window_set_decorated(GTK_WINDOW(window), FALSE); /* hide the title bar and the boder */
 	//gtk_widget_show_all((GtkWidget *)window);
+	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);                    
+     gtk_window_set_modal (GTK_WINDOW (window), TRUE);
+	 gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+	gtk_window_set_transient_for(GTK_WINDOW(window), g_mainWindow);
+    gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
 	gtk_main();
     g_object_unref(G_OBJECT(builder));
 	destroy_surfaces();

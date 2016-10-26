@@ -113,34 +113,32 @@ int Http_Request(char *url, char *user, char* password)
     //strcat(szbuf, "@internal");
     strcat(szbuf, ":");
     strcat(szbuf, password);
-    char * p = strstr(user, "internal");
+    char * p = strstr(user, "admin@internal");
     struct curl_slist *headers = NULL;
     CURLcode res;
     if (p == NULL)
     {
+        printf("Debug:###########    00000 filter : true.\n");
         headers = curl_slist_append(headers, "filter: true");
-	    headers = curl_slist_append(headers, "Prefer: persistent-auth"); //add by kevin 2016/9/30
-		headers = curl_slist_append(headers, "Connection: close"); //add by kevin 2016/9/30
+	    headers = curl_slist_append(headers, "Prefer: persistent-auth");
+		headers = curl_slist_append(headers, "Connection: close");
         curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(g_curl, CURLOPT_URL, url);
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	    curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
+	   curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);  //add http timeout
         res = curl_easy_perform(g_curl);
         curl_slist_free_all(headers);
     }else{
+    		 printf("Debug:###########    00000 111 filter : true.\n");
         curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(g_curl, CURLOPT_URL, url);
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-        //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(szbuf));
-        //curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, szbuf);
-        //printf("Http_request url :%s.\n", url);
-        //printf("Http_request user and password :%s.\n", szbuf);
-
+	    curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
         if (g_curl == NULL)
         {
             printf("http request g_curl == null.\n");
@@ -168,21 +166,28 @@ int Http_Post(char *url, char *user, char* password, char *data)
         printf("Http_Post g_curl == null ,return.\n");
         return -1;
     }
-    pthread_mutex_lock( &g_mutex1 );
+   // pthread_mutex_lock( &g_mutex1 );
     if((g_ticket = fopen(FILE_OVIRT_TICKET_PATH,"w")) == NULL)
     {
-        pthread_mutex_unlock( &g_mutex1 );
+        //pthread_mutex_unlock( &g_mutex1 );
         printf("http_post fopen ticket xml file failed.\n");
         Close_Session();
         return -1;
     }
-    pthread_mutex_unlock( &g_mutex1 );
+    //pthread_mutex_unlock( &g_mutex1 );
     char szbuf[512] = {0};
     strcat(szbuf, user);
     //strcat(szbuf, "@internal");
     strcat(szbuf, ":");
     strcat(szbuf, password);
     struct curl_slist *headers = NULL;
+	char * p = strstr(user, "admin@internal");
+	if (p == NULL)
+	{
+		headers = curl_slist_append(headers, "filter: true");
+	}
+	headers = curl_slist_append(headers, "Prefer: persistent-auth");
+	headers = curl_slist_append(headers, "Connection: close");
     headers = curl_slist_append(headers, "Content-Type: application/xml");
     curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);// 改协议头
     curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
@@ -193,9 +198,7 @@ int Http_Post(char *url, char *user, char* password, char *data)
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(g_curl, CURLOPT_POSTFIELDSIZE, strlen(data));
     curl_easy_setopt(g_curl, CURLOPT_COPYPOSTFIELDS, data);
-	curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
-    //printf("Http_Post url :%s.\n", szbuf);
-    //printf("Http_Post user and password :%s.\n", szbuf);
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10); //add http timeout
 
     CURLcode res = curl_easy_perform(g_curl);
     /* Check for errors */
@@ -218,17 +221,51 @@ int Http_Post(char *url, char *user, char* password, char *data)
    return 0;
 }
 
+int Http_Request3(char *url, char *path)
+{
+	if((g_fptmp = fopen(path,"w")) == NULL)
+	{
+	   printf("http_request3 fopen ovirt info file failed.\n");
+	   return -1;
+	}
+	Start_Session();
+	if (g_curl == NULL)
+	{
+		printf("http request3 g_curl == null.\n");
+	}
+	curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_dataTmp);
+	curl_easy_setopt(g_curl, CURLOPT_URL, url);
+	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
+	
+	CURLcode res = curl_easy_perform(g_curl);
+	if(res != CURLE_OK)
+	{
+		 fprintf(stderr, "curl_easy_perform() failed: %s\n",
+		         curl_easy_strerror(res));
+		 Close_Session();
+		 return -1;
+	}
+	printf("http request3 success, url = %s.\n", url);
+	if (g_fptmp != NULL)
+	{
+		 fclose(g_fptmp);
+		 g_fptmp = NULL;
+	}
+	Close_Session();
+}
 
 int Http_Request2(char *url, char *user, char* password, char *path)
 {
-    pthread_mutex_lock( &g_mutex1 );
+    //pthread_mutex_lock( &g_mutex1 );
     if((g_fptmp = fopen(path,"w")) == NULL)
     {
-        pthread_mutex_unlock( &g_mutex1 );
+        //pthread_mutex_unlock( &g_mutex1 );
         printf("http_request2 fopen ovirt info file failed.\n");
         return -1;
     }
-    pthread_mutex_unlock( &g_mutex1 );
+    //pthread_mutex_unlock( &g_mutex1 );
     Start_Session();
     if (g_curl == NULL)
     {
@@ -236,26 +273,28 @@ int Http_Request2(char *url, char *user, char* password, char *path)
         return -1;
     }
     char szbuf[512] = {0};
+	CURLcode res;
     strcat(szbuf, user);
     //strcat(szbuf, "@internal");
     strcat(szbuf, ":");
     strcat(szbuf, password);
-    curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_dataTmp);
-    curl_easy_setopt(g_curl, CURLOPT_URL, url);
-    curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
-    curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	 curl_easy_setopt(g_curl, CURLOPT_EXPECT_100_TIMEOUT_MS, 10000);  //add http timeout
-    //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(szbuf));
-    //curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, szbuf);
-    //printf("Http_request2 url :%s.\n", url);
-    //printf("Http_request2 user and password :%s.\n", szbuf);
-
-    if (g_curl == NULL)
-    {
-        printf("http request2 g_curl == null.\n");
-    }
-    CURLcode res = curl_easy_perform(g_curl);
+	char * p = strstr(user, "admin@internal");
+	struct curl_slist *headers = NULL;
+    if (p == NULL)
+	{
+	    printf("Debug:###########    filter : true.\n");
+		headers = curl_slist_append(headers, "filter: true");
+		headers = curl_slist_append(headers, "Prefer: persistent-auth");
+		headers = curl_slist_append(headers, "Connection: close");
+    	}
+	curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_dataTmp);
+	curl_easy_setopt(g_curl, CURLOPT_URL, url);
+	curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
+	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
+	res = curl_easy_perform(g_curl);
+	curl_slist_free_all(headers);
    /* Check for errors */
    if(res != CURLE_OK)
    {
@@ -264,7 +303,7 @@ int Http_Request2(char *url, char *user, char* password, char *path)
      Close_Session();
      return -1;
    }
-   printf("http request2 success.\n" );
+   printf("http request2 success, url = %s, szbuf = %s.\n", url, szbuf);
    Close_Session();
    if (g_fptmp != NULL)
    {

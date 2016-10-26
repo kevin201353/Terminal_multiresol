@@ -437,6 +437,7 @@ void SYMsgDialogVm(int nflag, char *msg)
     	}
     g_signal_connect(GTK_BUTTON(btn_OK), "clicked", G_CALLBACK(OK_button_clicked), nflag);
     g_signal_connect(GTK_BUTTON(btn_Cancel), "clicked", G_CALLBACK(Cancel_button_clicked), NULL);
+	pthread_join(tid,NULL); 
     gtk_main();
 	printf("Debug: SYMsgDialogVm main exit.\n");
     g_object_unref (G_OBJECT(builder));

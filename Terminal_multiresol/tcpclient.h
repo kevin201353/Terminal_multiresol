@@ -10,5 +10,8 @@ struct Report {
 int start_tcpclient();
 int send_data(struct Report data);
 int close_tcpclient();
+void del_xxfile();
+void wirte_conflag_data(char* path_file, char* data);
+
 
 #endif  //__TCP_CLIENT_H_

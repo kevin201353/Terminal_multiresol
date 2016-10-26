@@ -1,0 +1,11 @@
+#!/bin/bash
+read -p 'please input upgrade file name: ' file
+echo $file
+dst_path='/usr/local/shencloud/ui/SYCOS_9_Public'
+if [ -d $dst_path ]; then
+   sudo rm -rf $dst_path
+fi
+sudo tar zxvf $file  -C /usr/local/shencloud/ui
+sudo echo "upgrade finish."
+sudo reboot
+exit 0

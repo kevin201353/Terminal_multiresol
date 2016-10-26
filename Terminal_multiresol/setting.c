@@ -17,6 +17,7 @@ GObject * g_layout1;  //服务器Layout
 GObject * g_layout2;  //网络
 GObject * g_layout_about;
 
+GObject *g_settingwindow = NULL;
 static GObject * g_window;
 GdkPixbuf *g_checkNorimage;
 GdkPixbuf *g_checkPressimage;
@@ -25,7 +26,7 @@ static unsigned short g_checkrepass = 0;
 static unsigned short g_checkmanresol = 0;
 extern void SY_NetworkDisableCtrl();
 extern unsigned short saveServerInfo();
-static int showsettingwindow = 0;
+int showsettingwindow = 0;
 extern int check_ipv4_valid(char *s);
 extern void setctrlFont(GtkWidget * widget, int nsize);
 GdkPixbuf *g_imagelogo;
@@ -1031,7 +1032,6 @@ static void init_entry_event()
 	g_signal_connect(G_OBJECT(entry_port), "insert-text", G_CALLBACK(on_entry_port_insert_text), NULL);
 }
 
-
 int  SY_Setting_main ()
 {
   if (showsettingwindow == 1)
@@ -1050,6 +1050,7 @@ int  SY_Setting_main ()
   gtk_builder_add_from_file (builder, "setting.glade", &errort);
   window = gtk_builder_get_object (builder, "window1");
   g_window = window;
+  g_settingwindow = window;
   boxmenu = gtk_builder_get_object (builder, "box_menu");
   boxwindow = gtk_builder_get_object (builder, "box_window");
   g_checkNorimage = gdk_pixbuf_new_from_file(IMAGE_CHECKBUTTON_NOR, NULL);
@@ -1181,7 +1182,9 @@ int  SY_Setting_main ()
   initctrl();
   setResol();
   init_entry_event();
-  gtk_main ();
+  gtk_window_set_transient_for(GTK_WINDOW(window), g_mainWindow);
+  gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  gtk_main();
   g_object_unref (G_OBJECT (builder));
   g_builder2 = NULL;
   return 0;

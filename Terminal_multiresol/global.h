@@ -191,7 +191,8 @@ int ShowMsgWindow();
 void Checking_log();
 void SYMsgDialog2(int nflag, char *msg);
 void SYMsgDialogVm(int nflag, char *msg);
-
-
+int Ovirt_GetVm3(char *url, char *vm);
+int Http_Request3(char *url, char *path);
+void SYNetInfoWin();
 
 #endif //_GLOBAL_H

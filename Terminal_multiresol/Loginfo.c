@@ -42,8 +42,11 @@ void LogInfo(const char* ms, ... )
 				local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec,
 				wzLog);
 	FILE* file = fopen(FILE_DEBUG_LOG_PATH,"a+");
-	fwrite(buffer,1,strlen(buffer),file);
-	fclose(file);
+	if (file != NULL)
+	{
+		fwrite(buffer,1,strlen(buffer),file);
+		fclose(file);
+	}
 	return ;
 }
   

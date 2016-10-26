@@ -15,6 +15,7 @@
 
 
 #define portnumber 12321 //定义端口号：（0-1024为保留端口号，最好不要用）
+#define MAX_DATA_SIZE   100
 static void *thrd_connect(void *arg);
 static pthread_t tid;
 static int sockfd;
@@ -22,6 +23,7 @@ static struct sockaddr_in server_addr; //描述服务器的地址
 static int nbytes = 0;
 static char buffer[1024];
 static int g_thrdExit = 0;
+static int connect_refused = 0;
 static void *thrd_connect(void *arg)
 {
 	//设置为阻塞模式
@@ -37,32 +39,41 @@ static void *thrd_connect(void *arg)
 			break;
 		if(connect(sockfd,(struct sockaddr *)(&server_addr),sizeof(struct sockaddr)) == -1)
 		{
-			fprintf(stderr,"Connect Error:%s\a\n",strerror(errno));
+			//fprintf(stderr,"Connect Error:%s\a\n",strerror(errno));
+			LogInfo("Connect Error:%s\a\n", strerror(errno));
 			gettimeofday(&end,NULL);
 			timer = end.tv_sec - start.tv_sec;
-			printf("tcpclient connect tcpserver timeout value = %d.\n", timer);
+			//printf("tcpclient connect tcpserver timeout value = %d.\n", timer);
+			LogInfo("tcpclient connect tcpserver timeout value = %d.\n", timer);
 			if (timer >= 5)
 			{
-			    printf("tcpclient connect tcpserver timeout exit.\n");
+			    //printf("tcpclient connect tcpserver timeout exit.\n");
+				LogInfo("tcpclient connect tcpserver timeout exit.\n");
 				break;
 			}
 			sleep(1);
 			continue;
 		}
-		printf("tcpclient connect tcpserver successed.\n");
+		//printf("tcpclient connect tcpserver successed.\n");
+		LogInfo("tcpclient connect tcpserver successed.\n");
 		break;
 	}
 	/* 连接成功了 */
-	printf("exit thrd func .\n");
+	//printf("exit thrd func .\n");
+	LogInfo("exit thrd func .\n");
 }
 
 int start_tcpclient()
 {
 	g_thrdExit = 0;
+	connect_refused = 0;
+	if (sockfd >= 0)
+		close(sockfd);
 	/* 客户程序开始建立 sockfd描述符 */
 	if((sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1) // AF_INET:Internet;SOCK_STREAM:TCP
 	{
-		fprintf(stderr,"Socket Error:%s\a\n",strerror(errno));
+		//fprintf(stderr,"Socket Error:%s\a\n",strerror(errno));
+		LogInfo("start_tcpclient Socket Error:%s\a\n", strerror(errno));
 		return -1;
 	}
 	/* 客户程序填充服务端的资料 */
@@ -74,27 +85,144 @@ int start_tcpclient()
 	fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK);
 	 // 创建线程tid，且线程函数由thrd_connect指向，是thrd_connect的入口点，即马上执行此线程函数
     if ( pthread_create(&tid, NULL, thrd_connect, NULL) != 0 ) {
-        fprintf(stderr,"pthread_create Error:%s\a\n",strerror(errno));
+        //fprintf(stderr,"pthread_create Error:%s\a\n",strerror(errno));
+		LogInfo("pthread_create Error:%s\a\n", strerror(errno));
 		return -1;
     }
 	pthread_join(tid, NULL);
+	int nRet = ajust_auth();
+	if ( nRet < 0  || nRet == 2)
+	{
+		connect_refused = 1;
+		close_tcpclient();
+	}
 	return 0;
+}
+
+void del_xxfile()
+{
+	if (access("/tmp/data_xor", F_OK) != 0)
+	{
+		remove("/tmp/data_xor");
+	}
+	if (access("/tmp/data_port", F_OK) != 0)
+	{
+		remove("/tmp/data_port");
+	}
+}
+
+void wirte_conflag_data(char* path_file, char* data)
+{
+	FILE* file = fopen(path_file, "a+");
+	if (file != NULL)
+	{
+		fwrite(data,1,strlen(data), file);
+		fclose(file);
+	}
 }
 
 int send_data(struct Report data)
 {
-	if (nbytes = send(sockfd, &data, sizeof(struct Report), 0) == -1)
+    if (connect_refused == 1)
+		return 0;
+
+	del_xxfile();
+	int nRet = 0;
+	nRet = send(sockfd, &data, sizeof(struct Report), 0);
+	if ( nRet == -1)
 	{
-		fprintf(stderr,"Connect Error:%s\a\n",strerror(errno));
+		//fprintf(stderr,"Connect Error:%s\a\n",strerror(errno));
+		LogInfo("send_data Connect Error:%s\a\n", strerror(errno));
 		return -1;
 	}
+	LogInfo("Debug: send data bytes = %d .\n", nRet);
+	return 0;
+}
+
+
+//reuturn : error -1, failed 0, success 1  refused 2
+int ajust_auth()
+{
+    char data[MAX_DATA_SIZE] = {0};
+	strcpy(data, "thin_view");
+	nbytes = send(sockfd, &data, sizeof(data), 0);
+	if ( nbytes == -1)
+	{
+		//fprintf(stderr,"ajust_auth send data error :%s\n",strerror(errno));
+		LogInfo("ajust_auth send data error:%s\a\n", strerror(errno));
+		return -1;
+	}
+	memset(data, 0, MAX_DATA_SIZE);
+	int ncount = 3;
+	do
+	{
+	    nbytes = read(sockfd, &data, MAX_DATA_SIZE*sizeof(char));
+		if( nbytes == -1)
+		{
+			//fprintf(stderr,"tcpclient read from server data failed :%s\n", strerror(errno));
+			LogInfo("tcpclient read from server data failed :%s\a\n", strerror(errno));
+			return -1;
+		}
+		if (nbytes == 0)
+		{
+		    LogInfo("Debug: ajust_auth reach the end of file .\n");
+			return 0;
+		}
+		
+		//printf("tcpclient ajust auth success, data = %s .\n", data);
+		LogInfo("tcpclient ajust auth success, data = %s .\n", data);
+		if (strcmp(data, "thin_ok") == 0)
+		{
+			return 1;
+		}else if (strcmp(data, "thin_refused") == 0)
+		{
+			return 2;
+		}
+		usleep(600);
+	}while(ncount-- > 0);
 	return 0;
 }
 
 int close_tcpclient()
 {
     g_thrdExit = 1;
-	close(sockfd);
+	int i = 0;
+	char szbuf[MAX_DATA_SIZE] = {0};
+	fd_set fred;
+	struct timeval tv;
+	tv.tv_sec = 1;//超时时间
+	tv.tv_usec = 0;
+	int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, flags | O_NONBLOCK);
+	for (; i<1; i++)
+	{
+		FD_ZERO(&fred);
+		FD_SET(sockfd, &fred);
+		int nRet = select(sockfd + 1, &fred, NULL, NULL, &tv);
+		if (nRet == 0)
+		{
+			//time out
+			LogInfo("tcpclient close_tcpclient select timeout .\n");
+			close(sockfd);
+			return 0;
+		}
+		if (FD_ISSET(sockfd, &fred))
+		{
+			int nret = read(sockfd, &szbuf, MAX_DATA_SIZE);
+			if (nret == -1)
+			{
+			   LogInfo("tcpclient close_tcpclient read data error .\n");
+			   close(sockfd);
+			   return 0;
+			}
+			if (strcmp(szbuf, "bye") == 0)
+			{
+			   LogInfo("tcpclient close_tcpclient read data bye , len =%d.\n", nret);
+			   close(sockfd);
+			}
+		}
+	}
+	return 0;
 }
 
 //int main(int argc, char *argv[])
