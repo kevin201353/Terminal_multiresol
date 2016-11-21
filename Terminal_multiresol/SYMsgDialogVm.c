@@ -75,6 +75,9 @@ static void * MsgThrd2(GtkLabel *data){
       case LOGIN_STATUS_VM_DESKTOP:
             strcpy(sztmp, "连接虚拟机桌面失败！");
             break;
+      case SY_OVIRT_GETVMSTICKET_FAILED:
+            strcpy(sztmp, "获取连接虚拟机密码失败！");
+            break;
     }
     gtk_label_set_text(GTK_LABEL(data), sztmp);
     sleep(1);
@@ -169,7 +172,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int win_width = 0;
 	int win_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 300;
 		win_height = 100;
@@ -225,20 +228,31 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtitle_height = 30;
 		layout_thrdtext_height = 90;
 		nsize = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	  (scr_width == 1600 && scr_height == 1080) )
 	{
-		win_width = 470;
-		win_height = 160;
-		btn_Cancel_width = 60;
-		btn_Cancel_height = 20;
-		btn_OK_width = 60;
-		btn_OK_height = 20;
-		label_text_width = 350;
-		label_text_height = 80;
-		layout_thrdtitle_height = 30;
+//		win_width = 470;
+//		win_height = 160;
+//		btn_Cancel_width = 60;
+//		btn_Cancel_height = 20;
+//		btn_OK_width = 60;
+//		btn_OK_height = 20;
+//		label_text_width = 350;
+//		label_text_height = 80;
+//		layout_thrdtitle_height = 30;
+//		layout_thrdtext_height = 90;
+//		nsize = 10;
+		win_width = 300;
+		win_height = 100;
+		btn_OK_width = 30;
+		btn_OK_height = 5;
+		btn_Cancel_width = 30;
+		btn_Cancel_height = 5;
+		label_text_width = 220;
+		label_text_height = 60;
+		layout_thrdtitle_height = 20;
 		layout_thrdtext_height = 90;
-		nsize = 10;
+		nsize = 9;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	    (scr_width == 1280 && scr_height == 1024))
 	{
@@ -293,7 +307,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int pic_logo_width = 0;
 	int pic_logo_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -351,7 +365,7 @@ static void init_ctrl_image(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
@@ -437,7 +451,7 @@ void SYMsgDialogVm(int nflag, char *msg)
     	}
     g_signal_connect(GTK_BUTTON(btn_OK), "clicked", G_CALLBACK(OK_button_clicked), nflag);
     g_signal_connect(GTK_BUTTON(btn_Cancel), "clicked", G_CALLBACK(Cancel_button_clicked), NULL);
-	pthread_join(tid,NULL); 
+	pthread_join(tid,NULL);
     gtk_main();
 	printf("Debug: SYMsgDialogVm main exit.\n");
     g_object_unref (G_OBJECT(builder));

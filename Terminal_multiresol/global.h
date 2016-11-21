@@ -16,7 +16,6 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h> /* the key value defines can be found here */
 
-
 #define MAX_RESOL_SIZE  			3
 #define MAX_DATA_SIZE               1024
 #define MAX_BUFF_SIZE               100
@@ -48,6 +47,17 @@ unsigned int g_resolCount;
 GObject *g_mainWindow;
 int   g_citExit;
 static int g_auto_get_ns = 1;
+int showSyMsgDlg11;
+int g_interfacetype;
+int g_stu_begin_class;
+int g_stu_finish_class;
+int g_mainExit;
+
+
+typedef void (*MsgCallWin)(gpointer data);
+void msg_respose_win(gpointer data);
+void call_msg_win_back(MsgCallWin fun, gpointer data);
+
 
 enum Error {
   SY_USER_ISNULL = ERROR_START_VALUE + 1,
@@ -110,6 +120,7 @@ struct LoginInfo{
    int  port;
    short protype;  //0:spice 1: rdp
    int  repass;
+   int  autologin;
 };
 
 //服务器配置信息
@@ -121,6 +132,10 @@ struct ServerInfo{
    unsigned short resol;
    int  manresol;
    char szResol[MAX_BUFF_SIZE];
+};
+
+struct SoundInfo{
+	int volume;
 };
 
 //写日志
@@ -160,7 +175,7 @@ int Ovirt_GetVm2(char *url, char *user, char* password, char *vm);
 void Parsexml(char *element,  char *value, int ntype);
 void SaveLogin(struct LoginInfo info);
 int Http_Post(char *url, char *user, char* password, char *data);
-void SY_GetVmsTicket(char * szTicket);
+int SY_GetVmsTicket(char * szTicket);
 
 void Start_Session();
 void Close_Session();
@@ -194,5 +209,9 @@ void SYMsgDialogVm(int nflag, char *msg);
 int Ovirt_GetVm3(char *url, char *vm);
 int Http_Request3(char *url, char *path);
 void SYNetInfoWin();
+GtkWidget * SYSoundWin();
+void Save_Sound(struct SoundInfo info);
+void Get_Sound(struct SoundInfo *info);
+
 
 #endif //_GLOBAL_H

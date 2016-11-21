@@ -14,14 +14,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
-
+#include "global.h"
 
 #define MAX_BUFFER_SZIE   1024
 #define FILE_DEBUG_LOG_PATH    "/var/log/shencloud/shencloud_ui.log"   //日志文件名
 static void *thrd_func(void *arg);
 static pthread_t tid;
 
-extern int g_mainExit;
 void LogInfo(const char* ms, ... )
 {
 	char wzLog[MAX_BUFFER_SZIE] = {0};

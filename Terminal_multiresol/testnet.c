@@ -7,7 +7,7 @@
 #include <stdio.h>	
 #include <stdlib.h>  
 #include <unistd.h>  
-  
+#include "msg.h"
 #define ETHTOOL_GLINK		 0x0000000a /* Get link status (ethtool_value) */  
   
 typedef enum { IFSTATUS_UP, IFSTATUS_DOWN, IFSTATUS_ERR } interface_status_t;  
@@ -16,6 +16,10 @@ static pthread_t tid;
 static GtkBuilder *g_builder;
 extern GdkPixbuf *g_netstatus_Up;
 extern GdkPixbuf *g_netstatus_Down;
+static GThread *g_cthread;
+static int g_auto_login = 0;
+static struct LoginInfo infot = {"", "", "", "", 3389, 0, 0, 0};
+
 
 /* for passing single values */  
 struct ethtool_value  
@@ -30,9 +34,15 @@ static gboolean update_widget (GtkWidget *widget)
 	return FALSE;
 }
 
+void call_msg_win_back(MsgCallWin fun, gpointer data)
+{
+	fun(data);
+}
+
 static gboolean terminate (GThread *thread)
 {
    g_thread_join(thread);
+   call_msg_win_back(msg_respose_win, 1);
    return FALSE;
 }
 
@@ -40,8 +50,10 @@ static void *thread_func (GtkWidget *widget)
 {
   for (;;)
     {
+       if (g_auto_login == 1)
+	   	break;
       //usleep (100000); /* 0.1 s */
-      sleep(5);
+      sleep(1);
       gdk_threads_add_idle ((GSourceFunc)update_widget, widget);
     }
 
@@ -108,9 +120,24 @@ void check_net_status(GtkWidget *widget)
 	close(fd);		
 	switch (status)  
 	{  
-		case IFSTATUS_UP:  
-			//printf("%s : link up\n", hw_name);
-			gtk_image_set_from_pixbuf(GTK_IMAGE(image_netstatus), g_netstatus_Up);
+		case IFSTATUS_UP:
+			{
+				//printf("%s : link up\n", hw_name);
+				gtk_image_set_from_pixbuf(GTK_IMAGE(image_netstatus), g_netstatus_Up);
+				GetLoginInfo(&infot);
+				LogInfo("thrd_net_setup 22222222222222222222 000000 g_auto_login = %d.\n", g_auto_login);
+				if (infot.autologin == 1 && g_auto_login == 0)
+				{
+					LogInfo("thrd_net_setup 22222222222222222222 .\n");
+					if ( ShenCloud_autoLogin() < 0 )
+					{
+					    report_msg.action = MSG_WINDOW_CLOSE;
+						server_send_msg(report_msg);
+						LogInfo("thrd_net_setup 33333333333333 .\n");
+					}	
+					g_auto_login = 1;
+				}
+			}
 			break;	
 		  
 		case IFSTATUS_DOWN:  
@@ -129,8 +156,70 @@ void Net_status_checking(GtkBuilder *builder, GtkWidget *widget)
 {
 	g_builder = builder;
 	gethw_name();
+	g_auto_login = 0;
 	g_thread_new ("netstatus", (GThreadFunc)thread_func, widget);
 }
+
+//static pthread_t tid;
+//static void* thrd_net_setup()
+//{
+//	for (;;)
+//	{
+//		int fd;
+//		interface_status_t status;
+//		GObject *image_netstatus;
+//		image_netstatus = gtk_builder_get_object (g_builder, "image_netstatus");
+//		  
+//		if((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)  
+//		{  
+//			perror("socket ");	
+//			break; 
+//		}
+//		LogInfo("thrd_net_setup 333333333333333333 .\n");
+//		status = interface_detect_beat_ethtool(fd, hw_name);  
+//		close(fd);
+//		if (status == IFSTATUS_UP)
+//		{
+//			LogInfo("thrd_net_setup 22222222222222222222 .\n");
+//			ShenCloud_autoLogin();
+//			break;
+//		}
+//		sleep(1);
+//	}
+//}
+
+//void wait_net_setup()
+//{
+//	gethw_name();
+//	if ( pthread_create(&tid, NULL, thrd_net_setup, NULL) !=0 ) 
+//	{
+//		printf("Create thread error!\n");
+//	};
+//	pthread_join(tid, NULL);
+//	for (;;)
+//	{
+//		int fd;
+//		interface_status_t status;
+//		GObject *image_netstatus;
+//		image_netstatus = gtk_builder_get_object (g_builder, "image_netstatus");
+//		  
+//		if((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)  
+//		{  
+//			perror("socket ");	
+//			break; 
+//		}
+//		LogInfo("thrd_net_setup 333333333333333333 .\n");
+//		status = interface_detect_beat_ethtool(fd, hw_name);  
+//		close(fd);
+//		if (status == IFSTATUS_UP)
+//		{
+//			LogInfo("thrd_net_setup 22222222222222222222 .\n");
+//			ShenCloud_autoLogin();
+//			break;
+//		}
+//		sleep(1);
+//	}
+//}
 
 //int main (int argc, char *argv[])  
 //{   

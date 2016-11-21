@@ -198,6 +198,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="width_chars">8</property>
+				   <property name="max_length">5</property>
                           </object>
                           <packing>
                             <property name="x">278</property>

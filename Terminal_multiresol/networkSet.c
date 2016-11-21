@@ -256,10 +256,10 @@ int SetDhcpNet()
 }
 
 int SetDns()
-{  
+{
     if (g_auto_get_ns == 1)
     	{
-		system("sudo ifdown eth0 \nifup eth0");	
+		system("sudo ifdown eth0 \nifup eth0");
 	}else
 	{
 	    if (strcmp(g_NetStaticInfo.szDns[0], "") >= 0 ||
@@ -322,6 +322,21 @@ int GetDns()
 int SetStaticNet()
 {
     char szCmd[MAX_BUFF_SIZE] = {0};
+//	if (!check_ipv4_valid(g_NetStaticInfo.szIP))
+//	{
+//	   SYMsgDialog(4, "IP 格式不正确,请重新输入！");
+//	   return 0;
+//	}
+//	if (!check_ipv4_valid(g_NetStaticInfo.szNetMask))
+//	{
+//	   SYMsgDialog(4, "子网掩码格式不正确,请重新输入！");
+//	   return 0;
+//	}
+//	if (!check_ipv4_valid(g_NetStaticInfo.szGatWay))
+//	{
+//	   SYMsgDialog(4, "网关格式不正确,请重新输入！");
+//	   return 0;
+//	}
     sprintf(szCmd, "sudo ./netstatic.sh %s %s %s", g_NetStaticInfo.szIP, g_NetStaticInfo.szNetMask, g_NetStaticInfo.szGatWay);
     LogInfo("Debug: set static net ---- %s .\n", szCmd);
     system(szCmd);
@@ -365,7 +380,7 @@ void initStaticNetctrl()
         LogInfo("Debug: initStaticNetctrl isStatic .\n");
     }
 	LogInfo("initStaticNetctrl  g_auto_get_us = %d.\n", g_auto_get_ns);
-	if (isDynamic_dns() == 0)
+	if (isDynamic_dns() == 1)
 	{
 		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
 		GetDns();
@@ -376,7 +391,7 @@ void initStaticNetctrl()
 	    gtk_entry_set_text(GTK_ENTRY(entry_netdns2), g_NetStaticInfo.szDns[1]);
 	    entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
 	    gtk_entry_set_text(GTK_ENTRY(entry_netdns3), g_NetStaticInfo.szDns[2]);
-	}else 
+	}else
 	{
 		gtk_toggle_button_set_active(btn_auto_dns, TRUE);
 	}
@@ -402,19 +417,36 @@ void savenetwork_button_clicked(GtkButton *button,  gpointer user_data)
     if (g_bnetstatic == 1)
     {
         GetNetStaticInfo();
-        if (strcmp(g_NetStaticInfo.szIP, "") == 0 && strcmp(g_NetStaticInfo.szNetMask, "") == 0 &&
-            strcmp(g_NetStaticInfo.szGatWay, "") == 0)
-            return ;
-        if (!check_ipv4_valid(g_NetStaticInfo.szIP))
+//        if (strcmp(g_NetStaticInfo.szIP, "") == 0 && strcmp(g_NetStaticInfo.szNetMask, "") == 0 &&
+//            strcmp(g_NetStaticInfo.szGatWay, "") == 0)
+//            return ;
+		if (strcmp(g_NetStaticInfo.szIP, "") == 0)
+		{
+		    SYMsgDialog(4, "IP地址不能为空！");
+		    return;
+		}
+		if (!check_ipv4_valid(g_NetStaticInfo.szIP))
         {
            SYMsgDialog(4, "IP 格式不正确,请重新输入！");
            return;
         }
+		if (strcmp(g_NetStaticInfo.szNetMask, "") == 0)
+		{
+		    SYMsgDialog(4, "子网掩码不能为空！");
+		    return;
+		}
+
         if (!check_ipv4_valid(g_NetStaticInfo.szNetMask))
         {
            SYMsgDialog(4, "子网掩码格式不正确,请重新输入！");
            return;
         }
+
+        if (strcmp(g_NetStaticInfo.szGatWay, "") == 0)
+    		{
+    		    SYMsgDialog(4, "网关地址不能为空！");
+    		    return;
+    		}
         if (!check_ipv4_valid(g_NetStaticInfo.szGatWay))
         {
            SYMsgDialog(4, "网关格式不正确,请重新输入！");
@@ -566,13 +598,13 @@ void init_network_pos(GtkBuilder *g_builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	GtkWidget * widget = GetNetWorkSetLayout();
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1024) )
 	{
 		win_width = 500;
 		win_height = 470 + 60;
 		gtk_widget_set_size_request(GTK_WIDGET(widget), win_width, win_height);
-	}else if ( (scr_width == 1280 && scr_height == 720)  || 
+	}else if ( (scr_width == 1280 && scr_height == 720)  ||
 	    (scr_width == 1280 && scr_height == 768) ||
 	     (scr_width == 1280 && scr_height == 1024) ||
 	    (scr_width == 1366 && scr_height == 768) || ( scr_width == 1368 && scr_height == 768 ) ||
@@ -607,7 +639,7 @@ void init_network_pos(GtkBuilder *g_builder)
 	GObject *entry_netdns3;
 
 	GObject *separator1;
-	
+
 
     label_wan = gtk_builder_get_object (g_builder, "label_wan");
     label_hotspot = gtk_builder_get_object (g_builder, "label_hotspot");
@@ -662,8 +694,8 @@ void init_network_pos(GtkBuilder *g_builder)
 	g_signal_connect(G_OBJECT(rabtn_static), "toggled", G_CALLBACK(rabtn_static_button_callback), NULL);
     g_signal_connect(G_OBJECT(btn_savenetwork), "clicked", G_CALLBACK(savenetwork_button_clicked), NULL);
 	int font_size = 0;
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || 
-		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		font_size = 9;
 		setctrlFont(GTK_WIDGET(label_wan), font_size);
@@ -835,10 +867,10 @@ void init_network_pos(GtkBuilder *g_builder)
 		x += 100;
 		x += delay_width;
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_netdns3), x, y);
-	
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768)|| 
+
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768)||
 	    (scr_width == 1280 && scr_height == 1024) ||
-	    (scr_width == 1366 && scr_height == 768) || 
+	    (scr_width == 1366 && scr_height == 768) ||
 	    (scr_width == 1368 && scr_height == 768) ||
 	    (scr_width == 1360 && scr_height == 768))
 	{
@@ -1013,7 +1045,7 @@ static void  on_entry_netgatway_insert_text(GtkWidget* entry, char* new_text, in
 
 static void init_entry_event()
 {
-	
+
 	GObject *entry_netip;
 	GObject *entry_netmask;
 	GObject *entry_netgatway;
@@ -1045,9 +1077,9 @@ void init_dnssel_pos(GtkWidget * widget, int x, int y)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	int font_size = 0;
-	if ((scr_width == 1024 && scr_height == 768  ) || 
-		(scr_width == 1440 && scr_height == 900) || 
-		(scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768  ) ||
+		(scr_width == 1440 && scr_height == 900) ||
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 		font_size = 9;

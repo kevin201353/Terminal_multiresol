@@ -7,6 +7,8 @@
 #include <pango/pango.h>
 #include "tcpclient.h"
 #include <unistd.h>
+#include "msg.h"
+
 
 #define IMAGE_MAIN_BACKGROUD          "images2/login.png"
 #define IMAGE_LOGO_VM                 "images2/wm_logo.png"
@@ -52,8 +54,9 @@ static GdkPixbuf *g_shutdownPress;
 static GdkPixbuf *g_shutdownNor;
 
 //data define
-struct LoginInfo  g_loginfo = {SY_VM_COMMON_SPICE, "admin@internal", "shencloud", "127.0.0.1", 3389, 0, 0};
+struct LoginInfo  g_loginfo = {SY_VM_COMMON_SPICE, "admin@internal", "shencloud", "127.0.0.1", 3389, 0, 0, 0};
 static unsigned short g_checkrepass; //0: on selected 1: selected
+static unsigned short g_checkautologin;
 static struct ServerInfo  serverInfo;
 static int showloginwindow = 0;
 extern int check_ipv4_valid(char *s);
@@ -62,19 +65,29 @@ static GObject *g_window = NULL;
 static GtkBuilder *g_builder = NULL;
 short g_loginExit;
 extern GdkPixbuf *create_pixbuf(const gchar * filename);
+extern void thrd_monitor(char *cmd);
+extern void closeAutoDialog();
 
 //data end
-
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
     switch(event->keyval)
     {
-        case GDK_KEY_Return:
-            {
-			  printf("Debug : key press enter , gdk_key_return.\n");
-               SYMsgDialog(0, "�������ӣ����Ժ� ... ");
-            }
-            break;
+		case GDK_KEY_Return:
+			{
+				if (showSyMsgDlg11 == 0)
+				{
+					printf("Debug : key press enter , gdk_key_return.\n");
+					SYMsgDialog(0, "�������ӣ����Ժ� ... ");
+				}
+			}
+			break;
+//		case GDK_KEY_F11:
+//			{
+//				printf("Debug : key press enter , GDK_KEY_F11.\n");
+//				gtk_window_fullscreen(GTK_WINDOW(g_window));
+//			}
+//			break;
     }
     return FALSE;
 }
@@ -103,7 +116,7 @@ static void  on_btn_shutdown_pressed(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_shutdownNor);
    printf("on_btn_shutdown_pressed .\n");
-   SYMsgDialog(11, "您确定要关闭系统吗？");
+   SYMsgDialog2(11, "您确定要关闭系统吗？");
 }
 
 static void  on_btn_shutdown_leave(GtkButton *button,  gpointer   user_data)
@@ -142,6 +155,25 @@ static gboolean checkbutton_repass_press_callback(GtkWidget *event_box, GdkEvent
     return TRUE;
 }
 
+static gboolean checkbutton_autologin_press_callback(GtkWidget *event_box, GdkEventButton *event, gpointer data)
+{
+    if (event->type == GDK_BUTTON_PRESS)
+    {
+        g_checkautologin = !g_checkautologin;
+        LogInfo("checkbutton autologin gtkimage check: %d.\n", g_checkautologin);
+        if (g_checkautologin == 1)
+        {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
+        }
+        else
+        {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+        }
+    }
+    return TRUE;
+}
+
+
 static void  on_btn_login_enter(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_loginPress);
@@ -161,16 +193,20 @@ static void  on_btn_login_leave(GtkButton *button,  gpointer   user_data)
 
 int initOvirtUrl()
 {
-     memset(ovirt_url, 0, MAX_BUFF_SIZE);
-     if ( GetServerInfo2(&serverInfo) < 0 )
-     {
-         //first statup, don't setting
-         return -1;
-     }
-     strcpy(ovirt_url, "https://");
-     strcat(ovirt_url, serverInfo.szIP);
-     strcat(ovirt_url, "/");
-     return 0;
+	memset(ovirt_url, 0, MAX_BUFF_SIZE);
+	if ( GetServerInfo2(&serverInfo) < 0 )
+	{
+	 //first statup, don't setting
+	 return -1;
+	}
+	char sztmp[20] = {0};
+	sprintf(sztmp, "%d", serverInfo.nport);
+	strcpy(ovirt_url, "https://");
+	strcat(ovirt_url, serverInfo.szIP);
+	strcat(ovirt_url, ":");
+	strcat(ovirt_url, sztmp);
+	strcat(ovirt_url, "/");
+	return 0;
 }
 
 int get_ctrldata()
@@ -250,7 +286,9 @@ int get_ctrldata()
     memcpy(g_loginfo.pass, szPassword, strlen(szPassword));
     //printf("password 222: %s.\n", g_loginfo.pass);
     g_loginfo.repass = g_checkrepass;
+	g_loginfo.autologin = g_checkautologin;
     LogInfo("debug: reapss: %d.\n" , g_loginfo.repass);
+	LogInfo("debug: auto: %d.\n" , g_loginfo.autologin);
     return 0;
 }
 
@@ -268,27 +306,30 @@ static char* GetVmsName(char *vmid)
 	return szName;
 }
 
-static int g_xtid = 0;
+static pthread_t g_xtid = NULL;
 static char szcmd[MAX_BUFF_SIZE] = {0};
 static void thrd_exec()
 {
-    printf("thrd_exec @@@@@  cmd = %s.\n", szcmd);
+	printf("thrd_exec @@@@@  cmd = %s.\n", szcmd);
 	FILE *fp;
 	if((fp = popen(szcmd, "r")) == NULL) {
-         perror("file open failed.");
-		 return;
+	     perror("thrd_monitor file open failed.");
 	}
 	pclose(fp);
 }
 
 void shell_exec(char *cmd)
 {
+   printf("shell_exec @@@@@ 000.\n");
    strcpy(szcmd, cmd);
+   printf("shell_exec @@@@@ 111 szcmd = %s.\n", szcmd);
    if ( pthread_create(&g_xtid, NULL, thrd_exec, NULL) !=0 ) {
 	    printf("shell_exec , Create thread error!\n");
 	};
+   pthread_join(g_xtid, NULL);
 }
-static void connectDisVm(char *ip, int port, char *vmid)
+
+static void connectDisVm(char *ip, int port, char *vmid, int nstate)
 {
     if ( vmid == NULL || strlen(vmid) <= 0 )
 		return;
@@ -299,13 +340,13 @@ static void connectDisVm(char *ip, int port, char *vmid)
 	//one vm
 	//add by kevin
 	SetSymsgContext(LOGIN_STATUS_CONNECTING);
-	if (Ovirt_GetVm2(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
-	{
-	    LogInfo("Debug: connectDisVm Ovirt_GetVm2() < 0.\n");
-	    return;
-	}
-	printf("connectDisVm 222 .\n");
-	int nstate = SY_GetVmState(vmid);
+//	if (Ovirt_GetVm2(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
+//	{
+//	    LogInfo("Debug: connectDisVm Ovirt_GetVm2() < 0.\n");
+//	    return;
+//	}
+//	printf("connectDisVm 222 .\n");
+//	int nstate = SY_GetVmState(vmid);
 	if (nstate == 0) //vm is close
 	{
 		if (Ovirt_StartVms(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
@@ -321,7 +362,8 @@ static void connectDisVm(char *ip, int port, char *vmid)
 	        return;
 	    }
 		int nflag = 0;
-		for(;;)
+		int i = 0;
+		for(;i<10;i++)
 		{
 			if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
 		    {
@@ -341,7 +383,6 @@ static void connectDisVm(char *ip, int port, char *vmid)
 				{
 					strcpy(szIP, node->val.ip);
 					nport = node->val.port;
-					SetSymsgContext(LOGIN_SUCCESSED);
 					nflag = 1;
 					break;
 				}
@@ -353,20 +394,29 @@ static void connectDisVm(char *ip, int port, char *vmid)
 		printf("connectDisVm 222 .\n");
 	}
 	printf("connectDisVm 444 .\n");
-	Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid);
+	if (Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
+	{
+		SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
+		return;
+	}
     char szTicket[MAX_BUFF_SIZE] = {0};
     char shellcmd[MAX_BUFF_SIZE] = {0};
-    SY_GetVmsTicket(szTicket);
+    if ( SY_GetVmsTicket(szTicket) < 0)
+    	{
+    	    SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
+		return;
+	}
     //find vm
     if (SY_GetVms() < 0)
     	{
 		LogInfo("Debug: ShenCloud_login, SY_GetVms() failed. \n");
 		return;
 	}
+	SetSymsgContext(LOGIN_SUCCESSED);
 	printf("connectDisVm 555 .\n");
 	strcpy(report.uname, g_loginfo.user);
 	strcpy(report.vname, GetVmsName(vmid));
-	report.action = 1; 
+	report.action = 1;
 	send_data(report);
 	report.action = 2;
 	send_data(report);
@@ -377,8 +427,120 @@ static void connectDisVm(char *ip, int port, char *vmid)
     LogInfo("Debug: login window directly connect vms  : %s. \n", shellcmd);
     wirte_conflag_data("/tmp/syp_reconnect", shellcmd);
 	wirte_conflag_data("/tmp/host", szIP);
-    //shell_exec(shellcmd);
-    system(shellcmd);
+    shell_exec(shellcmd);
+    //system(shellcmd);
+    //thrd_monitor(shellcmd);
+	report.action = 3;
+    send_data(report);
+	report.action = 4;
+	send_data(report);
+	close_tcpclient();
+	close_loginwindow();
+}
+
+static void connectDisVm2(char *ip, int port, char *vmid, int nstate)
+{
+    if ( vmid == NULL || strlen(vmid) <= 0 )
+		return;
+    printf("connectDisVm 111 .\n");
+	char szIP[MAX_BUFF_SIZE] = {0};
+	int nport = port;
+	strcpy(szIP, ip);
+	//one vm
+	//add by kevin
+	//SetSymsgContext(LOGIN_STATUS_CONNECTING);
+//	if (Ovirt_GetVm2(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
+//	{
+//	    LogInfo("Debug: connectDisVm Ovirt_GetVm2() < 0.\n");
+//	    return;
+//	}
+//	printf("connectDisVm 222 .\n");
+//	int nstate = SY_GetVmState(vmid);
+	if (nstate == 0) //vm is close
+	{
+		if (Ovirt_StartVms(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
+		{
+		    LogInfo("Debug: connectDisVm Ovirt_StartVms() < 0, start vm failed.\n");
+			return;
+		}
+		//SetSymsgContext(LOGIN_STATUS_GETVMS);
+		if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt login failed.\n");
+	        //SetSymsgContext(LOGIN_STATUS_FAILED);
+	        return;
+	    }
+		int nflag = 0;
+		int i=0;
+		for(;i<10;i++)
+		{
+			if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+		    {
+		        LogInfo("main Ovirt get vms failed.\n");
+		        //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+		        return;
+		    }
+			if (SY_GetVms() < 0)
+	        {
+	            //SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+	            return;
+	        }
+			 list_for_each(plist, &head)
+	          {
+				struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+				if (strcmp(node->val.vmid, vmid) == 0 && node->val.status != 0)
+				{
+					strcpy(szIP, node->val.ip);
+					nport = node->val.port;
+					nflag = 1;
+					break;
+				}
+			 }
+			 if (nflag == 1)
+			 	break;
+			 sleep(2);
+		}
+		printf("connectDisVm 222 .\n");
+	}
+	printf("connectDisVm 444 .\n");
+	if (Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
+	{
+		//SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
+		return;
+	}
+    char szTicket[MAX_BUFF_SIZE] = {0};
+    char shellcmd[MAX_BUFF_SIZE] = {0};
+    if ( SY_GetVmsTicket(szTicket) < 0)
+    	{
+    	    //SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
+		return;
+	}
+    //find vm
+    if (SY_GetVms() < 0)
+    	{
+		LogInfo("Debug: ShenCloud_login, SY_GetVms() failed. \n");
+		return;
+	}
+	//SetSymsgContext(LOGIN_SUCCESSED);
+	printf("connectDisVm 555 .\n");
+	report_msg.action = MSG_WINDOW_CLOSE;
+	server_send_msg(report_msg);
+	strcpy(report.uname, g_loginfo.user);
+	strcpy(report.vname, GetVmsName(vmid));
+	report.action = 1;
+	send_data(report);
+	report.action = 2;
+	send_data(report);
+	if (strcmp(szTicket, "") == 0)
+		sprintf(shellcmd, "spicy -h %s -p %d -f >> %s", szIP, nport, "/var/log/shencloud/spicy.log");
+    else
+    		sprintf(shellcmd, "spicy -h %s -p %d -w %s -f >> %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log");
+    LogInfo("Debug: login window directly connect vms  : %s. \n", shellcmd);
+    wirte_conflag_data("/tmp/syp_reconnect", shellcmd);
+	wirte_conflag_data("/tmp/host", szIP);
+    shell_exec(shellcmd);
+    //system(shellcmd);
+    //thrd_monitor(shellcmd);
 	report.action = 3;
     send_data(report);
 	report.action = 4;
@@ -389,7 +551,7 @@ static void connectDisVm(char *ip, int port, char *vmid)
 
 void close_loginwindow()
 {
-	 if (g_window != NULL)
+	 if (g_window != NULL && showloginwindow == 1)
     {
 	    gtk_widget_destroy((GtkWidget *)g_window);
 	    gtk_main_quit();
@@ -397,6 +559,172 @@ void close_loginwindow()
     showloginwindow = 0;
     g_loginExit = 0;
 }
+
+static pthread_t wait_win_tid;
+
+static void exec_wait_window()
+{
+	system("sudo ./wait3");
+}
+
+void start_wait_window()
+{
+	if ( pthread_create(&wait_win_tid, NULL, exec_wait_window, NULL) !=0 ) 
+	{
+		printf("Create start_wait_window thrd error!\n");
+	}
+}
+
+int ShenCloud_autoLogin()
+{
+   start_wait_window();
+   g_selectProto = 0;
+   GetLoginInfo(&g_loginfo);
+   if (g_loginfo.autologin == 0)
+   		return -1;
+	if (strcmp(g_loginfo.user, "") == 0 && strlen(g_loginfo.user) <= 0)
+	{
+		LogInfo("ShenCloud_autoLogin,  user == "" or user len <= 0 .\n");
+		return -1;
+	}
+	if (strcmp(g_loginfo.pass, "") == 0 && strlen(g_loginfo.pass) <= 0)
+	{
+		LogInfo("ShenCloud_autoLogin,  pass == "" or pass len <= 0 .\n");
+		return -1;
+	}
+	LogInfo("start auto login, ShenCloud_autoLogin() use.\n");
+	initOvirtUrl();
+	if (g_selectProto == 0)
+	{
+	    int i=0;
+	    for (; i< 6; i++)
+	    	{
+		    if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+		    {
+		        LogInfo("main Ovirt login failed.\n");
+		        //SetSymsgContext(LOGIN_STATUS_FAILED);
+		    }else
+		    {
+				break;
+			}
+		    sleep(1);
+	    	}
+	    if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt get vms failed.\n");
+	        //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+	    }
+	}
+    //获取服务器虚拟机列表数据
+    if (g_selectProto == 0)  //shencloud
+    {
+        if (SY_GetVms() < 0)
+        {
+            //SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+            return -1;
+        }
+        //SetSymsgContext(LOGIN_STATUS_GETVMS);
+        LogInfo("login server shencloud, get vm  count : %d.\n", g_nVmCount);
+        if (g_nVmCount == 1)
+        {
+        	   //SetSymsgContext(LOGIN_SUCCESSED);
+        	   start_tcpclient();
+            //直接连接虚拟机
+            list_for_each(plist, &head)
+            {
+                struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+				if (node != NULL)
+				{
+					LogInfo("Debug: login window autologin ---- directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s, vmid = %s, ip = %s.\n", g_loginfo.user, g_loginfo.pass, node->val.vmid, node->val.ip);
+					connectDisVm2(node->val.ip, node->val.port, node->val.vmid, node->val.status);
+					return 0;
+				}
+            }
+        }
+	    if (g_nVmCount == 0)
+	    {
+		   //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+		}
+    }
+      //SetSymsgContext(LOGIN_SUCCESSED);
+//    if (g_selectProto == 0 && g_nVmCount > 1)
+//    {
+//         printf("terminate  44444444  2222222 8888.\n");
+//    		SY_vmlistwindow_main();
+//    }
+    return 0;
+}
+
+int ShenCloud_classLogin()
+{
+   g_selectProto = 0;
+   struct LoginInfo info = {"", "", "", "", 3389, 0, 0, 0};
+   GetLoginInfo(&info);
+	if (strcmp(info.user, "") == 0 && strlen(info.user) <= 0)
+	{
+		LogInfo("ShenCloud_autoLogin,  user == "" or user len <= 0 .\n");
+		return -1;
+	}
+	if (strcmp(info.pass, "") == 0 && strlen(info.pass) <= 0)
+	{
+		LogInfo("ShenCloud_autoLogin,  pass == "" or pass len <= 0 .\n");
+		return -1;
+	}
+	LogInfo("start auto login, ShenCloud_autoLogin() use.\n");
+	initOvirtUrl();
+    //SetSymsgContext(LOGIN_STATUS_CONNECTING);
+	if (g_selectProto == 0)
+	{
+	    if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt login failed.\n");
+	        //SetSymsgContext(LOGIN_STATUS_FAILED);
+	        return -1;
+	    }
+	    if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	    {
+	        LogInfo("main Ovirt get vms failed.\n");
+	        //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+	    }
+	}
+    //获取服务器虚拟机列表数据
+    if (g_selectProto == 0)  //shencloud
+    {
+        if (SY_GetVms() < 0)
+        {
+            //SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+            return -1;
+        }
+        //SetSymsgContext(LOGIN_STATUS_GETVMS);
+        LogInfo("login server shencloud, get vm  count : %d.\n", g_nVmCount);
+        if (g_nVmCount == 1)
+        {
+        	   start_tcpclient();
+            //直接连接虚拟机
+            list_for_each(plist, &head)
+            {
+                struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+				if (node != NULL)
+				{
+					LogInfo("Debug: login window autologin ---- directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s, vmid = %s, ip = %s.\n", g_loginfo.user, g_loginfo.pass, node->val.vmid, node->val.ip);
+					connectDisVm2(node->val.ip, node->val.port, node->val.vmid, node->val.status);
+					return 0;
+				}
+            }
+        }
+	    if (g_nVmCount == 0)
+	    {
+		   //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+		}
+    }
+    //SetSymsgContext(LOGIN_SUCCESSED);
+    return 0;
+}
+
 
 int ShenCloud_login()
 {
@@ -413,7 +741,7 @@ int ShenCloud_login()
 	        g_loginExit = 1;
 	        return -1;
 	    }
-	        SaveLogin(g_loginfo);
+	    SaveLogin(g_loginfo);
 	    if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
 	    {
 	        LogInfo("main Ovirt get vms failed.\n");
@@ -441,11 +769,16 @@ int ShenCloud_login()
 				if (node != NULL)
 				{
 					LogInfo("Debug: login window directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s, vmid = %s, ip = %s.\n", g_loginfo.user, g_loginfo.pass, node->val.vmid, node->val.ip);
-					connectDisVm(node->val.ip, node->val.port, node->val.vmid); //add by kevin 2016/9/30
+					connectDisVm(node->val.ip, node->val.port, node->val.vmid, node->val.status); //add by kevin 2016/9/30
 					return 0;
 				}
             }
         }
+	    if (g_nVmCount == 0)
+	    {
+		   SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        return -1;
+		}
     }
     int nRet = 0;
     if (g_selectProto == 1)
@@ -513,7 +846,7 @@ static void loadImage()
 	    	g_logoCit = gdk_pixbuf_new_from_file(IMAGE_LOGO_CIT, NULL);
 	    	g_logoMir = gdk_pixbuf_new_from_file(IMAGE_LOGO_MIR, NULL);
 	    	g_logoSh = gdk_pixbuf_new_from_file(IMAGE_LOGO_SH, NULL);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 ) 
 	    || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_press.png", NULL);
@@ -551,7 +884,7 @@ static void loadImage()
 	    	g_logoMir = gdk_pixbuf_new_from_file("images2/1280x720/mir_logo.png", NULL);
 	    	g_logoSh = gdk_pixbuf_new_from_file("images2/1280x720/sh_logo.png", NULL);
 		//do code
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 			(scr_width == 1360 && scr_height == 768))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1366x768/btnlogin_press.png", NULL);
@@ -609,7 +942,7 @@ void init_logo_ctrl(GtkBuilder *builder, GtkWidget *widget, int widget_width, in
 	{
 		gdk_pixbuf_get_file_info(IMAGE_LOGO_SH, &pic_width, &pic_height);
 		widget_height = 58;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1440x900/sh_logo.png", &pic_width, &pic_height);
 	}else if ((scr_width == 1280 && scr_height == 720 ) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
@@ -628,6 +961,7 @@ void init_logo_ctrl(GtkBuilder *builder, GtkWidget *widget, int widget_width, in
 		ndelay = -2;
 	else if (g_selectProto == 1)
 		ndelay = 10;
+
 	GObject *image_logo;
 	image_logo = gtk_builder_get_object(builder, "image_logo");
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(image_logo), x + ndelay, y);
@@ -638,8 +972,8 @@ static void create_surfaces()
 {
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
-    int scr_width = gdk_screen_get_width(screen);
-    int scr_height = gdk_screen_get_height(screen);
+	int scr_width = gdk_screen_get_width(screen);
+	int scr_height = gdk_screen_get_height(screen);
 	if ((scr_width == 1024 && scr_height == 768 ))
 	{
 		surface1 = cairo_image_surface_create_from_png ("images2/1024x768/login.png");
@@ -649,7 +983,7 @@ static void create_surfaces()
 	}else if (scr_width == 1440 && scr_height == 900 )
 	{
 		surface1 = cairo_image_surface_create_from_png ("images2/1440x900/login.png");
-	}else if ((scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080) )
+	}else if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080) )
 	{
 		surface1 = cairo_image_surface_create_from_png ("images2/1600x900/login.png");
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768))
@@ -669,7 +1003,8 @@ static void create_surfaces()
 
 static void destroy_surfaces()
 {
-	cairo_surface_destroy (surface1);
+    if (surface1 != NULL)
+		cairo_surface_destroy (surface1);
 }
 
 void setfontcolor(GtkWidget * widget, char *value)
@@ -687,12 +1022,12 @@ void setctrlFont(GtkWidget * widget, int nsize)
 
 static void get_exitctrl(int scr_width, int scr_height, int *exit_width, int *exit_height)
 {
-	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 	    *exit_width = 16;
 		*exit_height = 18;
-	}else if ((scr_width == 1920 && scr_height == 1080) || 
+	}else if ((scr_width == 1920 && scr_height == 1080) ||
 	  (scr_width == 1920 && scr_height == 1200))
 	{
 		*exit_width = 80;
@@ -703,7 +1038,7 @@ static void get_exitctrl(int scr_width, int scr_height, int *exit_width, int *ex
 		*exit_width = 17;
 		*exit_height = 20;
 		//do code
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	   (scr_width == 1360 && scr_height == 768) )
 	{
 		//do code
@@ -718,23 +1053,23 @@ void get_logoutctrl(int scr_width, int scr_height, int *logout_width, int *logou
 	{
 	    *logout_width =43;
 		*logout_height = 14;
-	}else if ((scr_width == 1920 && scr_height == 1080) || 
+	}else if ((scr_width == 1920 && scr_height == 1080) ||
 		(scr_width == 1920 && scr_height == 1200))
 	{
 		*logout_width = 80;
 		*logout_height = 30;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	    (scr_width == 1600 && scr_height == 1080) )
 	{
 		*logout_width = 21;
 		*logout_height = 22;
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	  (scr_width == 1280 && scr_height == 1024) )
 	{
 		*logout_width = 17;
 		*logout_height = 17;
 		//do code
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	  (scr_width == 1360 && scr_height == 768))
 	{
 		//do code
@@ -820,7 +1155,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		gtk_widget_set_size_request(GTK_WIDGET(label_port), 60, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(entry_port), 80, height_edit);
 		gtk_entry_set_width_chars((GtkEntry *)entry_ip, 22);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	   (scr_width == 1600 && scr_height == 1080) )
 	{
 	    space_left = 145;
@@ -835,7 +1170,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		gtk_widget_set_size_request(GTK_WIDGET(label_port), 60, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(entry_port), 80, height_edit);
 		gtk_entry_set_width_chars((GtkEntry *)entry_ip, 15);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	    (scr_width == 1280 && scr_height == 1024))
 	{
 		space_left = 145;
@@ -850,7 +1185,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		gtk_widget_set_size_request(GTK_WIDGET(entry_port), 40, 20);
 		gtk_entry_set_width_chars((GtkEntry *)entry_ip, 12);
 		//do code
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	   (scr_width == 1360 && scr_height == 768))
 	{
 		//do code
@@ -885,7 +1220,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		setctrlFont(GTK_WIDGET(label_ip), 12);
 		setctrlFont(GTK_WIDGET(entry_ip), nsize);
 		setctrlFont(GTK_WIDGET(entry_port), nsize);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	  (scr_width == 1600 && scr_height == 1080) )
 	{
 		nsize = 9;
@@ -893,7 +1228,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		setctrlFont(GTK_WIDGET(label_ip), 11);
 		setctrlFont(GTK_WIDGET(entry_ip), nsize);
 		setctrlFont(GTK_WIDGET(entry_port), nsize);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	   (scr_width == 1280 && scr_height == 1024) )
 	{
 		//do code
@@ -902,7 +1237,7 @@ void initAddressCtrl(GtkBuilder *builder, GtkWidget *widget, int widget_height)
 		setctrlFont(GTK_WIDGET(label_ip), 11);
 		setctrlFont(GTK_WIDGET(entry_ip), nsize);
 		setctrlFont(GTK_WIDGET(entry_port), nsize);
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	  (scr_width == 1360 && scr_height == 768))
 	{
 		//do code
@@ -927,6 +1262,9 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	GObject *image_rempass;
 	GObject *label_rempass;
 	GObject *comboboxtext_entry;
+	GObject *eventbox_auto;
+	GObject *image_auto;
+	GObject *label_auto;
 	label_user = gtk_builder_get_object(builder, "label_user");
 	comboboxtext_user = gtk_builder_get_object(builder, "comboboxtext_user");
 	label_pass = gtk_builder_get_object(builder, "label_pass");
@@ -935,6 +1273,9 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	label_rempass = gtk_builder_get_object(builder, "label_rempass");
 	image_rempass = gtk_builder_get_object(builder, "image_rempass");
 	comboboxtext_entry = gtk_builder_get_object(builder, "comboboxtext_entry");
+	eventbox_auto = gtk_builder_get_object(builder, "eventbox_auto");
+	image_auto = gtk_builder_get_object(builder, "image_auto");
+	label_auto = gtk_builder_get_object(builder, "label_auto");
 	int space_left = 180;
 	int space_right = 180;
 	int delay = 2;
@@ -953,6 +1294,13 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_pass), space_left + 40 + delay + delay_image, 2*15 + delay_height + 20);
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_rempass), space_left + 40 + delay + delay_image*2, 2*15 + delay_height + 20 + 18 + delay_height/2);
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_rempass), space_left + 40 + delay + 30 + delay + delay_image*2 - 10, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2);
+		//add by kevin 2016/11/4
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_auto), space_left + 40 + delay + delay_image*2 - 70, 2*15 + delay_height + 20 + 18 + delay_height/2 - 5);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_auto), space_left + 40 + delay + 30 + delay + delay_image*2 - 10 - 40 - 50, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2 - 5);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(image_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(label_auto), 80, 30);
+		//add end
 		gtk_widget_set_size_request(GTK_WIDGET(label_user), 40, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(comboboxtext_user), 100, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(label_pass), 40, 20);
@@ -968,8 +1316,16 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(comboboxtext_user), space_left + 80 + delay + delay_image, 2*15 - 4);
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_pass), space_left + delay_image, 2*15 + delay_height + 36);
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(entry_pass), space_left + 80 + delay + delay_image, 2*15 + delay_height + 30 + 8);
-		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_rempass), space_left + 80 + delay + delay_image*2 + 10, 2*15 + delay_height + 30 + 30 + delay_height/2 + 10);
-		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_rempass), space_left + 80 + delay + 30 + delay + delay_image*2, 2*15 + delay_height + 30 + 30 + delay_height/2 + 8);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_rempass), space_left + 80 + delay + delay_image*2 + 10 + 20 + 10, 2*15 + delay_height + 30 + 30 + delay_height/2 + 10);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_rempass), space_left + 80 + delay + 30 + delay + delay_image*2 + 20 + 10, 2*15 + delay_height + 30 + 30 + delay_height/2 + 8);
+
+		//add by kevin 2016/11/4
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_auto), space_left + 80 + delay + 30 + delay + delay_image*2 - 10 - 30 - 80 + 5 + 10, 2*15 + delay_height + 30 + 30 + delay_height/2 + 10);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_auto), space_left + 80 + delay + delay_image*2 + 15 - 10 - 80 + 10 + 10, 2*15 + delay_height + 30 + 30 + delay_height/2 + 8);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(image_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(label_auto), 80, 30);
+		//add end
 		gtk_widget_set_size_request(GTK_WIDGET(label_user), 80, 30);
 		gtk_widget_set_size_request(GTK_WIDGET(comboboxtext_user), 200, 30);
 		gtk_widget_set_size_request(GTK_WIDGET(label_pass), 80, 30);
@@ -978,7 +1334,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_widget_set_size_request(GTK_WIDGET(label_rempass), 80, 30);
 		gtk_widget_set_size_request(GTK_WIDGET(image_rempass), 30, 30);
 		gtk_entry_set_width_chars((GtkEntry *)entry_pass, 15);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		space_left = 180;
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_user), space_left + delay_image + 6, 2*15 + 14);
@@ -994,8 +1350,15 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_widget_set_size_request(GTK_WIDGET(eventbox_rempass), 30, 30);
 		gtk_widget_set_size_request(GTK_WIDGET(label_rempass), 80, 30);
 		gtk_widget_set_size_request(GTK_WIDGET(image_rempass), 30, 30);
+		//add by kevin 2016/11/4
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_auto), space_left + 80 + delay + 30 + delay + delay_image*2 - 10 - 30 - 80, 2*15 + delay_height + 30 + 30 + delay_height/2 + 6);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_auto), space_left + 80 + delay + delay_image*2 + 15 - 10 - 80, 2*15 + delay_height + 30 + 30 + delay_height/2 + 6);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(image_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(label_auto), 80, 30);
+		//add end
 		gtk_entry_set_width_chars((GtkEntry *)entry_pass, 12);
-	}else if ((scr_width == 1280 && scr_height == 720 ) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720 ) || (scr_width == 1280 && scr_height == 768) ||
 	  (scr_width == 1280 && scr_height == 1024) )
 	{
 		//do code
@@ -1010,7 +1373,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_rempass), space_left + 40 + delay + 30 + delay + delay_image*2 - 10, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2 - 15);
 		}
 		else
-		{	
+		{
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_user), space_left + delay_image, 2*15 + 14);
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(comboboxtext_user), space_left + 40 + delay + delay_image, 2*15 + 10);
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_pass), space_left + delay_image, 2*15 + delay_height + 22);
@@ -1018,15 +1381,24 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_rempass), space_left + 40 + delay + delay_image*2, 2*15 + delay_height + 20 + 18 + delay_height/2);
 			gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_rempass), space_left + 40 + delay + 30 + delay + delay_image*2 - 10, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2);
 		}
+		//add by kevin 2016/11/4
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(eventbox_auto), space_left + 40 + delay + delay_image*2 - 80, 2*15 + delay_height + 20 + 18 + delay_height/2 - 20);
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_auto), space_left + 40 + delay + 30 + delay + delay_image*2 - 10 - 40 - 50 - 8, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2 - 20);
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(image_auto), 30, 30);
+		gtk_widget_set_size_request(GTK_WIDGET(label_auto), 80, 30);
+		//add end
 		gtk_widget_set_size_request(GTK_WIDGET(label_user), 40, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(comboboxtext_user), 120, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(label_pass), 40, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(entry_pass), 100, 20);
+		//add by kevin
 		gtk_widget_set_size_request(GTK_WIDGET(eventbox_rempass), 30, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(label_rempass), 40, 20);
 		gtk_widget_set_size_request(GTK_WIDGET(image_rempass), 30, 20);
+		//add end
 		gtk_entry_set_width_chars((GtkEntry *)entry_pass, 8);
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	  (scr_width == 1360 && scr_height == 768) )
 	{
 		//do code
@@ -1053,26 +1425,31 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	gtk_label_set_text(GTK_LABEL(label_user), "用户名");
 	gtk_label_set_text(GTK_LABEL(label_pass), "密码");
 	gtk_label_set_text(GTK_LABEL(label_rempass), "记住密码");
+  gtk_label_set_text(GTK_LABEL(label_auto), "自动登录");
 	//set font size
 	int nsize = 12;
 	if (scr_width == 1024 && scr_height == 768)
 	{
 		nsize = 7;
 		setctrlFont(GTK_WIDGET(label_rempass), 6);
+		setctrlFont(GTK_WIDGET(label_auto), 6);
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
 	{
 		setctrlFont(GTK_WIDGET(label_rempass), 10);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		setctrlFont(GTK_WIDGET(label_auto), 10);
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		nsize = 10;
-		setctrlFont(GTK_WIDGET(label_rempass), 8);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+		setctrlFont(GTK_WIDGET(label_rempass), 9);
+		setctrlFont(GTK_WIDGET(label_auto), 9);
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	   (scr_width == 1280 && scr_height == 1024) )
 	{
 		//do code
 		nsize = 9;
 		setctrlFont(GTK_WIDGET(label_rempass), 8);
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+		setctrlFont(GTK_WIDGET(label_auto), 8);
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	   (scr_width == 1360 && scr_height == 768) )
 	{
 		//do code
@@ -1087,6 +1464,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	setfontcolor(GTK_WIDGET(label_user), "#ffffff");
 	setfontcolor(GTK_WIDGET(label_pass), "#ffffff");
 	setfontcolor(GTK_WIDGET(label_rempass), "#ffffff");
+	setfontcolor(GTK_WIDGET(label_auto), "#ffffff");
 }
 
 void initLoginCtrl(GtkBuilder *builder, GtkWidget *widget)
@@ -1114,12 +1492,12 @@ void initLoginCtrl(GtkBuilder *builder, GtkWidget *widget)
 	{
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_login), space_left, space_height);
 		gtk_widget_set_size_request(GTK_WIDGET(btn_login), nlogin_width, 57);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	  (scr_width == 1600 && scr_height == 1080))
 	{
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_login), space_left, space_height);
 		gtk_widget_set_size_request(GTK_WIDGET(btn_login), nlogin_width, 45);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	  (scr_width == 1280 && scr_height == 1024))
 	{
 		nlogin_width = 186;
@@ -1127,7 +1505,7 @@ void initLoginCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_login), space_left, space_height);
 		gtk_widget_set_size_request(GTK_WIDGET(btn_login), nlogin_width, 30);
 		//do code
-	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) ||
 	 (scr_width == 1360 && scr_height == 768))
 	{
 		//do code
@@ -1159,7 +1537,7 @@ void SetCtrlPos(GtkBuilder *builder, int scr_layout3_height)
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		nwidth = nwidth*3;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		nwidth = nwidth*2.5;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
@@ -1198,11 +1576,14 @@ void SetCtrlPos(GtkBuilder *builder, int scr_layout3_height)
 		else
 			gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_login), ctrl_left, nspace_height + 50 + nspace_delay + 32 + nspace_delay + 190 + nspace_delay);
 		gtk_widget_set_size_request(GTK_WIDGET(layout_ctrl), nwidth, 180);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	   (scr_width == 1600 && scr_height == 1080))
 	{
 	    nspace_height = 150;
-		gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_logo), ctrl_left, nspace_height - 20);
+		if (g_interfacetype == 2)
+			gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_logo), ctrl_left, nspace_height - 30);
+		else
+			gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_logo), ctrl_left, nspace_height - 20);
 		gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_mir), ctrl_left, nspace_height + 60 + nspace_delay);
 		gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_ctrl), ctrl_left, nspace_height + 50 + nspace_delay + 32 + nspace_delay);
 		gtk_layout_move((GtkLayout *)layout3, GTK_WIDGET(layout_login), ctrl_left, nspace_height + 50 + nspace_delay + 32 + nspace_delay + 190 + nspace_delay);
@@ -1240,7 +1621,10 @@ void SetCtrlPos(GtkBuilder *builder, int scr_layout3_height)
 	initAddressCtrl(builder, GTK_WIDGET(layout_mir), 40);
 	initUserCtrl(builder, GTK_WIDGET(layout_ctrl));
 	initLoginCtrl(builder, GTK_WIDGET(layout_login));
-	init_logo_ctrl(builder, GTK_WIDGET(layout_logo), nwidth, 50);
+	if (g_interfacetype == 2)
+		init_logo_ctrl(builder, GTK_WIDGET(layout_logo), nwidth, 100);
+	else
+		init_logo_ctrl(builder, GTK_WIDGET(layout_logo), nwidth, 50);
 	if (g_selectProto == 0)
 		gtk_widget_hide(GTK_WIDGET(layout_mir));
 	if (g_selectProto == 1) //mirsoft
@@ -1254,11 +1638,13 @@ int init_ctrl_data(GtkBuilder *builder)
 	GObject *image_rempass;
 	GObject *entry_pass;
 	GObject *comboboxtext_entry;
+	GObject *image_auto;
 	image_rempass = gtk_builder_get_object(builder, "image_rempass");
+	image_auto = gtk_builder_get_object(builder, "image_auto");
 	entry_pass = gtk_builder_get_object(builder, "entry_pass");
 	comboboxtext_entry = gtk_builder_get_object(builder, "comboboxtext_entry");
 	GObject *comboboxtext_user = gtk_builder_get_object (builder, "comboboxtext_user");
-	struct LoginInfo info = {"", "", "", "", 3389, 0, 0};
+	struct LoginInfo info = {"", "", "", "", 3389, 0, 0, 0};
 	if (g_selectProto == 0) //ShenCloud
 	{
 		GetLoginInfo(&info);
@@ -1267,6 +1653,7 @@ int init_ctrl_data(GtkBuilder *builder)
 		gtk_combo_box_text_insert_text((GtkComboBoxText *)comboboxtext_user, 0, info.user);
 		gtk_entry_set_text(GTK_ENTRY(comboboxtext_entry), info.user);
 		g_checkrepass = info.repass;
+		g_checkautologin = info.autologin;
 	}
 	if (g_selectProto == 1 || g_selectProto == 3) //mirsoft
 	{
@@ -1297,6 +1684,15 @@ int init_ctrl_data(GtkBuilder *builder)
 	else if (g_checkrepass == 0)
 	{
 		 gtk_image_set_from_pixbuf(GTK_IMAGE(image_rempass), g_checkNorimage);
+	}
+	//161104
+	if (g_checkautologin == 1)
+	{
+		 gtk_image_set_from_pixbuf(GTK_IMAGE(image_auto), g_checkPressimage);
+	}
+	else if (g_checkautologin == 0)
+	{
+		 gtk_image_set_from_pixbuf(GTK_IMAGE(image_auto), g_checkNorimage);
 	}
 	return 0;
 }
@@ -1329,13 +1725,20 @@ static void signal_ctrlevent(GtkBuilder *builder)
 
 	//checkbutton rember pass
 	GObject *eventbox_rempass;
+	GObject *eventbox_auto;
 	eventbox_rempass = gtk_builder_get_object (builder, "eventbox_rempass");
 	gtk_widget_set_events((GtkWidget *)eventbox_rempass, GDK_BUTTON_PRESS_MASK);
+	eventbox_auto = gtk_builder_get_object (builder, "eventbox_auto");
+	gtk_widget_set_events((GtkWidget *)eventbox_auto, GDK_BUTTON_PRESS_MASK);
 	//checkbutton image signal
     GObject *image_rempass;
+    GObject *image_auto;
     image_rempass = gtk_builder_get_object (builder, "image_rempass");
+	image_auto = gtk_builder_get_object (builder, "image_auto");
     g_signal_connect (G_OBJECT (eventbox_rempass), "button_press_event",
                     G_CALLBACK (checkbutton_repass_press_callback), (GtkWidget *)image_rempass);
+	g_signal_connect (G_OBJECT (eventbox_auto), "button_press_event",
+                    G_CALLBACK (checkbutton_autologin_press_callback), (GtkWidget *)image_auto);
 }
 
 static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget2, GtkLayout * widget4, int layout2_height, int layout4_height)
@@ -1362,12 +1765,12 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget2, GtkLayout
 	{
 		gdk_pixbuf_get_file_info(IMAGE_BTN_PREV_NOR, &piclogout_width, &piclogout_height);
 		gdk_pixbuf_get_file_info(IMAGE_BTN_SHUTDWON_NOR, &picexit_width, &picexit_height);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 	  (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1440x900/loginout_nor.png", &piclogout_width, &piclogout_height);
 		gdk_pixbuf_get_file_info("images2/1440x900/exit_nor.png", &picexit_width, &picexit_height);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	  (scr_width == 1280 && scr_height == 1024) )
 	{
 		//do code
@@ -1388,9 +1791,9 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget2, GtkLayout
 		y = (layout4_height - picexit_height)/2 + 30;
 	else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 		y = (layout4_height - picexit_height)/2 + 30;
-	else 
+	else
 		y = (layout4_height - picexit_height)/2 + 20;
-	
+
 	gtk_layout_move((GtkLayout *)widget4, GTK_WIDGET(btn_shutdown), x, y);
 	//logout buttion
 	x = scr_width - nspace_width - piclogout_width;
@@ -1436,6 +1839,7 @@ void SY_loginwindow_main()
 	   return;
 	showloginwindow = 1;
 	g_loginExit = 0;
+	showSyMsgDlg11 = 0;
 	GdkScreen* screen;
 	GtkBuilder *builder;
 	GObject *window;
@@ -1520,7 +1924,7 @@ void SY_loginwindow_main()
 	gtk_window_fullscreen(GTK_WINDOW(window));
 	gtk_window_set_decorated(GTK_WINDOW(window), FALSE); /* hide the title bar and the boder */
 	//gtk_widget_show_all((GtkWidget *)window);
-	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);                    
+	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);
      gtk_window_set_modal (GTK_WINDOW (window), TRUE);
 	 gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), g_mainWindow);

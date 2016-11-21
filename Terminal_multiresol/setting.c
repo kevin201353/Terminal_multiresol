@@ -16,7 +16,7 @@ struct ServerInfo g_serverinfo = {"192.168.0.220", 443, "admin@internal", "shenc
 GObject * g_layout1;  //服务器Layout
 GObject * g_layout2;  //网络
 GObject * g_layout_about;
-
+GtkWidget * g_soundWin = NULL;
 GObject *g_settingwindow = NULL;
 static GObject * g_window;
 GdkPixbuf *g_checkNorimage;
@@ -35,7 +35,39 @@ extern char szResol[MAX_RESOL_SIZE][100];
 extern GtkLayout * GetAboutLayout();
 extern void setAbout_win_Size(int width, int height);
 extern void SY_AboutWindow();
+extern void set_soundwin_size(int width, int height);
+extern int set_ovirt_baseurl(char * szurl);
+extern int set_ovirt_tcm(char * tcmserver, char *teacher);
 
+static void save_ovirt_tcm()
+{
+	char szurl[MAX_BUFF_SIZE] = {0};
+	char szport[20] = {0};
+	sprintf(szport, "%d", g_serverinfo.nport);
+	strcpy(szurl, "https://");
+	strcat(szurl, g_serverinfo.szIP);
+	strcat(szurl, ":");
+	strcat(szurl, szport);
+	strcat(szurl, "/ovirt-engine/api");
+	printf("save_ovirt_tcm : %s .\n", szurl);
+	set_ovirt_baseurl(szurl);
+	memset(szurl, 0, MAX_BUFF_SIZE);
+	strcpy(szurl, "http://");
+	strcat(szurl, g_serverinfo.szIP);
+	strcat(szurl, ":");
+	memset(szport, 0, 20);
+	sprintf(szport, "%d", 8000);
+	strcat(szurl, szport);
+	char szteacher[MAX_BUFF_SIZE] = {0};
+	strcpy(szteacher, "http://");
+	strcat(szteacher, g_serverinfo.szIP);
+	strcat(szteacher, ":");
+	memset(szport, 0, 20);
+	sprintf(szport, "%d", 8090);
+	strcat(szteacher, szport);
+	printf("save_ovirt_tcm , tcm = %s , teacher = %s.\n", szurl, szteacher);
+	set_ovirt_tcm(szurl, szteacher);
+}
 static const char* resol_adjust()
 {
     static char szResol_retun[MAX_BUFF_SIZE] = {0};
@@ -292,6 +324,7 @@ unsigned short saveServerInfo()
     }
 	LogInfo("debug: wirte setting checkmanresol=%d, checkclientresol=%d.\n" ,g_checkrepass, g_checkmanresol);
     SaveServerInfo(g_serverinfo);
+	save_ovirt_tcm();
     return 0;
 }
 
@@ -365,22 +398,32 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 1);
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
-        	initctrl();
+			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+        		initctrl();
 		}
 		if (strcmp((char *)(gchar *)value, "网络") == 0)
 		{
-        	saveServerInfo();
+        		saveServerInfo();
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 1);
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
 		}
+		// if (strcmp((char *)(gchar *)value, "声音") == 0)
+		// {
+		// 	gtk_widget_set_visible((GtkWidget *)g_soundWin, 1);
+		//     gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
+  	// 		gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
+		// 	gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+		// }
 		if (strcmp((char *)(gchar *)value, "关于") == 0)
 		{
-        	saveServerInfo();
+        		saveServerInfo();
 			LogInfo("on_changed  selected about window.\n ");
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 1);
+			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
 		}
         g_free(value);
     }
@@ -395,6 +438,8 @@ static GtkTreeModel *create_and_fill_model(void)
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"基本设置",-1);
     gtk_tree_store_append(treestore,&toplevel,NULL);
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"网络",-1);
+    //gtk_tree_store_append(treestore,&toplevel,NULL);
+    //gtk_tree_store_set(treestore,&toplevel, COLUMN,"声音",-1);
     gtk_tree_store_append(treestore,&toplevel,NULL);
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"关于",-1);
   /*  gtk_tree_store_append(treestore,&child,&toplevel);
@@ -586,7 +631,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		font_size = 12;
 		setctrlFont(GTK_WIDGET(label_title), 14);
 	}
-	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || 
+	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
 		 (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 500;
@@ -672,7 +717,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	image_logo = gtk_builder_get_object (builder, "image_logo");
 	image_resolution = gtk_builder_get_object (builder, "image_resolution");
 	image_close = gtk_builder_get_object(builder, "image_close");
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
@@ -690,7 +735,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		gdk_pixbuf_get_file_info("images2/logo.png", &pic_logo_width, &pic_logo_height);
 		gtk_widget_set_size_request(GTK_WIDGET(image_logo), 113, 26);
 		gtk_widget_set_size_request(GTK_WIDGET(image_close), 14, 12);
-	}else if ( (scr_width == 1280 && scr_height == 720)  || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024) || (scr_width == 1366 && scr_height == 768) || 
+	}else if ( (scr_width == 1280 && scr_height == 720)  || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024) || (scr_width == 1366 && scr_height == 768) ||
 			(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
@@ -703,7 +748,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	}
 	LogInfo("init_ctrl_pos  pic_close_width = %d, pic_close_height =%d .\n", pic_close_width, pic_close_height);
 	LogInfo("init_ctrl_pos  pic_logo_width = %d, pic_logo_height =%d .\n", pic_logo_width, pic_logo_height);
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
@@ -835,7 +880,7 @@ static void loadimage(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 
-	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||
+	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
 		(scr_width == 1600 && scr_height == 1080) )
 	{
 		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
@@ -901,7 +946,7 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_resolution), 12);
 	}
 	else if ( (scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 	    layout2_width = 500;
 		layout2_height = 30;
@@ -949,7 +994,7 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(comboboxtext_resol), 9);
 		setctrlFont(GTK_WIDGET(label_resolution), 9);
 		setctrlFont(GTK_WIDGET(btn_save), 9);
-	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024)|| (scr_width == 1366 && scr_height == 768) || 
+	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024)|| (scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
 		layout2_width = 500;
@@ -1071,6 +1116,8 @@ int  SY_Setting_main ()
   setAbout_win_Size(box_win_width, box_win_height);
   SY_AboutWindow();
   g_layout_about = GetAboutLayout();
+  set_soundwin_size(box_win_width, box_win_height);
+  g_soundWin = SYSoundWin();
 
   GtkWidget *view;
   GtkTreeSelection *selection;
@@ -1082,14 +1129,14 @@ int  SY_Setting_main ()
   int scr_height = gdk_screen_get_height(screen);
   if ((scr_width == 1024 && scr_height == 768) ||
   	   (scr_width == 1440 && scr_height == 900) ||
-  	   (scr_width == 1600 && scr_height == 900) || 
+  	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
   	  (scr_width == 1600 && scr_height == 1080) )
   {
 	 setctrlFont(GTK_WIDGET(view), 10);
-  }else if ((scr_width == 1280 && scr_height == 720) || 
+  }else if ((scr_width == 1280 && scr_height == 720) ||
         (scr_width == 1280 && scr_height == 768) ||
         (scr_width == 1280 && scr_height == 1024) ||
-        (scr_width == 1366 && scr_height == 768) || 
+        (scr_width == 1366 && scr_height == 768) ||
         (scr_width == 1368 && scr_height == 768) ||
         (scr_width == 1360 && scr_height == 768) )
   {
@@ -1105,6 +1152,7 @@ int  SY_Setting_main ()
   gtk_tree_selection_select_iter(selection, &iter);
   g_layout1 = gtk_builder_get_object (builder, "layout_base");
   gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_layout2, TRUE, TRUE, 1);
+//  gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_soundWin, TRUE, TRUE, 1);
   gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_layout_about, TRUE, TRUE, 1);
 
   GObject * label_tip;
@@ -1174,10 +1222,11 @@ int  SY_Setting_main ()
   btnset_close = gtk_builder_get_object (builder, "btnset_close");
   gtk_label_set_text(GTK_LABEL(label_title), "配 置");
   g_signal_connect(GTK_BUTTON(btnset_close), "clicked", G_CALLBACK(close_button_clicked), NULL);
-  //end                 
+  //end
   gtk_widget_show_all((GtkWidget *)window);
   gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+  gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
   SY_NetworkDisableCtrl();
   initctrl();
   setResol();

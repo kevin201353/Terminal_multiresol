@@ -266,6 +266,6 @@ int Ovirt_GetVmTicket(char *url, char *user, char* password, char *vm)
         LogInfo("Debug: Ovirt GetVmTicket failed.\n");
         return SY_OVIRT_GETVMSTICKET_FAILED;
     }
-    printf("ovirt get vms ticker success.\n");
+    printf("ovirt send get vms ticker request success.\n");
     return 0;
 }

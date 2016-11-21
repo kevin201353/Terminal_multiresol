@@ -112,7 +112,7 @@ static void  on_btn_shutdown_pressed(GtkButton *button,  gpointer   user_data)
 {
     gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_shutdownPress);
 	//MsgShutDownDailog("您确定要关闭系统吗？");
-	SYMsgDialog(11, "您确定要关闭系统吗？");
+	SYMsgDialog2(11, "您确定要关闭系统吗？");
 }
 
 
@@ -278,7 +278,7 @@ static init_ctrl_pos(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_http), 9);
 		setctrlFont(GTK_WIDGET(entry_http), 9);
 		
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		layout1_height = 100;
 		layout3_height = 200;
@@ -412,11 +412,11 @@ void SY_logincit_main()
 	    g_prevNor = gdk_pixbuf_new_from_file("images2/1024x768/loginout_nor.png", NULL);
 		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1024x768/exit_press.png", NULL);
 	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1024x768/exit_nor.png", NULL);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_press.png", NULL);
 	    g_loginNor = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_nor.png", NULL);
-		if ((scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+		if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 			surface = cairo_image_surface_create_from_png ("images2/1600x900/cit_login.png");
 		else if (scr_width == 1440 && scr_height == 900)
 	    		surface = cairo_image_surface_create_from_png ("images2/1440x900/cit_login.png");

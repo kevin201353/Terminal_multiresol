@@ -452,7 +452,7 @@ int SY_GetVms2()
     return 0;
 }
 
-void SY_GetVmsTicket(char * szTicket)
+int SY_GetVmsTicket(char * szTicket)
 {
   	FILE *fp;
   	fp = fopen(FILE_OVIRT_TICKET_PATH, "r");
@@ -470,9 +470,19 @@ void SY_GetVmsTicket(char * szTicket)
       			 printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
              strcpy(szTicket, node->child->value.text.string);
       		}
+			node = mxmlFindElement(g_tree, g_tree, "state",
+      												 NULL, NULL,
+      												 MXML_DESCEND);
+      		if (node != NULL)
+      		{
+      			 printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
+				 if (strcmp(node->child->value.text.string, "failed") == 0)
+             			return -1;
+      		}
       	}
       	fclose(fp);
     }//if
+    return 0;
 }
 
 unsigned short SY_GetVmState(char* vmid)

@@ -12,7 +12,7 @@ int about_win_height = 0;
 extern void setctrlFont(GtkWidget * widget, int nsize);
 
 /************************************************************************/
-/* ɾ���ַ�����ָ���ַ� */
+/* ɾ���ַ�����ָ���ַ� */
 /************************************************************************/
 void del_char(char* str,char ch)
 {
@@ -81,7 +81,7 @@ void SY_AboutWindow()
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
 	{
 		nsize = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
 	{
 		nsize = 10;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
@@ -109,12 +109,12 @@ void SY_AboutWindow()
 	y = (about_win_height - height_label)/2;
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(label_about), x, y);
 	char sztext[MAX_BUFF_SIZE] = {0};
-  char szTmp[MAX_BUFF_SIZE] = {0};
-  strcpy(szTmp, MAIN_VERSION);
-  strcat(szTmp, SUBVERSION_NUMBER);
-  char szDest[20] = {0};
+	char szTmp[MAX_BUFF_SIZE] = {0};
+	strcpy(szTmp, MAIN_VERSION);
+	strcat(szTmp, SUBVERSION_NUMBER);
+	char szDest[20] = {0};
 	strtok(buildtime, " ");
-	del_char(buildtime, '-');  //20161014
+	del_char(buildtime, '-');//20161014
 	strcpy(szDest, buildtime+2);
 	strcat(szTmp, szDest);
 	sprintf(sztext, "终端登录软件 \n版本 ：%s \n深圳市神云科技有限公司 ", szTmp);

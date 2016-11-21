@@ -1,0 +1,39 @@
+GtkScale {
+   -GtkWidget-focus-line-width: 0;
+   -GtkScale-slider-length: 30;
+   -GtkRange-slider-width: 20;
+   -GtkRange-trough-border: 4;
+   -GtkScale-value-spacing: 10;
+/*  background-color: white;  */
+   color: green;
+   font-size: 18;
+/* border-color: red; */
+    border-style: none;
+/* border-width: 0; */
+    border-radius: 8;
+padding: 5;
+}
+
+GtkScale.slider {
+background-image: -gtk-gradient(linear,
+left top,
+left bottom,
+color-stop(0.0,rgba(50,89,134,1)),
+color-stop(.50,rgba(70,135,188,1)),
+color-stop(.51,rgba(59,121,175,1)),
+color-stop(1.0,rgba(143,184,215,1))); 
+}
+
+GtkScale.slider:hover {
+background-image: -gtk-gradient(linear,
+left top,
+left bottom,
+color-stop(0.0,rgba(31,127,237,1)),
+color-stop(0.50,rgba(82,170,242,1)),
+color-stop(0.51,rgba(63,159,243,1)),
+color-stop(1.0,rgba(150,205,248,1))); 
+}
+
+GtkScale.trough {
+   background-color: burlywood;
+}

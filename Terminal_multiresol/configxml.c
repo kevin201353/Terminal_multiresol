@@ -24,7 +24,8 @@
 #define  FILE_CONFIG_SETTING    "setting.xml"
 #define  FILE_CONFIG_MIRLOGIN   "login_mir.xml"
 #define  FILE_CONFIG_VMARECONF  "login_vm.xml"
-
+#define  FILE_CONFIG_SOUND      "sound.xml"
+#define  FILE_MANUFACTURE_TYPE   "manufact.xml"
 void Parsexml(char * element,  char * value,  int ntype)
 {
   	FILE *fp = NULL;
@@ -57,6 +58,35 @@ void Parsexml(char * element,  char * value,  int ntype)
     }
 }
 
+void Parsexml2(char * file, char *element, char * value)
+{
+  	FILE *fp = NULL;
+    char szFile[MAX_BUFF_SIZE] = {0};
+  	fp = fopen(file, "r");
+    if (fp)
+    {
+      	mxml_node_t *g_tree = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
+      	if (g_tree != NULL)
+      	{
+        		mxml_node_t *node;
+        		node = mxmlFindElement(g_tree, g_tree, element,
+        												 NULL, NULL,
+        												 MXML_DESCEND);
+        		if (node != NULL)
+        		{
+               if (node->child != NULL)
+               {
+                  strcpy(value, node->child->value.text.string);
+        			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
+               }
+        		}//if node != NULL
+      	}
+      	fclose(fp);
+    }
+}
+
+
+
 void SaveLogin(struct LoginInfo info)
 {
     mxml_node_t *xml;    /* <?xml ... ?> */
@@ -76,6 +106,12 @@ void SaveLogin(struct LoginInfo info)
     sprintf(szTmp, "%d", info.repass);
     LogInfo("configxml savelogin repass: %d.\n", info.repass);
     LogInfo("configxml savelogin repass sztmp: %s.\n", szTmp);
+    mxmlNewText(node, 0, szTmp);
+	//autologin
+    node = mxmlNewElement(data, "autologin");
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	sprintf(szTmp, "%d", info.autologin);
+	LogInfo("configxml savelogin autologin: %d.\n", info.autologin);
     mxmlNewText(node, 0, szTmp);
     FILE *fp;
     fp = fopen(FILE_CONFIG_LOGIN, "w");
@@ -327,6 +363,11 @@ int GetLoginInfo(struct LoginInfo *pInfo)
     Parsexml("repass",  szTmp, 0);
     LogInfo("GetLoginInfo   repass: %s", szTmp);
     pInfo->repass = atoi(szTmp);
+	//add kevin 2016/11/4
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	Parsexml("autologin",  szTmp, 0);
+	LogInfo("GetLoginInfo   autologin: %s", szTmp);
+	pInfo->autologin = atoi(szTmp);
 }
 
 void SaveMirLogin(struct LoginInfo info)
@@ -442,3 +483,77 @@ void GetVmareLoginInfo(struct LoginInfo *pInfo)
     LogInfo("GetVmLoginInfo   repass: %s", szTmp);
     pInfo->repass = atoi(szTmp);
 }
+
+void Save_Sound(struct SoundInfo info)
+{
+	mxml_node_t *xml;
+	mxml_node_t *data;
+	mxml_node_t *node; 
+	mxml_node_t *node_server; 
+
+    char szTmp[MAX_BUFF_SIZE] = {0};
+	xml = mxmlNewXML("1.0");
+	data = mxmlNewElement(xml, "setting");
+	node_server = mxmlNewElement(data, "server");
+	node = mxmlNewElement(node_server, "sound_value");
+	memset(szTmp, 0, sizeof(MAX_BUFF_SIZE));
+	sprintf(szTmp, "%d", info.volume);
+	mxmlNewText(node, 0, szTmp);
+	FILE *fp;
+	fp = fopen(FILE_CONFIG_SOUND, "w");
+	if (fp)
+	{
+		mxmlSaveFile(xml, fp, MXML_NO_CALLBACK);
+		fclose(fp);
+	}
+}
+
+void Get_Sound(struct SoundInfo *info)
+{
+	 FILE *fp;
+     fp = fopen(FILE_CONFIG_SOUND, "r");
+     if (fp == NULL)
+        return -1;
+     mxml_node_t *g_tree = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
+     if (g_tree != NULL)
+     {
+         mxml_node_t *node = NULL;
+         mxml_node_t *heading = NULL;
+         node = mxmlFindElement(g_tree, g_tree, "setting",
+                              NULL, NULL,
+                              MXML_DESCEND);
+         if (node != NULL)
+         {
+             //printf("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
+             //memcpy(value, node->child->value.text.string, strlen(node->child->value.text.string));
+             for (heading = mxmlGetFirstChild(node);
+                  heading;
+                  heading = mxmlGetNextSibling(heading))
+              {
+                      mxml_node_t *tmp_node = mxmlFindElement(heading, node, "sound_value",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                          info->volume = atoi(tmp_node->child->value.text.string);
+                        LogInfo("configxml Get server info, sound_value : %d.\n", info->volume);
+                    }
+              }//for
+         }//if
+     }
+     fclose(fp);
+     return 0;
+}
+
+//add by
+int GetManufactureType()
+{
+	int type = 0;
+	char szTmp[MAX_BUFF_SIZE] = {0};
+	Parsexml2(FILE_MANUFACTURE_TYPE, "manufacture", szTmp);
+	LogInfo("GetManufactureType manufacture type: %s", szTmp);
+	type = atoi(szTmp);
+	return type;
+}
+//add end

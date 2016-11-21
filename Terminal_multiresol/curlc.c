@@ -128,7 +128,7 @@ int Http_Request(char *url, char *user, char* password)
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	   curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);  //add http timeout
+	   curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 5);  //add http timeout
         res = curl_easy_perform(g_curl);
         curl_slist_free_all(headers);
     }else{
@@ -138,7 +138,7 @@ int Http_Request(char *url, char *user, char* password)
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	    curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
+	    curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 5);
         if (g_curl == NULL)
         {
             printf("http request g_curl == null.\n");
@@ -198,7 +198,7 @@ int Http_Post(char *url, char *user, char* password, char *data)
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(g_curl, CURLOPT_POSTFIELDSIZE, strlen(data));
     curl_easy_setopt(g_curl, CURLOPT_COPYPOSTFIELDS, data);
-	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10); //add http timeout
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 5); //add http timeout
 
     CURLcode res = curl_easy_perform(g_curl);
     /* Check for errors */
@@ -237,7 +237,7 @@ int Http_Request3(char *url, char *path)
 	curl_easy_setopt(g_curl, CURLOPT_URL, url);
 	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 5);
 	
 	CURLcode res = curl_easy_perform(g_curl);
 	if(res != CURLE_OK)
@@ -292,7 +292,7 @@ int Http_Request2(char *url, char *user, char* password, char *path)
 	curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
 	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 10);
+	curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 5);
 	res = curl_easy_perform(g_curl);
 	curl_slist_free_all(headers);
    /* Check for errors */

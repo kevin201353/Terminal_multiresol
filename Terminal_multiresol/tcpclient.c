@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include "tcpclient.h"
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 
 #define portnumber 12321 //定义端口号：（0-1024为保留端口号，最好不要用）
@@ -113,7 +115,7 @@ void del_xxfile()
 
 void wirte_conflag_data(char* path_file, char* data)
 {
-	FILE* file = fopen(path_file, "a+");
+	FILE* file = fopen(path_file, "w+");
 	if (file != NULL)
 	{
 		fwrite(data,1,strlen(data), file);
@@ -128,14 +130,40 @@ int send_data(struct Report data)
 
 	del_xxfile();
 	int nRet = 0;
-	nRet = send(sockfd, &data, sizeof(struct Report), 0);
+	char szTmp[200] = {0};
+//	memcpy(szTmp, data.uname, sizeof(char) * 64);
+//	memcpy(szTmp + 64, data.vname, sizeof(char) * 64);
+//	char sz_value[20] = {0};
+//	sprintf(sz_value, "%d", data.action);
+//	memcpy(szTmp + 64 + 64, sz_value, sizeof(sz_value));
+
+	strcpy(szTmp, report.uname);
+	strcat(szTmp, ",");
+	strcat(szTmp, report.vname);
+	strcat(szTmp,",");
+	char sz_value[20] = {0};
+	sprintf(sz_value, "%d", report.action);
+	strcat(szTmp, sz_value);
+	strcat(szTmp, "\n");
+
+	//nRet = send(sockfd, &data, sizeof(struct Report), 0);
+	nRet = send(sockfd, szTmp, (int)strlen(szTmp), 0);
 	if ( nRet == -1)
 	{
 		//fprintf(stderr,"Connect Error:%s\a\n",strerror(errno));
 		LogInfo("send_data Connect Error:%s\a\n", strerror(errno));
 		return -1;
 	}
-	LogInfo("Debug: send data bytes = %d .\n", nRet);
+	//
+	LogInfo("Debug: send data bytes = %d.\n", nRet);
+	//debug
+	int fd = open("/var/log/shencloud/debug_str", O_WRONLY | O_CREAT | O_APPEND);
+	if (fd > 0)
+	{
+		write(fd, szTmp, (int)strlen(szTmp));
+		close(fd);
+	}
+	//debug end
 	return 0;
 }
 
@@ -144,7 +172,7 @@ int send_data(struct Report data)
 int ajust_auth()
 {
     char data[MAX_DATA_SIZE] = {0};
-	strcpy(data, "thin_view");
+	strcpy(data, "thin_view\n");
 	nbytes = send(sockfd, &data, sizeof(data), 0);
 	if ( nbytes == -1)
 	{
@@ -203,6 +231,7 @@ int close_tcpclient()
 		{
 			//time out
 			LogInfo("tcpclient close_tcpclient select timeout .\n");
+    			fcntl(sockfd, flags | ~O_NONBLOCK);
 			close(sockfd);
 			return 0;
 		}
@@ -212,12 +241,14 @@ int close_tcpclient()
 			if (nret == -1)
 			{
 			   LogInfo("tcpclient close_tcpclient read data error .\n");
+			   fcntl(sockfd, flags | ~O_NONBLOCK);
 			   close(sockfd);
 			   return 0;
 			}
 			if (strcmp(szbuf, "bye") == 0)
 			{
 			   LogInfo("tcpclient close_tcpclient read data bye , len =%d.\n", nret);
+			   fcntl(sockfd, flags | ~O_NONBLOCK);
 			   close(sockfd);
 			}
 		}
