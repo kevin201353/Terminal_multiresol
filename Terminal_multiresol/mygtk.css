@@ -37,7 +37,7 @@
    font-family: "Microsoft YaHei"
 }
 
-#btn_sleep {
+#btn_sleep, #btn_reboot {
    background-color: transparent;
    background-image: none;
    border-style: none;
@@ -125,7 +125,7 @@
    font-family: "Microsoft YaHei"
 }
 
-#label_sleep {
+#label_sleep, #label_reboot {
    font-size: 10px;
    font-family: "Microsoft YaHei"
 }
@@ -156,10 +156,11 @@ GtkComboBoxText {
    font-size: 18px;
 }
 
+/*
 GtkTreeView {
    border-style:none;
    font-size: 13px;
-   color: #5C82A2;  /* x11 color "Indigo" (a dark purple)*/
+   color: #5C82A2;
    padding: 1px;
 }
 
@@ -168,7 +169,13 @@ column-header .button  {
     background-color: transparent;
     background-image: none;
     border-width: 0px;
-    color: #5C82A2;  /* x11 color "Indigo" (a dark purple)*/
+    color: #5C82A2;
     font-size: 14px;
     padding: 0px;
+}*/
+
+#label_login {
+    font-size: 10px;
+    font-family: "Microsoft YaHei";
+    color : #ffffff;
 }

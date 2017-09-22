@@ -1,0 +1,104 @@
+#layout_thrdtitle{
+   background-image: none;
+   background-color: #4A4A54;
+   border-image: none;
+   border-style: solid;
+}
+
+#layout_thrdtext{
+   background-image: none;
+   background-color: #EDF0F2;
+}
+
+#btnsymsg_close {
+  background-color: transparent;
+  background-image: none;
+  border-style: none;
+  border-image: none;
+  font-family: "Microsoft YaHei";
+}
+
+#btn_OK {
+  color: #282C34;
+  font-family: "Microsoft YaHei";
+}
+
+/*
+#btn_Cancel {
+  color: #282C34;
+  font-family: "Microsoft YaHei";
+}*/
+
+#entry_modifyuser {
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}
+
+#entry_oldpass {
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}
+
+#entry_newpass {
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}
+
+#entry_okpass {
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}
+
+
+#label_user {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_oldpass {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_newpass {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+#label_okpass {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+
+#label_rul1 {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+
+
+#label_rul2 {
+    color: #282C34;
+    font-family: "Microsoft YaHei"
+}
+

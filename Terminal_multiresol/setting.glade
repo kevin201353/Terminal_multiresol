@@ -139,6 +139,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entry_serverip">
+						    <property name="name">entry_serverip</property>
                             <property name="width_request">100</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
@@ -193,6 +194,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entry_port">
+						    <property name="name">entry_port</property>
                             <property name="width_request">30</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
@@ -222,6 +224,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entryset_user">
+						    <property name="name">entryset_user</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -250,6 +253,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entryset_pass">
+						    <property name="name">entryset_pass</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>

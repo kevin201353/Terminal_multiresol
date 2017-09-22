@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include "tcpclient.h"
+#include "type.h"
 
 
 enum {
@@ -52,7 +53,7 @@ enum {
 GdkPixbuf *g_vmIconPix;
 GtkListStore *g_store;
 GtkTreeView *g_treeview;
-unsigned short g_sUpdateVmStatus = 0;
+volatile unsigned short g_sUpdateVmStatus = 0;
 static int showvmlistwindow = 0;
 struct Vms_Update {
     char szvmid[MAX_BUFF_SIZE];
@@ -69,6 +70,8 @@ struct Vms_Update g_upVms[MAX_BUFF_SIZE];
 
 static int columnwidth_array[9] = {80,200,200,100,150,100,100,200,200};
 
+GdkPixbuf *g_restartPress;
+GdkPixbuf *g_restartNor;
 GdkPixbuf *g_startPress;
 GdkPixbuf *g_startNor;
 GdkPixbuf *g_closePress;
@@ -85,6 +88,7 @@ static GObject *g_window = NULL;
 struct itimerval itv;
 unsigned int g_vmsCount = 0;
 
+
 static void *thrd_func(void *arg);
 static pthread_t tid;
 
@@ -99,15 +103,35 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 
 extern void setctrlFont(GtkWidget * widget, int nsize);
 extern void shell_exec(char *cmd);
+static int g_flushState = 0;
+static void connectVm22();
+
+static float g_scr_old_width = 1920.0;
+static float g_scr_old_height = 1080.0;
 
 //
 static GtkTreeIter * g_iter = NULL;
+
+void exit_vimlist_win()
+{
+	g_sUpdateVmStatus = 0;
+	g_exitvm = 1;
+	showvmlistwindow = 0;
+	cleanVms();
+	if (g_window != NULL)
+	{
+	    gtk_widget_destroy((GtkWidget *)g_window);
+		g_window = NULL;
+	    gtk_main_quit();
+	}
+}
+
 static int column_len()
 {
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
 	int scr_width = gdk_screen_get_width(screen);
-	int scr_height = gdk_screen_get_height(screen);
+	int scr_height = gdk_screen_get_height(screen);	
 
 	if (scr_width == 1024 && scr_height == 768)
 	{
@@ -131,17 +155,17 @@ static int column_len()
 		columnwidth_array[6] = 100;
 		columnwidth_array[7] = 200;
 		columnwidth_array[8] = 200;
-	}else if (scr_width == 1440 && scr_height == 900)
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  )
 	{
 		columnwidth_array[0] = 80;
-		columnwidth_array[1] = 140;
-		columnwidth_array[2] = 180;
+		columnwidth_array[1] = 160;
+		columnwidth_array[2] = 120;
 		columnwidth_array[3] = 90;
 		columnwidth_array[4] = 120;
-		columnwidth_array[5] = 90;
+		columnwidth_array[5] = 80;
 		columnwidth_array[6] = 90;
-		columnwidth_array[7] = 180;
-		columnwidth_array[8] = 100;
+		columnwidth_array[7] = 160;
+		columnwidth_array[8] = 60;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	   (scr_width == 1280 && scr_height == 1024))
 	{
@@ -169,6 +193,7 @@ static int column_len()
 		columnwidth_array[8] = 80;
 	}
 }
+
 static void init_ctrl_posit(GtkBuilder *builder)
 {
     GObject *grid2;
@@ -188,6 +213,10 @@ static void init_ctrl_posit(GtkBuilder *builder)
 	screen = gdk_screen_get_default();
     int scr_width = gdk_screen_get_width(screen);
     int scr_height = gdk_screen_get_height(screen);
+
+	float factor_x = (float)scr_width/g_scr_old_width;
+	float factor_y = (float)scr_height/g_scr_old_height;
+	
 	gtk_widget_set_size_request(GTK_WIDGET(g_window), scr_width, scr_height);
 	int layout1_width = 0;
 	int layout1_height = 0;
@@ -219,20 +248,20 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		layout1_height = 80;
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
-		layout3_width = 1522;
+		layout3_width = 1500;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
 		treeview_vm_width = layout3_width;
 		treeview_vm_height = layout3_height;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 	  (scr_width == 1600 && scr_height == 1080))
 	{
 		layout1_width = scr_width;
 		layout1_height = 60;
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
-		layout3_width = 1100;
+		layout3_width = 1060;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
@@ -245,7 +274,7 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		layout1_height = 42;
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
-		layout3_width = 1000;
+		layout3_width = 980;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
@@ -287,29 +316,35 @@ static void init_ctrl_posit(GtkBuilder *builder)
 	int pic_width = 0;
 	int pic_height = 0;
 	int nspace_delay = 15;
+	int login_user_width = 0;
 	if (scr_width == 1024 && scr_height == 768)
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/loginout_nor.png", &pic_width, &pic_height);
 		nspace_delay = 20;
+		login_user_width = 30;
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		gdk_pixbuf_get_file_info(IMAGE_BTN_LOGINOUT_NOR, &pic_width, &pic_height);
 		nspace_delay = 30;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
+		login_user_width = 150;
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 	   (scr_width == 1600 && scr_height == 1080) )
 	{
 		gdk_pixbuf_get_file_info("images2/1440x900/loginout_nor.png", &pic_width, &pic_height);
 		nspace_delay = 20;
+		login_user_width = 60;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	  (scr_width == 1280 && scr_height == 1024) )
 	{
 		gdk_pixbuf_get_file_info("images2/1280x720/loginout_nor.png", &pic_width, &pic_height);
 		nspace_delay = 20;
+		login_user_width = 30;
 	}else if ((scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
 		gdk_pixbuf_get_file_info("images2/1366x768/loginout_nor.png", &pic_width, &pic_height);
 		nspace_delay = 20;
+		login_user_width = 60;
 	}
 	LogInfo("init_ctrl_posit 000 layout1_width=%d, pic_width=%d, pic_height=%d.\n", layout1_width, pic_width, pic_height);
 	x = layout1_width - pic_width - ndelay;
@@ -319,6 +354,22 @@ static void init_ctrl_posit(GtkBuilder *builder)
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(button_exit), x, y);
 	x = layout1_width - (pic_width * 2) - ndelay - nspace_delay;
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(button_loginout), x, y);
+
+
+	//add
+	int width =0;
+	int height = 0;
+	GObject *label_login;
+    label_login = gtk_builder_get_object (builder, "label_login");
+	gtk_widget_get_size_request(GTK_WIDGET(label_login), width, height);
+	x = layout1_width - (pic_width * 4) - ndelay*2 - nspace_delay - login_user_width;
+	x *= factor_x;
+	y += 10;
+	y *= factor_y;
+	width *= factor_x;
+	height *= factor_y;
+	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(label_login), x, y);
+	gtk_widget_set_size_request(GTK_WIDGET(label_login), width, height);
 	init_vmctrlbtn_pos(builder, layout4, layout4_width, layout4_height);
 }
 
@@ -330,25 +381,54 @@ static void create_surfaces()
     int scr_height = gdk_screen_get_height(screen);
 	if (scr_width == 1024 && scr_height == 768)
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1024x768/vmlistwindow.png");
+		//surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1024x768/vmlistwindow.png");
+		if (g_interfacetype == 2)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1024x768/vmlistwindow.png");
+		else if (g_interfacetype == 0)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1024x768/vmlistwindow_sh.png");
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png (IMAGE_VMLISTWINDOW_BACKGROUD);
+		//surface_vmlistwindow = cairo_image_surface_create_from_png (IMAGE_VMLISTWINDOW_BACKGROUD);
+		if (g_interfacetype == 2)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/vmlistwindow.png");
+		else if (g_interfacetype == 0)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/vmlistwindow_sh.png");
 	}else if (scr_width == 1440 && scr_height == 900)
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1440x900/vmlistwindow.png");
-	}else if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		if (g_interfacetype == 2)
+		{
+			//surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1440x900/zdy/vmlistwindow.png");
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1440x900/vmlistwindow.png");
+		}
+		else if (g_interfacetype == 0)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1440x900/sh/vmlistwindow.png");
+		//surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1440x900/vmlistwindow.png");
+	}else if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1600x900/vmlistwindow.png");
+	    if (g_interfacetype == 2)
+	    	{
+			//surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1600x900/zdy/vmlistwindow.png");
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1600x900/vmlistwindow.png");
+	    	}
+		else if (g_interfacetype == 0)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1600x900/sh/vmlistwindow.png");
+
+		//surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1600x900/vmlistwindow.png");
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	 (scr_width == 1280 && scr_height == 1024) )
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1280x720/vmlistwindow.png");
+		if (g_interfacetype == 2)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1280x720/vmlistwindow.png");
+		else
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1280x720/vmlistwindow_sh.png");
 	}else if ((scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) ||
 		 (scr_width == 1360 && scr_height == 768) )
 	{
-		surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1366x768/vmlistwindow.png");
+		if (g_interfacetype == 2)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1366x768/vmlistwindow.png");
+		else
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1366x768/vmlistwindow_sh.png");
 	}
 }
 
@@ -359,12 +439,14 @@ static void destroy_surfaces()
 
 void cleanVms()
 {
+#if 0
     for (int i=0; i<MAX_BUFF_SIZE; i++)
     {
          memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE * sizeof(char));
          g_upVms[i].state = 0;
     }
     g_vmsCount = 0;
+#endif
 }
 
 void *thrd_checkstate(void *arg)
@@ -372,16 +454,18 @@ void *thrd_checkstate(void *arg)
   //  printf("New process:  PID: %d,TID: %u.\n",getpid(),pthread_self()); //why pthread_self
     printf("New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state); //why pthread_self
     LogInfo("debug: New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state);
-    for(;;)
+    //for(;;)
+    g_flushState = 1;
     {
       vmstate_update();
-      if (g_exitvm)
-      {
-         break;
-      }
-      sleep(8);
+//      if (g_exitvm)
+//      {
+//         break;
+//      }
+//      sleep(8);
     }
 	printf("exit tid_state thrd func .\n");
+	g_flushState = 0;
     pthread_exit(NULL); //退出线程
 }
 
@@ -393,17 +477,29 @@ void *thrd_func(void *arg)
     for(;;)
     {
       if (g_sUpdateVmStatus)
+      {
+      	 LogInfo(" Debug: vmlist window thrd_func 000, start upadate vm status.... .\n");
           UpdateVmsStatus();
+      }
       if (g_exitvm)
       {
          break;
       }
-	  //LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
+	  LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
       sleep(3);
     }
 	printf("exit thrd func .\n");
     pthread_exit(NULL); //退出线程
 }
+
+static void initUpdateVms()
+{
+	for (int i=0; i<MAX_BUFF_SIZE; i++)
+    {
+    	   memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE);
+    }
+}
+
 //增加要更新的虚拟机到列表
 unsigned short AddUpdateVms(char * vmid)
 {
@@ -516,6 +612,7 @@ int UpdateVmsStatus()
 		}
 		if (SY_GetVms() < 0)
 		{
+		    LogInfo("UpdateVmsStatus SY_GetVms failed.\n");
 		    return -1;
 		}
         list_for_each(plist, &head)
@@ -523,13 +620,15 @@ int UpdateVmsStatus()
             if (g_exitvm)
 				break;
             struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+		   LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
             if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
             {
-                printf("vms status : %d , old nstate : %d.\n", node->val.status, g_upVms[i].state);
+                //printf("vms status : %d , old nstate : %d.\n", node->val.status, g_upVms[i].state);
+                LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
                 char szTmp[20] = {0};
                 if (node->val.status != g_upVms[i].state)
                 {
-                    nstate = node->val.status; 
+                    nstate = node->val.status;
                    //printf("vmlist window UpdateVmsStatus vms name: %s, vms status : %d , nstate : %d.\n", node->val.name, node->val.status, g_nstate);
                     if (nstate == 0)
                         strcpy(szTmp, "关闭");
@@ -544,6 +643,7 @@ int UpdateVmsStatus()
                     else if (nstate == 5)
                         strcpy(szTmp, "正在保存");
                     gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
+				   gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
                     g_upVms[i].state = node->val.status;
                 }//if
             }
@@ -638,7 +738,7 @@ void SetState(char *vmName, const unsigned short nstate)
     } while(gtk_tree_model_iter_next(model, &iter));
 }
 
-extern void connectVms()
+void connectVms()
 {
     //printf("$$$$$$$　connectVms enter. \n");
     list_for_each(plist, &head)
@@ -647,7 +747,7 @@ extern void connectVms()
         //printf("connect vms g_vmName 000 = %s.\n", g_vmName);
          char szTicket[MAX_BUFF_SIZE] = {0};
         if (strcmp(node->val.name, g_vmName) == 0)
-        { 
+        {
         	   SetSymsgContextVm(LOGIN_STATUS_CONNECTING);
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
 		   if (node->val.status != 0)
@@ -663,20 +763,38 @@ extern void connectVms()
 					return;
 				}
 				//find vm
-				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log");
+				if (strcmp(szTicket, "") == 0)
+				{
+					strcpy(szTicket, "abc");
+				}
+				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log 2>&1");
 				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
-				strcpy(report.uname, g_szUser);
-				strcpy(report.vname, g_vmName);
-				report.action = 2;
-				send_data(report);
+				if (g_workflag == 1)
+				{
+					strcpy(report.uname, g_szUser);
+					strcpy(report.vname, g_vmName);
+					report.action = 2;
+					send_data(report);
+				}
 				SetSymsgContextVm(LOGIN_SUCCESSED);
 				//shell_exec(g_shellcmd);
-				wirte_conflag_data("/tmp/syp_reconnect", g_shellcmd);
-				wirte_conflag_data("/tmp/host", node->val.ip);
-				int nRet = system(g_shellcmd);
-				printf("Debug: vmlist connect vm system return = %d.\n", nRet);
-				report.action = 3;
-				send_data(report);
+				if (g_workflag == 1)
+				{
+					wirte_conflag_data("/tmp/syp_reconnect", g_shellcmd);
+					wirte_conflag_data("/tmp/host", node->val.ip);
+				}
+				//int nRet = system(g_shellcmd);
+				shell_exec(g_shellcmd);
+//#ifdef  ARM
+//				system("sudo rk3188_clean_display");
+//#endif
+				//thrd_monitor(g_shellcmd);
+				//printf("Debug: vmlist connect vm system return = %d.\n", nRet);
+				if (g_workflag == 1)
+				{
+					report.action = 3;
+					send_data(report);
+				}
 				break;
 		   	}else
 		   	{
@@ -690,7 +808,7 @@ extern void connectVms()
 //				if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
 //				{
 //					LogInfo("Debug: vmlistwindow connectVms Ovirt_StartVms() < 0, start vm failed.\n");
-//					SetSymsgContextVm(LOGIN_SUCCESSED); // ����ֻ�����˳���ʾ����
+//					SetSymsgContextVm(LOGIN_SUCCESSED); // ����ֻ�����˳���ʾ����
 //					return;
 //				}
 //				SetSymsgContext(LOGIN_STATUS_GETVMS);
@@ -750,8 +868,9 @@ static void on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_da
     {
         case GDK_KEY_Return:
             {
-             	g_sUpdateVmStatus = 0;
-				SYMsgDialogVm(21, "connect");
+             		g_sUpdateVmStatus = 0;
+				//SYMsgDialogVm(21, "connect");
+				connectVm22();
             }
             break;
 	   case GDK_KEY_Up:
@@ -825,7 +944,18 @@ static void  on_btn_sleep_released(GtkButton *button,  gpointer   user_data)
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_sleepNor);
 }
 
-//nflag:  1 ����  0  �ر�   2  ����
+
+static void  on_btn_restart_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_restartPress);
+}
+
+static void  on_btn_restart_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_restartNor);
+}
+
+//nflag:  1 ����  0  �ر�   2  ����
 static void operate_vm(int nflag)
 {
 	int nstatus = 0;
@@ -833,7 +963,7 @@ static void operate_vm(int nflag)
 	{
 		struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
 		if (strcmp(node->val.name, g_vmName) == 0)
-		{ 
+		{
 			nstatus = node->val.status;
 			break;
 		}
@@ -847,7 +977,7 @@ static void operate_vm(int nflag)
 				{
 					if (Ovirt_ShutdownVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
 					{
-						SYMsgDialog(7, "关闭虚拟机失败！");
+						SYMsgDialog2(7, "关闭虚拟机失败！");
 					}
 				}
 			}
@@ -858,7 +988,7 @@ static void operate_vm(int nflag)
 				{
 					if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
 					{
-						SYMsgDialog(7, "启动虚拟机失败！");
+						SYMsgDialog2(7, "启动虚拟机失败！");
 					}
 				}
 			}
@@ -869,14 +999,25 @@ static void operate_vm(int nflag)
 				{
 					if (Ovirt_SuspendVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
 					{
-					 	SYMsgDialog(7, "虚拟机待机失败！");
+					 	SYMsgDialog2(7, "虚拟机待机失败！");
+					}
+				}
+			}
+			break;
+		case 3:  //reboot
+			{
+				if (nstatus != 0)
+				{
+					if (Ovirt_RebootVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
+					{
+					 	SYMsgDialog2(7, "虚拟机重启失败！");
 					}
 				}
 			}
 			break;
 	}
 	g_sUpdateVmStatus = 1;
-	AddUpdateVms(g_szVMid);
+	//AddUpdateVms(g_szVMid);
 }
 
 static void  on_btn_start_clicked(GtkButton *button,  gpointer   user_data)
@@ -891,17 +1032,95 @@ static void  on_btn_close_clicked(GtkButton *button,  gpointer   user_data)
    operate_vm(0);
 }
 
+static void connectVm22()
+{
+	//printf("$$$$$$$　connectVms enter. \n");
+    list_for_each(plist, &head)
+    {
+        struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+        //printf("connect vms g_vmName 000 = %s.\n", g_vmName);
+         char szTicket[MAX_BUFF_SIZE] = {0};
+        if (strcmp(node->val.name, g_vmName) == 0)
+        {
+            LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
+		   if (node->val.status != 0)
+		   {
+				if ( Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
+				{
+					SYMsgDialog2(7, "获取连接虚拟机密码失败！");
+					return;
+				}
+				if ( SY_GetVmsTicket(szTicket) < 0)
+				{
+					SYMsgDialog2(7, "获取连接虚拟机密码失败！");
+					return;
+				}
+				//find vm
+				if (strcmp(szTicket, "") == 0)
+				{
+					strcpy(szTicket, "abc");
+				}
+				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log 2>&1");
+				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
+				if (g_workflag == 1)
+				{
+					strcpy(report.uname, g_szUser);
+					strcpy(report.vname, g_vmName);
+					report.action = 2;
+					send_data(report);
+				}
+				if (g_workflag == 1)
+				{
+					wirte_conflag_data("/tmp/syp_reconnect", g_shellcmd);
+					wirte_conflag_data("/tmp/host", node->val.ip);
+				}
+#ifdef MEETING
+				char szMsg[BUF_MSG_LEN]= {0};
+				sprintf(szMsg, "\napagentui.ThinviewConnect####{\"vmid\":\"%s\",\"username\": \"%s\", \"vmName\":\"%s\"}\n", node->val.vmid, g_szUser, g_vmName);
+				write(1, szMsg, strlen(szMsg));
+#endif
+
+				system(g_shellcmd);
+#ifdef  ARM
+				system("sudo rk3188_clean_display");
+#endif
+				if (g_workflag == 1)
+				{
+					report.action = 3;
+					send_data(report);
+				}
+				break;
+		   	}else
+		   	{
+		   		SYMsgDialog2(7, "连接失败!");
+			}
+        	}
+	}
+}
+
 static void  on_btn_btn_desktop_clicked(GtkButton *button,  gpointer   user_data)
 {
    printf("vml list window button desktop clicked.\n");
    g_sUpdateVmStatus = 0;
-   SYMsgDialogVm(21, "connect");
+   //SYMsgDialogVm(21, "connect");
+   connectVm22();
 }
 
 static void  on_btn_sleep_clicked(GtkButton *button,  gpointer   user_data)
 {
-   printf("vml list window button sleep clicked.\n");
-   operate_vm(2);
+   printf("vml list window button sleep clicked, g_flushState = %d .\n", g_flushState);
+   //operate_vm(2);
+   if (g_flushState == 0)
+   {
+	   if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
+	        printf("Create checkstate thread error!\n");
+	    }
+   }
+}
+
+static void  on_btn_reboot_clicked(GtkButton *button,  gpointer   user_data)
+{
+   operate_vm(3);
 }
 
 static void  on_btn_logout_pressed(GtkButton *button,  gpointer   user_data)
@@ -914,7 +1133,7 @@ static void  on_btn_logout_pressed(GtkButton *button,  gpointer   user_data)
 	showvmlistwindow = 0;
 	cleanVms();
 	if (g_window != NULL)
-	{  
+	{
 	    printf("ddddddddddddddddd.\n");
 	    gtk_widget_destroy((GtkWidget *)g_window);
 		printf("ffffffffffffffffff.\n");
@@ -932,7 +1151,6 @@ static void  on_btn_logout_leave(GtkButton *button,  gpointer   user_data)
 static void  on_btn_logout_enter(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_loginoutPress);
-
 }
 
 static void  on_btn_exit_pressed(GtkButton *button,  gpointer   user_data)
@@ -1005,10 +1223,12 @@ void init_vmlistctrl_image(GtkBuilder *builder)
 	GObject * image_close = gtk_builder_get_object (builder, "image_close");
 	GObject * image_desktop = gtk_builder_get_object (builder, "image_desktop");
 	GObject * image_sleep = gtk_builder_get_object (builder, "image_sleep");
+	GObject * image_reboot = gtk_builder_get_object (builder, "image_reboot");
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_start), g_startNor);
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_close), g_closeNor);
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_desktop), g_desktopNor);
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_sleep), g_sleepNor);
+	gtk_image_set_from_pixbuf(GTK_IMAGE(image_reboot), g_restartNor);
 }
 
 static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_width, int lay_height)
@@ -1023,6 +1243,10 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 	GObject * label_desktop = gtk_builder_get_object (builder, "label_desktop");
 	GObject * label_sleep = gtk_builder_get_object (builder, "label_sleep");
 
+	//add reboot button
+	GObject * btn_reboot = gtk_builder_get_object(builder, "btn_reboot");
+	GObject * label_reboot = gtk_builder_get_object(builder, "label_reboot");
+
 	//get ctrl image width
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
@@ -1036,6 +1260,8 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 	int pic_desktop_height = 0;
 	int pic_sleep_width = 0;
 	int pic_sleep_height = 0;
+	int pic_restart_width = 0;
+	int pic_restart_height = 0;
 	int font_size = 12;
 
 	if (scr_width == 1024 && scr_height == 768)
@@ -1044,6 +1270,7 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 		gdk_pixbuf_get_file_info("images2/1024x768/close.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/desktop.png", &pic_desktop_width, &pic_desktop_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/sleep.png", &pic_sleep_width, &pic_sleep_height);
+		gdk_pixbuf_get_file_info("images2/1024x768/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 8;
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
@@ -1051,14 +1278,16 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 		gdk_pixbuf_get_file_info("images2/close.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/desktop.png", &pic_desktop_width, &pic_desktop_height);
 		gdk_pixbuf_get_file_info("images2/sleep.png", &pic_sleep_width, &pic_sleep_height);
+		gdk_pixbuf_get_file_info("images2/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 	  (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1440x900/start.png", &pic_start_width, &pic_start_height);
 		gdk_pixbuf_get_file_info("images2/1440x900/close.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1440x900/desktop.png", &pic_desktop_width, &pic_desktop_height);
 		gdk_pixbuf_get_file_info("images2/1440x900/sleep.png", &pic_sleep_width, &pic_sleep_height);
+		gdk_pixbuf_get_file_info("images2/1440x900/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 10;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
 	{
@@ -1066,6 +1295,7 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 		gdk_pixbuf_get_file_info("images2/1280x720/close.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1280x720/desktop.png", &pic_desktop_width, &pic_desktop_height);
 		gdk_pixbuf_get_file_info("images2/1280x720/sleep.png", &pic_sleep_width, &pic_sleep_height);
+		gdk_pixbuf_get_file_info("images2/1280x720/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 9;
 	}else if ((scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
@@ -1074,17 +1304,20 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 		gdk_pixbuf_get_file_info("images2/1366x768/close.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1366x768/desktop.png", &pic_desktop_width, &pic_desktop_height);
 		gdk_pixbuf_get_file_info("images2/1366x768/sleep.png", &pic_sleep_width, &pic_sleep_height);
+		gdk_pixbuf_get_file_info("images2/1366x768/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 11;
 	}
 	setctrlFont(GTK_WIDGET(label_start), font_size);
 	setctrlFont(GTK_WIDGET(label_close), font_size);
 	setctrlFont(GTK_WIDGET(label_desktop), font_size);
 	setctrlFont(GTK_WIDGET(label_sleep), font_size);
+	setctrlFont(GTK_WIDGET(label_reboot), font_size);
 	//button and image
 	gtk_widget_set_size_request(GTK_WIDGET(btn_start), pic_start_width, pic_start_height);
 	gtk_widget_set_size_request(GTK_WIDGET(btn_close), pic_close_width, pic_close_height);
 	gtk_widget_set_size_request(GTK_WIDGET(btn_desktop), pic_desktop_width, pic_desktop_height);
 	gtk_widget_set_size_request(GTK_WIDGET(btn_sleep), pic_sleep_width, pic_sleep_height);
+	gtk_widget_set_size_request(GTK_WIDGET(btn_reboot), pic_restart_width, pic_restart_height);
 	//label
 	int sz_start_width = 0;
 	int sz_start_height = 0;
@@ -1098,33 +1331,41 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
     int sz_sleep_width  = 0;
 	int sz_sleep_height = 0;
 	get_string_width("待机", &sz_sleep_width, &sz_sleep_height);
+	int sz_reboot_width = 0;
+	int sz_reboot_height = 0;
+	get_string_width("重启", &sz_reboot_width, &sz_reboot_height);
 	gtk_widget_set_size_request(GTK_WIDGET(label_start), sz_start_width, sz_start_height);
 	gtk_widget_set_size_request(GTK_WIDGET(label_close), sz_close_width, sz_close_height);
 	gtk_widget_set_size_request(GTK_WIDGET(label_desktop), sz_desktop_width, sz_desktop_height);
 	gtk_widget_set_size_request(GTK_WIDGET(label_sleep), sz_sleep_width, sz_sleep_height);
 	//cal ctrl position
-	int center = lay_width/2;
+	int center = lay_width/2 - 10;
 	int top = 20;
 	int delay = 10;
 	int x,y = 0;
-	x = center - delay/2 - sz_close_width/2;
+	x = center - delay/2 - sz_close_width/2 + delay;
 	y = top;
+	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_reboot), x, y);
+	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width + delay*2;
+	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_reboot), x, y);
+
+	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - sz_close_width + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_close), x, y);
-	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width;
+	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - sz_close_width - delay - pic_close_width + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_close), x, y);
-	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - sz_start_width;
+	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - sz_close_width - delay - pic_close_width - delay - sz_close_width + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_start), x, y);
-	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - pic_start_width - sz_start_width - delay;
+	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width - delay - sz_close_width - delay - pic_close_width - delay - sz_close_width - delay - pic_start_width + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_start), x, y);
 	//dir right
-	x = center + delay/2 + sz_close_width/2;
+	x = center + delay/2 + sz_close_width/2 + delay*2;
 	y = top;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_desktop), x, y);
-	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay;
+	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay*2 + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_desktop), x, y);
-	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay + sz_desktop_width + delay;
+	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay*2 + sz_desktop_width + delay + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_sleep), x, y);
-	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay + sz_desktop_width + delay + pic_sleep_width + delay;
+	x = center + delay/2 + sz_close_width/2 + pic_desktop_width + delay*2 + sz_desktop_width + delay + pic_sleep_width + delay + delay;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_sleep), x, y);
 }
 
@@ -1148,7 +1389,7 @@ static void get_string_width(char *str, int* width, int* height)
 		*height = 20;
 	}else if ((scr_width == 1920 && scr_height == 1080) ||
 				(scr_width == 1440 && scr_height == 900) ||
-				(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 ) ||
+				(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
 				(scr_width == 1600 && scr_height == 1080) )
 	{
 		*width = 30;
@@ -1168,6 +1409,24 @@ static void get_string_width(char *str, int* width, int* height)
 
 static void setup_tree_view(GtkWidget*);
 static void adddata();
+static void loadcss2()
+{
+    GtkCssProvider *provider;
+    GdkDisplay *display;
+    GdkScreen *screen;
+    provider = gtk_css_provider_new();
+    display = gdk_display_get_default();
+    screen = gdk_display_get_default_screen (display);
+    gtk_style_context_add_provider_for_screen (screen, GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    gsize bytes_written, bytes_read;
+    GError *error = 0;
+    gtk_css_provider_load_from_path (provider,
+                                  g_filename_to_utf8(g_home_css, strlen(g_home_css), &bytes_read, &bytes_written, &error),
+                                  NULL);
+    //gtk_css_provider_load_from_path (provider, home, NULL);
+    g_object_unref (provider);
+}
+
 static void loadcss()
 {
 	 GtkCssProvider *provider;
@@ -1202,10 +1461,26 @@ static void loadcss()
                                          "padding: 1px;\n", -1, NULL);
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
+	/*
 		gtk_css_provider_load_from_path (provider,
 								 g_filename_to_utf8(g_home_css, strlen(g_home_css), &bytes_read, &bytes_written, &error),
-								 NULL);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+								 NULL);*/
+
+		gtk_css_provider_load_from_data (provider,"column-header .button {\n"
+                                         "background-color: transparent;\n"
+                                         "background-image: none;\n"
+                                         "border-width: 0px;\n"
+                                         "color: #5C82A2;\n"
+                                         "font-size: 14px;\n"
+                                         "padding: 0px;\n"
+                                         "height-request: 12px; \n"
+                                         "}\n"
+                                         "GtkTreeView {\n"
+                                         "border-style:none;\n"
+                                         "font-size: 13px;\n"
+                                         "color: #5C82A2;\n"
+                                         "padding: 1px;\n", -1, NULL);
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		gtk_css_provider_load_from_data (provider,"column-header .button {\n"
                                          "background-color: transparent;\n"
@@ -1235,7 +1510,7 @@ static void loadcss()
                                          "}\n"
                                          "GtkTreeView {\n"
                                          "border-style:none;\n"
-                                         "font-size: 9px;\n"
+                                         "font-size: 10px;\n"
                                          "color: #5C82A2;\n"
                                          "padding: 1px;\n", -1, NULL);
 	}else if ((scr_width == 1366 && scr_height == 768) ||
@@ -1278,6 +1553,8 @@ static void loadImage()
 	    g_desktopPress = gdk_pixbuf_new_from_file("images2/1024x768/desktop_press.png", NULL);
 	    g_sleepNor = gdk_pixbuf_new_from_file("images2/1024x768/sleep.png", NULL);
 	    g_sleepPress = gdk_pixbuf_new_from_file("images2/1024x768/sleep_press.png", NULL);
+	    g_restartNor = gdk_pixbuf_new_from_file("images2/1024x768/restart.png", NULL);
+	    g_restartPress = gdk_pixbuf_new_from_file("images2/1024x768/restart_press.png", NULL);
 
 	    g_exitNor = gdk_pixbuf_new_from_file("images2/1024x768/exit_nor.png", NULL);
 	    g_exitPress = gdk_pixbuf_new_from_file("images2/1024x768/exit_press.png", NULL);
@@ -1295,13 +1572,15 @@ static void loadImage()
 	    g_desktopPress = gdk_pixbuf_new_from_file(IMAGE_BTN_DESKTOP_PRES, NULL);
 	    g_sleepNor = gdk_pixbuf_new_from_file(IMAGE_BTN_SLEEP_NOR, NULL);
 	    g_sleepPress = gdk_pixbuf_new_from_file(IMAGE_BTN_SLEEP_PRES, NULL);
+	    g_restartNor = gdk_pixbuf_new_from_file("images2/restart.png", NULL);
+	    g_restartPress = gdk_pixbuf_new_from_file("images2/restart_press.png", NULL);
 
 	    g_exitNor = gdk_pixbuf_new_from_file(IMAGE_BTN_EXIT_NOR, NULL);
 	    g_exitPress = gdk_pixbuf_new_from_file(IMAGE_BTN_EXIT_PRES, NULL);
 	    g_loginoutNor = gdk_pixbuf_new_from_file(IMAGE_BTN_LOGINOUT_NOR, NULL);
 	    g_loginoutPress = gdk_pixbuf_new_from_file(IMAGE_BTN_LOGINOUT_PRES, NULL);
 		g_vmIconPix = gdk_pixbuf_new_from_file(IMAGE_TREE_VMICON_NOR, NULL);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 	   (scr_width == 1600 && scr_height == 1080) )
 	{
 		g_startPress = gdk_pixbuf_new_from_file("images2/1440x900/start_press.png", NULL);
@@ -1312,6 +1591,8 @@ static void loadImage()
 	    g_desktopPress = gdk_pixbuf_new_from_file("images2/1440x900/desktop_press.png", NULL);
 	    g_sleepNor = gdk_pixbuf_new_from_file("images2/1440x900/sleep.png", NULL);
 	    g_sleepPress = gdk_pixbuf_new_from_file("images2/1440x900/sleep_press.png", NULL);
+		g_restartNor = gdk_pixbuf_new_from_file("images2/1440x900/restart.png", NULL);
+	    g_restartPress = gdk_pixbuf_new_from_file("images2/1440x900/restart_press.png", NULL);
 
 	    g_exitNor = gdk_pixbuf_new_from_file("images2/1440x900/exit_nor.png", NULL);
 	    g_exitPress = gdk_pixbuf_new_from_file("images2/1440x900/exit_press.png", NULL);
@@ -1329,6 +1610,9 @@ static void loadImage()
 	    g_desktopPress = gdk_pixbuf_new_from_file("images2/1280x720/desktop_press.png", NULL);
 	    g_sleepNor = gdk_pixbuf_new_from_file("images2/1280x720/sleep.png", NULL);
 	    g_sleepPress = gdk_pixbuf_new_from_file("images2/1280x720/sleep_press.png", NULL);
+		g_restartNor = gdk_pixbuf_new_from_file("images2/1280x720/restart.png", NULL);
+		g_restartPress = gdk_pixbuf_new_from_file("images2/1280x720/restart_press.png", NULL);
+
 
 	    g_exitNor = gdk_pixbuf_new_from_file("images2/1280x720/exit_nor.png", NULL);
 	    g_exitPress = gdk_pixbuf_new_from_file("images2/1280x720/exit_press.png", NULL);
@@ -1347,6 +1631,8 @@ static void loadImage()
 	    g_desktopPress = gdk_pixbuf_new_from_file("images2/1366x768/desktop_press.png", NULL);
 	    g_sleepNor = gdk_pixbuf_new_from_file("images2/1366x768/sleep.png", NULL);
 	    g_sleepPress = gdk_pixbuf_new_from_file("images2/1366x768/sleep_press.png", NULL);
+		g_restartNor = gdk_pixbuf_new_from_file("images2/1366x768/restart.png", NULL);
+		g_restartPress = gdk_pixbuf_new_from_file("images2/1366x768/restart_press.png", NULL);
 
 	    g_exitNor = gdk_pixbuf_new_from_file("images2/1366x768/exit_nor.png", NULL);
 	    g_exitPress = gdk_pixbuf_new_from_file("images2/1366x768/exit_press.png", NULL);
@@ -1355,6 +1641,45 @@ static void loadImage()
 		g_vmIconPix = gdk_pixbuf_new_from_file("images2/1366x768/vm_icon.png", NULL);
 	}
 }
+
+
+static gint my_button_handler(GtkWidget *widget,GdkEvent *event)
+{
+	GtkMenu *menu;
+	GdkEventButton *event_button;
+
+	g_return_val_if_fail (widget != NULL, FALSE);
+	g_return_val_if_fail (GTK_IS_MENU (widget), FALSE);
+	g_return_val_if_fail (event != NULL, FALSE);
+
+	// The "widget" is the menu that was supplied when
+	// g_signal_connect_swapped() was called.
+	menu = GTK_MENU(widget);
+
+	if (event->type == GDK_BUTTON_PRESS)
+	{
+	  event_button = (GdkEventButton *) event;
+	  if (event_button->button == GDK_BUTTON_SECONDARY)
+	    {
+	      gtk_menu_popup(menu, NULL, NULL, NULL, NULL,
+	                      event_button->button, event_button->time);
+	      return TRUE;
+	    }
+	}
+
+	return FALSE;
+}
+
+#if 0
+void on_flush_vmlist()
+{
+	LogInfo("vml list window button start clicked,  on_flush_vmlist ..........\n");
+	//g_sUpdateVmStatus = 1;
+	if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
+        printf("Create checkstate thread error!\n");
+    }
+}
+#endif
 
 void SY_vmlistwindow_main()
 {
@@ -1372,11 +1697,13 @@ void SY_vmlistwindow_main()
     GObject *btn_close;
     GObject *btn_desktop;
     GObject *btn_sleep;
+	GObject *btn_reboot;
 
     GObject *label_start;
     GObject *label_close;
     GObject *label_desktop;
     GObject *label_sleep;
+    GObject *label_reboot;
     builder = gtk_builder_new ();
     GError *errort = NULL;
     gtk_builder_add_from_file (builder, "vmlistwindow.glade", &errort);
@@ -1388,20 +1715,27 @@ void SY_vmlistwindow_main()
     g_window = window;
     g_treeview = treeview;
     g_exitvm = 0;
+    g_flushState = 0;
+	memset(g_upVms, 0, sizeof(g_upVms));
 
     btn_start = gtk_builder_get_object (builder, "btn_start");
     btn_close = gtk_builder_get_object (builder, "btn_close");
     btn_desktop = gtk_builder_get_object (builder, "btn_desktop");
     btn_sleep = gtk_builder_get_object (builder, "btn_sleep");
+    btn_reboot = gtk_builder_get_object (builder, "btn_reboot");
 
     label_start = gtk_builder_get_object (builder, "label_start");
     label_close = gtk_builder_get_object (builder, "label_close");
     label_desktop = gtk_builder_get_object (builder, "label_desktop");
     label_sleep = gtk_builder_get_object (builder, "label_sleep");
+    label_reboot = gtk_builder_get_object (builder, "label_reboot");
 	init_ctrl_posit(builder);
     create_surfaces();
 	loadImage();
 	loadcss();
+	loadcss2();
+	g_vmsCount = 0;
+	initUpdateVms();
     adddata();
 	init_vmlistctrl_image(builder);
     gtk_tree_view_set_model(GTK_TREE_VIEW(treeview), GTK_TREE_MODEL(g_store));
@@ -1429,21 +1763,27 @@ void SY_vmlistwindow_main()
     gtk_label_set_text(GTK_LABEL(label_start), "启动");
     gtk_label_set_text(GTK_LABEL(label_close), "关闭");
     gtk_label_set_text(GTK_LABEL(label_desktop), "桌面");
-    gtk_label_set_text(GTK_LABEL(label_sleep), "待机");
+    gtk_label_set_text(GTK_LABEL(label_sleep), "刷新");
+    gtk_label_set_text(GTK_LABEL(label_reboot), "重启");
+
     g_signal_connect(G_OBJECT(btn_start), "clicked", G_CALLBACK(on_btn_start_clicked), NULL);
     g_signal_connect(G_OBJECT(btn_close), "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
     g_signal_connect(G_OBJECT(btn_desktop), "clicked", G_CALLBACK(on_btn_btn_desktop_clicked), NULL);
     g_signal_connect(G_OBJECT(btn_sleep), "clicked", G_CALLBACK(on_btn_sleep_clicked), NULL);
+	g_signal_connect(G_OBJECT(btn_reboot), "clicked", G_CALLBACK(on_btn_reboot_clicked), NULL);
+    //
     //
     GObject *image_start;
     GObject *image_close;
     GObject *image_desktop;
     GObject *image_sleep;
+    GObject *image_reboot;
 
     image_start = gtk_builder_get_object (builder, "image_start");
     image_close = gtk_builder_get_object (builder, "image_close");
     image_desktop = gtk_builder_get_object (builder, "image_desktop");
     image_sleep = gtk_builder_get_object (builder, "image_sleep");
+	image_reboot = gtk_builder_get_object (builder, "image_reboot");
     g_signal_connect(G_OBJECT(btn_start), "pressed", G_CALLBACK(on_btn_start_pressed), (GtkWidget *)image_start);
     g_signal_connect(G_OBJECT(btn_start), "released", G_CALLBACK(on_btn_start_released), (GtkWidget *)image_start);
 
@@ -1455,6 +1795,8 @@ void SY_vmlistwindow_main()
 
     g_signal_connect(G_OBJECT(btn_sleep), "pressed", G_CALLBACK(on_btn_sleep_pressed), (GtkWidget *)image_sleep);
     g_signal_connect(G_OBJECT(btn_sleep), "released", G_CALLBACK(on_btn_sleep_released), (GtkWidget *)image_sleep);
+    g_signal_connect(G_OBJECT(btn_reboot), "pressed", G_CALLBACK(on_btn_restart_pressed), (GtkWidget *)image_reboot);
+    g_signal_connect(G_OBJECT(btn_reboot), "released", G_CALLBACK(on_btn_restart_released), (GtkWidget *)image_reboot);
 
     GObject * button_loginout = gtk_builder_get_object (builder, "button_loginout");
     GObject * button_exit = gtk_builder_get_object (builder, "button_exit");
@@ -1477,13 +1819,24 @@ void SY_vmlistwindow_main()
     g_signal_connect(G_OBJECT(g_window), \
                       "key-press-event", \
                       G_CALLBACK(on_key_press), NULL);
+
+#if 0
+	//flush menu
+	GtkWidget *menu_item;
+	GtkWidget * menu = gtk_menu_new();
+	menu_item = gtk_menu_item_new_with_label("刷新");
+	gtk_menu_shell_append(GTK_MENU(menu), menu_item);
+	gtk_widget_show(menu_item);
+	gtk_widget_show(menu);
+	g_signal_connect_swapped(G_OBJECT(treeview),"button_press_event",G_CALLBACK(my_button_handler),G_OBJECT(menu));
+	g_signal_connect(GTK_MENU_ITEM(menu_item), "activate", G_CALLBACK(on_flush_vmlist),"刷新");
+#endif
+
 	gtk_window_fullscreen(GTK_WINDOW(window));
     //全屏显示结束
 
-    g_sUpdateVmStatus = 0;
+    g_sUpdateVmStatus = 1;
     //signal(SIGALRM, signal_handler);
-    memset(g_upVms, 0, sizeof(g_upVms));
-
     //set_timer();
     // 创建线程tid，且线程函数由thrd_func指向，是thrd_func的入口点，即马上执行此线程函数
     if ( pthread_create(&tid, NULL, thrd_func, NULL) !=0 ) {
@@ -1495,21 +1848,34 @@ void SY_vmlistwindow_main()
   /*  if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
         printf("Create checkstate thread error!\n");
     }*/
-    start_tcpclient();
-	strcpy(report.uname, g_szUser);
-	strcpy(report.vname, g_vmName);
-	report.action = 1;
-	send_data(report);
+    if (g_workflag == 1)
+    	{
+    		start_tcpclient();
+		strcpy(report.uname, g_szUser);
+		strcpy(report.vname, g_vmName);
+		report.action = 1;
+		send_data(report);
+    	}
+
+	//add 170727
+#ifdef MEETING
+		char szMsg[BUF_MSG_LEN]= {0};
+		sprintf(szMsg, "\napagentui.ThinviewLogin####{\"username\": \"%s\"}\n", g_szUser);
+		write(1, szMsg, strlen(szMsg));
+#endif
     gtk_main ();
     g_object_unref (G_OBJECT (builder));
     g_object_unref (G_OBJECT (g_store));
 	destroy_surfaces();
     showvmlistwindow = 0;
-	strcpy(report.uname, g_szUser);
-	strcpy(report.vname, g_vmName);
-	report.action = 4;
-	send_data(report);
-	close_tcpclient();
+	if (g_workflag == 1)
+	{
+		strcpy(report.uname, g_szUser);
+		strcpy(report.vname, g_vmName);
+		report.action = 4;
+		send_data(report);
+		close_tcpclient();
+	}
 	//Oivrt_closeSession();
 }
 
@@ -1566,11 +1932,11 @@ static void setup_tree_view(GtkWidget *treeview) {
     gtk_tree_view_column_set_fixed_width (column, columnwidth_array[2]);
     gtk_tree_view_column_set_resizable(column, TRUE); //将列设置手动改变大小
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("标签", renderer, "text", TAB, NULL);
-    gtk_tree_view_column_set_fixed_width (column, columnwidth_array[3]);
-    gtk_tree_view_column_set_resizable(column, TRUE); //将列设置手动改变大小
-    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+//    renderer = gtk_cell_renderer_text_new();
+//    column = gtk_tree_view_column_new_with_attributes("标签", renderer, "text", TAB, NULL);
+//    gtk_tree_view_column_set_fixed_width (column, columnwidth_array[3]);
+//    gtk_tree_view_column_set_resizable(column, TRUE); //将列设置手动改变大小
+//    gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_column_new_with_attributes("状态", renderer, "text", STATUS, NULL);
     gtk_tree_view_column_set_fixed_width (column, columnwidth_array[4]);
@@ -1587,7 +1953,7 @@ static void setup_tree_view(GtkWidget *treeview) {
     gtk_tree_view_column_set_resizable(column, TRUE); //将列设置手动改变大小
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
     renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes("IP地址", renderer, "text", IP, NULL);
+    column = gtk_tree_view_column_new_with_attributes("主机地址", renderer, "text", IP, NULL);
     gtk_tree_view_column_set_fixed_width (column, columnwidth_array[7]);
     gtk_tree_view_column_set_resizable(column, TRUE); //将列设置手动改变大小
     gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
@@ -1621,6 +1987,9 @@ void adddata()
       printf("main get vms memory = %ld.\n", node->val.memory);
       printf("main get vms ip = %s.\n", node->val.ip);
       printf("main get vms usb strategy = %d.\n", node->val.usb);*/
+
+      strcpy(g_upVms[g_vmsCount].szvmid, node->val.vmid);
+	  LogInfo("adddata, g_upVms, g_vmsCont : %d, vmsid : %s", g_vmsCount, g_upVms[g_vmsCount].szvmid);
       char szStatus[MAX_BUFF_SIZE] = {0};
       char szMemory[MAX_BUFF_SIZE] = {0};
       char szUsb[MAX_BUFF_SIZE] = {0};
@@ -1631,8 +2000,15 @@ void adddata()
          memcpy(szStatus, "关闭", MAX_BUFF_SIZE);
       else if (node->val.status == 2)
          memcpy(szStatus, "待机", MAX_BUFF_SIZE);
+      else if (node->val.status == 3)
+         memcpy(szStatus, "正在启动", MAX_BUFF_SIZE);
+      else if (node->val.status == 4)
+         memcpy(szStatus, "正在关闭", MAX_BUFF_SIZE);
 
-      sprintf(szMemory, "%ld GB", node->val.memory);
+	  if ((node->val.memory - (int)node->val.memory) > 0)
+      	sprintf(szMemory, "%.2f GB", node->val.memory);
+	  else
+	  	sprintf(szMemory, "%.0f GB", node->val.memory);
 
       if (node->val.usb == 1)
         memcpy(szUsb, "支持", MAX_BUFF_SIZE);
@@ -1645,12 +2021,14 @@ void adddata()
                         NAME, g_vmIconPix,
                         NAME_1, node->val.name,
                         OS, node->val.os,
-                        TAB, "测试",
                         STATUS, szStatus,
                         VCPU, szvcpu,
                         MEMORY, szMemory,
                         IP,  node->val.ip,
                         USB, szUsb,
                         -1);
+
+	  g_upVms[g_vmsCount].iter = iter;
+	  g_vmsCount++;
   }
 }

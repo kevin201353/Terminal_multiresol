@@ -54,7 +54,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int win_width = 0;
 	int win_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 300;
 		win_height = 300;
@@ -96,7 +96,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtitle_height = 30;
 		layout_thrdtext_height = 200;
 		nsize = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 	  (scr_width == 1600 && scr_height == 1080) )
 	{
 		win_width = 470;
@@ -147,7 +147,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int pic_logo_width = 0;
 	int pic_logo_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -198,7 +198,7 @@ static void init_ctrl_image(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
@@ -219,6 +219,10 @@ static void init_ctrl_image(GtkBuilder *builder)
 	GObject *image_syclose = gtk_builder_get_object(builder, "image_syclose");
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_sylogo), g_pixlogo);
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_syclose), g_pixclose);
+	if (g_interfacetype == 2)
+	{
+		gtk_widget_hide(GTK_WIDGET(image_sylogo));
+	}
 }
 
 char szinfo[1024] = {0};
@@ -264,7 +268,7 @@ static int getnetinfo()
 		if (strcmp(szTmp, "") != 0 && strlen(szTmp) > 0)
 		{
 			szTmp[strlen(szTmp) - 1] = '\0';
-		    sprintf(sztmp2, "DNS%d服务器:  %s", i, szTmp);
+		    sprintf(sztmp2, "DNS%d服务器:  %s", i+1, szTmp);
 			strcat(szinfo, sztmp2);
 			strcat(szinfo, "\n");
 		}

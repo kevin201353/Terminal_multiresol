@@ -81,7 +81,7 @@ void SY_AboutWindow()
 	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
 	{
 		nsize = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		nsize = 10;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
@@ -117,6 +117,6 @@ void SY_AboutWindow()
 	del_char(buildtime, '-');//20161014
 	strcpy(szDest, buildtime+2);
 	strcat(szTmp, szDest);
-	sprintf(sztext, "终端登录软件 \n版本 ：%s \n深圳市神云科技有限公司 ", szTmp);
+	sprintf(sztext, "终端登录软件 \n版本 ：%s", szTmp);
 	gtk_label_set_text(GTK_LABEL(label_about), sztext);
 }

@@ -26,6 +26,14 @@
 #define  FILE_CONFIG_VMARECONF  "login_vm.xml"
 #define  FILE_CONFIG_SOUND      "sound.xml"
 #define  FILE_MANUFACTURE_TYPE   "manufact.xml"
+#define  FILE_CONFIG_TEASERVER   "teaserver.xml"
+#define  FILE_CONFIG_PASSWORD    "/usr/bin/sypassword.xml"
+
+extern int g_interfacetype;
+extern int g_thinviewlog;
+int g_workflag;  //0: office 1: teacher
+
+
 void Parsexml(char * element,  char * value,  int ntype)
 {
   	FILE *fp = NULL;
@@ -53,6 +61,7 @@ void Parsexml(char * element,  char * value,  int ntype)
         			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
                //memcpy(value, node->child->value.text.string, strlen(node->child->value.text.string));
         		}
+			mxmlDelete(g_tree);
       	}
       	fclose(fp);
     }
@@ -80,6 +89,7 @@ void Parsexml2(char * file, char *element, char * value)
         			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
                }
         		}//if node != NULL
+        	    mxmlDelete(g_tree);
       	}
       	fclose(fp);
     }
@@ -143,11 +153,11 @@ void SaveServerInfo(struct ServerInfo info)
     node = mxmlNewElement(node_server, "password");
     mxmlNewText(node, 0, info.szPass);
     node = mxmlNewElement(node_server, "resolution_client");
-    memset(szTmp, 0, sizeof(MAX_BUFF_SIZE));
+    memset(szTmp, 0, MAX_BUFF_SIZE);
     sprintf(szTmp, "%d", info.resol);
     mxmlNewText(node, 0, szTmp);
     node = mxmlNewElement(node_server, "resolution_manual");
-    memset(szTmp, 0, sizeof(MAX_BUFF_SIZE));
+    memset(szTmp, 0, MAX_BUFF_SIZE);
     sprintf(szTmp, "%d", info.manresol);
     mxmlNewText(node, 0, szTmp);
     node = mxmlNewElement(node_server, "resolution_value");
@@ -159,6 +169,8 @@ void SaveServerInfo(struct ServerInfo info)
         mxmlSaveFile(xml, fp, MXML_NO_CALLBACK);
         fclose(fp);
     }
+	//Update_xmlNode(FILE_CONFIG_LOGIN, "user", info.szUser);
+	//Update_xmlNode(FILE_CONFIG_LOGIN, "password", info.szPass);
 }
 
 int GetServerInfo(struct ServerInfo info)
@@ -252,6 +264,7 @@ int GetServerInfo(struct ServerInfo info)
                     }
               }//for
          }//if
+         mxmlDelete(g_tree);
      }
      fclose(fp);
      return 0;
@@ -348,6 +361,7 @@ int GetServerInfo2(struct ServerInfo *pInfo)
                     }
               }//for
          }//if
+         mxmlDelete(g_tree);
      }
      fclose(fp);
      return 0;
@@ -496,7 +510,7 @@ void Save_Sound(struct SoundInfo info)
 	data = mxmlNewElement(xml, "setting");
 	node_server = mxmlNewElement(data, "server");
 	node = mxmlNewElement(node_server, "sound_value");
-	memset(szTmp, 0, sizeof(MAX_BUFF_SIZE));
+	memset(szTmp, 0, MAX_BUFF_SIZE);
 	sprintf(szTmp, "%d", info.volume);
 	mxmlNewText(node, 0, szTmp);
 	FILE *fp;
@@ -541,19 +555,204 @@ void Get_Sound(struct SoundInfo *info)
                     }
               }//for
          }//if
+         mxmlDelete(g_tree);
      }
      fclose(fp);
      return 0;
 }
 
 //add by
-int GetManufactureType()
+void GetManufactureType()
 {
-	int type = 0;
 	char szTmp[MAX_BUFF_SIZE] = {0};
 	Parsexml2(FILE_MANUFACTURE_TYPE, "manufacture", szTmp);
 	LogInfo("GetManufactureType manufacture type: %s", szTmp);
-	type = atoi(szTmp);
-	return type;
+	g_interfacetype = atoi(szTmp);
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	Parsexml2(FILE_MANUFACTURE_TYPE, "log", szTmp);
+	LogInfo("GetManufactureType log type: %s", szTmp);
+	g_thinviewlog = atoi(szTmp);
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	Parsexml2(FILE_MANUFACTURE_TYPE, "workflag", szTmp);  
+	LogInfo("GetManufactureType workflag type: %s", szTmp);
+	g_workflag = atoi(szTmp);
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	Parsexml2(FILE_MANUFACTURE_TYPE, "modifyuserpas", szTmp);  
+	LogInfo("GetManufactureType modifyuserpas type: %s", szTmp);
+	g_openModifyUserPas = atoi(szTmp);
 }
 //add end
+
+void Save_StuServerInfo(struct StuServerInfo info)
+{
+	mxml_node_t *xml;
+	mxml_node_t *data;
+	mxml_node_t *node; 
+	mxml_node_t *node_server; 
+
+	char szTmp[MAX_BUFF_SIZE] = {0};
+	xml = mxmlNewXML("1.0");
+	data = mxmlNewElement(xml, "setting");
+	node_server = mxmlNewElement(data, "server");
+	//stu_addr
+	node = mxmlNewElement(node_server, "stu_addr");
+	mxmlNewText(node, 0, info.stu_addr);
+	//upgrade_addr
+	node = mxmlNewElement(node_server, "upgrade_addr");
+	mxmlNewText(node, 0, info.upgrade_addr);
+	//stu_port
+	node = mxmlNewElement(node_server, "stu_port");
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	sprintf(szTmp, "%d", info.stu_port);
+	mxmlNewText(node, 0, szTmp);
+	//upgrade_port
+	node = mxmlNewElement(node_server, "upgrade_port");
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	sprintf(szTmp, "%d", info.upgrade_port);
+	mxmlNewText(node, 0, szTmp);
+	FILE *fp;
+	fp = fopen(FILE_CONFIG_TEASERVER, "w");
+	if (fp)
+	{
+		mxmlSaveFile(xml, fp, MXML_NO_CALLBACK);
+		fclose(fp);
+	}
+}
+
+void Get_StuServerInfo(struct StuServerInfo *info)
+{
+	 FILE *fp;
+     fp = fopen(FILE_CONFIG_TEASERVER, "r");
+     if (fp == NULL)
+        return -1;
+     mxml_node_t *g_tree = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
+     if (g_tree != NULL)
+     {
+         mxml_node_t *node = NULL;
+         mxml_node_t *heading = NULL;
+         node = mxmlFindElement(g_tree, g_tree, "setting",
+                              NULL, NULL,
+                              MXML_DESCEND);
+         if (node != NULL)
+         {
+             for (heading = mxmlGetFirstChild(node);
+                  heading;
+                  heading = mxmlGetNextSibling(heading))
+              {
+              	  //stu_port
+                    mxml_node_t *tmp_node = mxmlFindElement(heading, node, "stu_port",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                          info->stu_port = atoi(tmp_node->child->value.text.string);
+                        LogInfo("configxml Get stu_server info, stu_port : %d.\n", info->stu_port);
+                    }
+				  //upgrade_port
+				  tmp_node = mxmlFindElement(heading, node, "upgrade_port",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                          info->upgrade_port = atoi(tmp_node->child->value.text.string);
+                        LogInfo("configxml Get stu_server info, stu_port : %d.\n", info->upgrade_port);
+                    }
+				  //stu_addr
+				  tmp_node = mxmlFindElement(heading, node, "stu_addr",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                           strcpy(info->stu_addr, tmp_node->child->value.text.string);
+                        LogInfo("configxml Get stu_server info, stu_addr : %s.\n", info->stu_addr);
+                    }
+				  //upgrade_addr
+				  tmp_node = mxmlFindElement(heading, node, "upgrade_addr",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                           strcpy(info->upgrade_addr, tmp_node->child->value.text.string);
+                        LogInfo("configxml Get stu_server info, upgrade_addr : %s.\n", info->upgrade_addr);
+                    }
+              }//for
+         }//if
+         mxmlDelete(g_tree);
+     }
+     fclose(fp);
+     return 0;
+}
+
+void Save_ConfigPass(char *szPass)
+{
+	mxml_node_t *xml;
+	mxml_node_t *data;
+	mxml_node_t *node; 
+	mxml_node_t *node_server; 
+	//if (access(FILE_CONFIG_PASSWORD, F_OK) != 0)
+	{
+		//no exist
+		if (szPass != NULL)
+		{
+			xml = mxmlNewXML("1.0");
+			data = mxmlNewElement(xml, "setting");
+			node_server = mxmlNewElement(data, "server");
+			node = mxmlNewElement(node_server, "configpass");
+			mxmlNewText(node, 0, szPass);
+			FILE *fp;
+			fp = fopen(FILE_CONFIG_PASSWORD, "w");
+			if (fp)
+			{
+				mxmlSaveFile(xml, fp, MXML_NO_CALLBACK);
+				fclose(fp);
+			}
+		}	
+	}
+}
+
+void Get_ConfigPass(char *szPass)
+{
+	if (szPass != NULL)
+	{
+		Parsexml2(FILE_CONFIG_PASSWORD, "configpass", szPass);
+		LogInfo("Get_ConfigPass config md5 content: %s", szPass);
+	}
+}
+
+void Update_xmlNode(char *path, char *node_name, char *value)
+{
+	FILE *fp;
+	fp = fopen(path, "r+");
+	if (fp == NULL)
+	{
+		return -1;
+	}
+	//
+	mxml_node_t *g_tree = mxmlLoadFile(NULL, fp, MXML_TEXT_CALLBACK);
+  	if (g_tree != NULL)
+  	{
+    		mxml_node_t *node;
+    		node = mxmlFindElement(g_tree, g_tree, node_name,
+    												 NULL, NULL,
+    												 MXML_DESCEND);
+    		if (node != NULL)
+    		{
+			mxmlSetText(node, 0, value);
+    		}
+			/*
+		char szTmp[100] = {0};
+		sprintf(szTmp, "sudo cat /dev/null > %s", path);
+	    system(szTmp);*/
+		fseek ( fp , 0 , SEEK_SET );
+		mxmlSaveFile(g_tree, fp, MXML_NO_CALLBACK);
+		mxmlDelete(g_tree);
+  	}
+  	fclose(fp);
+}
+
+
+

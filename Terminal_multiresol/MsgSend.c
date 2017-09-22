@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "msg.h"
-#include "global.h"
 
 static void *thrd_connect(void *arg);
 static pthread_t conn_tid;

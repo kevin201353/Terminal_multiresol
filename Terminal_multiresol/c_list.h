@@ -1,5 +1,7 @@
 #ifndef __C_LIST_H
 #define __C_LIST_H
+
+#include "type.h"
 /***********
 //filename: c_list.h
 //author: zhaosenhua
@@ -38,7 +40,11 @@
 typedef unsigned char     u8;
 typedef unsigned short    u16;
 typedef unsigned int      u32;
-typedef unsigned long     size_t;
+
+
+#ifdef ARM
+//typedef unsigned long     size_t;
+#endif
 
 #define offsetof(TYPE, MEMBER)   ((size_t) &((TYPE *)0)->MEMBER)
 

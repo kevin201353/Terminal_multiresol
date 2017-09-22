@@ -1,1 +1,1 @@
-static char buildtime[32]="2016-09-18 17:33:33";
+char buildtime[32]="2017-07-28 11:58:13";

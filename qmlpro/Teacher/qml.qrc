@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/sysset.qml</file>
+        <file>image/close.png</file>
+        <file>components/SHRadioButton.qml</file>
+        <file>components/SHTextArea.qml</file>
+        <file>components/SHButton.qml</file>
+        <file>components/SHListView1.qml</file>
+        <file>qml/netset.qml</file>
+        <file>components/SHMessage.qml</file>
+    </qresource>
+</RCC>

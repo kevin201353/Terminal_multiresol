@@ -2,6 +2,7 @@
 #include "global.h"
 #include <string.h>
 #include <stdbool.h>
+#include "type.h"
 
 
 static const gchar*  g_settingcss = "setting.css";
@@ -12,12 +13,15 @@ enum {
     COLUMN = 0,
     NUM_COLS
 };
-struct ServerInfo g_serverinfo = {"192.168.0.220", 443, "admin@internal", "shencloud", 1, 0, "1920x1080"};
+struct ServerInfo g_serverinfo = {"172.16.200.100", 443, "admin@internal", "", 1, 0, "1920x1080"};
 GObject * g_layout1;  //服务器Layout
 GObject * g_layout2;  //网络
 GObject * g_layout_about;
 GtkWidget * g_soundWin = NULL;
+GtkWidget * g_stuserwin = NULL;
 GObject *g_settingwindow = NULL;
+GObject *g_modiypassWindow = NULL;
+
 static GObject * g_window;
 GdkPixbuf *g_checkNorimage;
 GdkPixbuf *g_checkPressimage;
@@ -38,7 +42,23 @@ extern void SY_AboutWindow();
 extern void set_soundwin_size(int width, int height);
 extern int set_ovirt_baseurl(char * szurl);
 extern int set_ovirt_tcm(char * tcmserver, char *teacher);
+extern GtkWidget * stu_server_win();
+extern void set_stu_server_win_size(int width, int height);
+extern void modify_pass_window();
+extern void set_modify_pass_win_size(int width, int height);
+extern void update_login_userorpas();
 
+
+void close_setting_window()
+{
+	if (NULL != g_window)
+	{
+		gtk_widget_destroy((GtkWidget *)g_window);
+		gtk_main_quit();
+		showsettingwindow = 0;
+		g_window = NULL;
+	}
+}
 static void save_ovirt_tcm()
 {
 	char szurl[MAX_BUFF_SIZE] = {0};
@@ -51,23 +71,24 @@ static void save_ovirt_tcm()
 	strcat(szurl, "/ovirt-engine/api");
 	printf("save_ovirt_tcm : %s .\n", szurl);
 	set_ovirt_baseurl(szurl);
-	memset(szurl, 0, MAX_BUFF_SIZE);
-	strcpy(szurl, "http://");
-	strcat(szurl, g_serverinfo.szIP);
-	strcat(szurl, ":");
-	memset(szport, 0, 20);
-	sprintf(szport, "%d", 8000);
-	strcat(szurl, szport);
-	char szteacher[MAX_BUFF_SIZE] = {0};
-	strcpy(szteacher, "http://");
-	strcat(szteacher, g_serverinfo.szIP);
-	strcat(szteacher, ":");
-	memset(szport, 0, 20);
-	sprintf(szport, "%d", 8090);
-	strcat(szteacher, szport);
-	printf("save_ovirt_tcm , tcm = %s , teacher = %s.\n", szurl, szteacher);
-	set_ovirt_tcm(szurl, szteacher);
+//	memset(szurl, 0, MAX_BUFF_SIZE);
+//	strcpy(szurl, "http://");
+//	strcat(szurl, g_serverinfo.szIP);
+//	strcat(szurl, ":");
+//	memset(szport, 0, 20);
+//	sprintf(szport, "%d", 8000);
+//	strcat(szurl, szport);
+//	char szteacher[MAX_BUFF_SIZE] = {0};
+//	strcpy(szteacher, "http://");
+//	strcat(szteacher, g_serverinfo.szIP);
+//	strcat(szteacher, ":");
+//	memset(szport, 0, 20);
+//	sprintf(szport, "%d", 8090);
+//	strcat(szteacher, szport);
+//	printf("save_ovirt_tcm , tcm = %s , teacher = %s.\n", szurl, szteacher);
+//	set_ovirt_tcm(szurl, szteacher);
 }
+
 static const char* resol_adjust()
 {
     static char szResol_retun[MAX_BUFF_SIZE] = {0};
@@ -117,59 +138,106 @@ static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 static gboolean save_button_clicked(GtkButton *button,  gpointer user_data)
 {
     //设置分辨率
-    char szTmp[MAX_BUFF_SIZE] = {0};
-    if (g_checkrepass == 1)
-    {
-        //根据终端屏幕分辩率自动调整
-        char * szadjut = resol_adjust();
-        sprintf(szTmp, "sudo xrandr -s  %s", szadjut);
-        LogInfo("Debug: setting.c main exit, selected resolution, cmd: %s .\n", szTmp);
-        char szCmd[MAX_BUFF_SIZE] = {0};
-        sprintf(szCmd, "sudo echo  %s > manual_resol.sh", szTmp);  //暂时这样处理，开机启动显示分辨率
-        system(szCmd);
-		memset(szCmd, 0, sizeof(char) * MAX_BUFF_SIZE);
-		strcpy(szCmd, szadjut);
-		LogInfo("changed resolution g_serverinfo.szResol = %s, szCmd = %s.\n", g_serverinfo.szResol, szCmd);
-		memset(szTmp, 0, MAX_BUFF_SIZE);
-		strcpy(szTmp, g_serverinfo.szResol);
-		strcpy(g_serverinfo.szResol, szCmd);
-		saveServerInfo();
-		if (strcmp(szTmp, szCmd) != 0)
-    		{
-          	char sztmp[MAX_BUFF_SIZE] = {0};
-          	sprintf(sztmp, "确定将分辨率改为 %s ？", (char *)szCmd);
-        		SYMsgDialog(20, sztmp);
-    		}
-    }
-    if (g_checkmanresol == 1)
-    {
-        //手动设置分辨率调整
-        GdkScreen* screen;
-        screen = gdk_screen_get_default();
-        int width = gdk_screen_get_width(screen);
-        int height = gdk_screen_get_height(screen);
-        char szold_screen[MAX_BUFF_SIZE] = {0};
-        sprintf(szold_screen, "%dx%d", width, height);
-        GObject *comboboxtext_resol;
-        comboboxtext_resol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
-        gchar *active = gtk_combo_box_text_get_active_text((GtkComboBoxText *)comboboxtext_resol);
-        LogInfo("setting.c main exit, old resolution: %s, selected resolution: %s\n", szold_screen, (char *)active);
-        strcpy(g_serverinfo.szResol, (char *)active);
-	    saveServerInfo();
-        if (strcmp(szold_screen, (char *)active) != 0)
-        {
+#ifdef ARM
+	saveServerInfo();
+	GdkScreen* screen;
+	screen = gdk_screen_get_default();
+	int width = gdk_screen_get_width(screen);
+	int height = gdk_screen_get_height(screen);
+	char szold_screen[MAX_BUFF_SIZE] = {0};
+	sprintf(szold_screen, "%dx%d", width, height);
 
-            LogInfo("Debug: setting.c screen resolution changed, start reset resolution.\n");
-            strcpy(szTmp, "sudo xrandr -s ");
-            strcat(szTmp, (char *)active);
-            char szCmd[MAX_BUFF_SIZE] = {0};
-            sprintf(szCmd, "sudo echo  %s > manual_resol.sh", szTmp); //暂时这样处理, 开机启动显示分辨率
-            system(szCmd);
-            memset(szCmd, 0, MAX_BUFF_SIZE);
-            sprintf(szCmd, "确定将分辨率改为 %s ？", (char *)active);
-			SYMsgDialog(20, szCmd);
-        }
-    }
+	if (g_checkmanresol == 1)
+	{
+		GObject *comboboxtext_resol;
+		comboboxtext_resol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+		gchar *active = gtk_combo_box_text_get_active_text((GtkComboBoxText *)comboboxtext_resol);
+		if (strcmp(szold_screen, (char *)active) != 0)
+		{
+			char szcmd[100] = {0};
+			sprintf(szcmd, "set_resolution.sh %s", active);
+			system(szcmd);
+			char sztmp[MAX_BUFF_SIZE] = {0};
+          	sprintf(sztmp, "确定将分辨率改为 %s ？ 如果确定系统将重启！", (char *)active);
+        	    SYMsgDialog2(15, sztmp);
+		}
+	}
+	if (g_checkrepass == 1)
+	{
+		if (strcmp(szold_screen, "1920x1080") != 0)
+		{
+			char szcmd[100] = {0};
+			sprintf(szcmd, "set_resolution.sh %s", "1920x1080");
+			system(szcmd);
+			char sztmp[MAX_BUFF_SIZE] = {0};
+          	sprintf(sztmp, "确定将分辨率改为 %s ？如果确定系统将重启！", "1920x1080");
+        	    SYMsgDialog2(15, sztmp);
+		}
+	}
+#else
+    char szTmp[MAX_BUFF_SIZE] = {0};
+	//if (g_interfacetype == 0)
+	{
+	    if (g_checkrepass == 1)
+	    {
+	        //根据终端屏幕分辩率自动调整
+	        char * szadjut = resol_adjust();
+	        sprintf(szTmp, "sudo xrandr -s  %s", szadjut);
+	        LogInfo("Debug: setting.c main exit, selected resolution, cmd: %s .\n", szTmp);
+	        char szCmd[MAX_BUFF_SIZE] = {0};
+	        sprintf(szCmd, "sudo echo  %s > manual_resol.sh", szTmp);  //暂时这样处理，开机启动显示分辨率
+	        system(szCmd);
+			memset(szCmd, 0, sizeof(char) * MAX_BUFF_SIZE);
+			strcpy(szCmd, szadjut);
+			LogInfo("changed resolution g_serverinfo.szResol = %s, szCmd = %s.\n", g_serverinfo.szResol, szCmd);
+			memset(szTmp, 0, MAX_BUFF_SIZE);
+			strcpy(szTmp, g_serverinfo.szResol);
+			strcpy(g_serverinfo.szResol, szCmd);
+			saveServerInfo();
+			if (strcmp(szTmp, szCmd) != 0)
+	    		{
+	          	char sztmp[MAX_BUFF_SIZE] = {0};
+	          	sprintf(sztmp, "确定将分辨率改为 %s ？", (char *)szCmd);
+	        		SYMsgDialog2(20, sztmp);
+	    		}
+	    }
+	    if (g_checkmanresol == 1)
+	    {
+	        //手动设置分辨率调整
+	        GdkScreen* screen;
+	        screen = gdk_screen_get_default();
+	        int width = gdk_screen_get_width(screen);
+	        int height = gdk_screen_get_height(screen);
+	        char szold_screen[MAX_BUFF_SIZE] = {0};
+	        sprintf(szold_screen, "%dx%d", width, height);
+	        GObject *comboboxtext_resol;
+	        comboboxtext_resol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+	        gchar *active = gtk_combo_box_text_get_active_text((GtkComboBoxText *)comboboxtext_resol);
+	        LogInfo("setting.c main exit, old resolution: %s, selected resolution: %s\n", szold_screen, (char *)active);
+	        strcpy(g_serverinfo.szResol, (char *)active);
+		    saveServerInfo();
+	        if (strcmp(szold_screen, (char *)active) != 0)
+	        {
+
+	            LogInfo("Debug: setting.c screen resolution changed, start reset resolution.\n");
+	            strcpy(szTmp, "sudo xrandr -s ");
+	            strcat(szTmp, (char *)active);
+	            char szCmd[MAX_BUFF_SIZE] = {0};
+	            sprintf(szCmd, "sudo echo  %s > manual_resol.sh", szTmp); //暂时这样处理, 开机启动显示分辨率
+	            system(szCmd);
+	            memset(szCmd, 0, MAX_BUFF_SIZE);
+	            sprintf(szCmd, "确定将分辨率改为 %s ？", (char *)active);
+				SYMsgDialog2(20, szCmd);
+	        }
+	    }
+	}
+//	else if (g_interfacetype == 2)
+//	{
+//		saveServerInfo();
+//	}
+#endif
+	close_setting_window();
+
     return TRUE;
 }
 
@@ -200,7 +268,16 @@ int setResol()
 {
     GObject *comboresol;
     comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+#ifdef ARM
+	g_resolCount = 5;
+	strcpy(szResol[0], "1920x1080");
+	strcpy(szResol[1], "1440x900");
+	strcpy(szResol[2], "1024x768");
+	strcpy(szResol[3], "1280x1024");
+	strcpy(szResol[4], "1280x720");
+#else
     GetResol();
+#endif
     int i = 0;
     LogInfo("Debug: setting.c setResol  g_resolCount = %d .\n", g_resolCount);
     for (; i< g_resolCount; i++)
@@ -265,37 +342,39 @@ int initctrl()
     image_resolution = gtk_builder_get_object (g_builder2, "image_resolution");
     if (g_checkrepass == 1)
     {
-       LogInfo("Debug:  setting.c init g_checkrepass is 1.\n");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkPressimage);
-       GObject *object;
-       object = gtk_builder_get_object (g_builder2, "image_manualresol");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
+		LogInfo("Debug:  setting.c init g_checkrepass is 1.\n");
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkPressimage);
+		GObject *object;
+		object = gtk_builder_get_object (g_builder2, "image_manualresol");
+		gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
     }else
     {
-       LogInfo("Debug:  setting.c init g_checkrepass is 0.\n");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkNorimage);
-    }
-    image_resolution = gtk_builder_get_object (g_builder2, "image_manualresol");
-    if (g_checkmanresol == 1)
-    {
-       LogInfo("Debug:  setting.c init g_checkmanresol is 1.\n");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkPressimage);
-       GObject *object;
-       object = gtk_builder_get_object (g_builder2, "image_resolution");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
-    }else
-    {
-       LogInfo("Debug:  setting.c init g_checkmanresol is 0.\n");
-       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkNorimage);
-    }
+		LogInfo("Debug:  setting.c init g_checkrepass is 0.\n");
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkNorimage);
+	    image_resolution = gtk_builder_get_object (g_builder2, "image_manualresol");
+	    if (g_checkmanresol == 1)
+	    {
+	       LogInfo("Debug:  setting.c init g_checkmanresol is 1.\n");
+	       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkPressimage);
+	       GObject *object;
+	       object = gtk_builder_get_object (g_builder2, "image_resolution");
+	       gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
+	    }else
+	    {
+	       LogInfo("Debug:  setting.c init g_checkmanresol is 0.\n");
+	       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkNorimage);
+	    }
+    	}
 }
 
 unsigned short saveServerInfo()
 {
     GObject *object;
+	char old_ip[MAX_BUFF_SIZE] = {0};
     object = gtk_builder_get_object (g_builder2, "entry_serverip");
     char * szserverIP = (char *)gtk_entry_get_text((GtkEntry *)object);
     LogInfo("debug: serverIP: %s.\n" ,szserverIP);
+	strcpy(old_ip, g_serverinfo.szIP);
     memset(g_serverinfo.szIP, 0, MAX_BUFF_SIZE);
     memcpy(g_serverinfo.szIP, szserverIP, strlen(szserverIP));
 
@@ -319,12 +398,24 @@ unsigned short saveServerInfo()
     g_serverinfo.manresol = g_checkmanresol;
     if (!check_ipv4_valid(g_serverinfo.szIP))
     {
-        SYMsgDialog(7, "IP 格式不正确, 请重新输入！");
+        SYMsgDialog2(7, "IP 格式不正确, 请重新输入！");
         return -1;
     }
+#ifdef MEETING
+	if (strcmp(old_ip, g_serverinfo.szIP) != 0)
+	{
+		char szMsg[BUF_MSG_LEN]= {0};
+		sprintf(szMsg, "\napagentui.ThinviewServerAddrChange####{\"address\": \"%s\"}\n", g_serverinfo.szIP);
+		write(1, szMsg, strlen(szMsg));
+	}
+#endif
 	LogInfo("debug: wirte setting checkmanresol=%d, checkclientresol=%d.\n" ,g_checkrepass, g_checkmanresol);
     SaveServerInfo(g_serverinfo);
-	save_ovirt_tcm();
+	//update_login_userorpas();
+	if (g_workflag == 1)
+	{
+		save_ovirt_tcm();
+	}
     return 0;
 }
 
@@ -339,23 +430,23 @@ static gboolean checkbutton_resolution_press_callback(GtkWidget *event_box, GdkE
 {
     if (event->type == GDK_BUTTON_PRESS)
     {
-        g_checkrepass = !g_checkrepass;
-        LogInfo("Debug: checkbutton resolution gtkimage check: %d.\n", g_checkrepass);
-        if (g_checkrepass == 1)
-        {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
-            GObject *object;
-            object = gtk_builder_get_object (g_builder2, "image_manualresol");
-            gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
-            g_checkmanresol = 0;
-            GObject *comboresol;
-            comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
-            gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 0);
-        }
-        else
-        {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
-        }
+		g_checkrepass = !g_checkrepass;
+		LogInfo("Debug: checkbutton resolution gtkimage check: %d.\n", g_checkrepass);
+		if (g_checkrepass == 1)
+		{
+			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
+			GObject *object;
+			object = gtk_builder_get_object (g_builder2, "image_manualresol");
+			gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
+			g_checkmanresol = 0;
+			GObject *comboresol;
+			comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+			gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 0);
+		}
+		else
+		{
+			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+		}
     }
     return TRUE;
 }
@@ -364,23 +455,23 @@ static gboolean checkbutton_manualresol_press_callback(GtkWidget *event_box, Gdk
 {
     if (event->type == GDK_BUTTON_PRESS)
     {
-        g_checkmanresol = !g_checkmanresol;
-        LogInfo("Debug: checkbutton manualresol gtkimage check: %d.\n", g_checkmanresol);
-        if (g_checkmanresol == 1)
-        {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
-            GObject *object;
-            object = gtk_builder_get_object (g_builder2, "image_resolution");
-            gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
-            g_checkrepass = 0;
-            GObject *comboresol;
-            comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
-            gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 1);
-        }
-        else
-        {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
-        }
+		g_checkmanresol = !g_checkmanresol;
+		LogInfo("Debug: checkbutton manualresol gtkimage check: %d.\n", g_checkmanresol);
+		if (g_checkmanresol == 1)
+		{
+		    gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
+		    GObject *object;
+		    object = gtk_builder_get_object (g_builder2, "image_resolution");
+		    gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
+		    g_checkrepass = 0;
+		    GObject *comboresol;
+		    comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+		    gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 1);
+		}
+		else
+		{
+		    gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+		}
     }
     return TRUE;
 }
@@ -399,6 +490,10 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
 			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+			gtk_widget_set_visible((GtkWidget *)g_stuserwin, 0);
+#ifdef MEETING
+			//gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
+#endif
         		initctrl();
 		}
 		if (strcmp((char *)(gchar *)value, "网络") == 0)
@@ -408,22 +503,52 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
 			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+			gtk_widget_set_visible((GtkWidget *)g_stuserwin, 0);
+#ifdef MEETING
+			//gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
+#endif
 		}
-		// if (strcmp((char *)(gchar *)value, "声音") == 0)
+//		if (strcmp((char *)(gchar *)value, "声音") == 0)
+//		{
+//			gtk_widget_set_visible((GtkWidget *)g_soundWin, 1);
+//		    gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
+//  			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
+//			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+//		}
+
+  // 		if (strcmp((char *)(gchar *)value, "教室") == 0)
 		// {
-		// 	gtk_widget_set_visible((GtkWidget *)g_soundWin, 1);
-		//     gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
-  	// 		gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
+        // 		saveServerInfo();
+  // 			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
+  // 			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 		// 	gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+		// 	//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+		// 	gtk_widget_set_visible((GtkWidget *)g_stuserwin, 1);
 		// }
+#ifdef MEETING
+		if (strcmp((char *)(gchar *)value, "修改密码") == 0)
+		 {
+         		saveServerInfo();
+   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
+   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
+		 	gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+		 	//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+		// 	gtk_widget_set_visible((GtkWidget *)g_stuserwin, 1);
+		//	gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
+		 }
+#endif
+
 		if (strcmp((char *)(gchar *)value, "关于") == 0)
 		{
         		saveServerInfo();
-			LogInfo("on_changed  selected about window.\n ");
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 1);
 			//gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+			gtk_widget_set_visible((GtkWidget *)g_stuserwin, 0);
+#ifdef MEETING
+			//gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
+#endif
 		}
         g_free(value);
     }
@@ -438,9 +563,15 @@ static GtkTreeModel *create_and_fill_model(void)
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"基本设置",-1);
     gtk_tree_store_append(treestore,&toplevel,NULL);
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"网络",-1);
-    //gtk_tree_store_append(treestore,&toplevel,NULL);
-    //gtk_tree_store_set(treestore,&toplevel, COLUMN,"声音",-1);
     gtk_tree_store_append(treestore,&toplevel,NULL);
+    //gtk_tree_store_set(treestore,&toplevel, COLUMN,"声音",-1);
+    //gtk_tree_store_append(treestore,&toplevel,NULL);
+    // gtk_tree_store_set(treestore,&toplevel, COLUMN,"教室",-1);
+    // gtk_tree_store_append(treestore,&toplevel,NULL);
+#ifdef MEETING
+	//gtk_tree_store_set(treestore,&toplevel, COLUMN,"修改密码",-1);
+    //gtk_tree_store_append(treestore,&toplevel,NULL);
+#endif 
     gtk_tree_store_set(treestore,&toplevel, COLUMN,"关于",-1);
   /*  gtk_tree_store_append(treestore,&child,&toplevel);
     gtk_tree_store_set(treestore,&child, COLUMN,"PHP",-1);
@@ -497,11 +628,13 @@ GdkPixbuf *create_pixbuf(const gchar * filename)
 
 gboolean window_drag(GtkWidget *widget, GdkEventButton *event, GdkWindowEdge edge)
 {
+#if 0
     if (event->button == 1)
     {
         gtk_window_begin_move_drag(GTK_WINDOW(gtk_widget_get_toplevel(widget)), event->button, event->x_root, event->y_root, event->time);
         gtk_widget_queue_draw(widget);
     }
+#endif
     return FALSE;
 }
 
@@ -631,7 +764,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		font_size = 12;
 		setctrlFont(GTK_WIDGET(label_title), 14);
 	}
-	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
+	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 		 (scr_width == 1600 && scr_height == 1080))
 	{
 		win_width = 500;
@@ -717,7 +850,8 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	image_logo = gtk_builder_get_object (builder, "image_logo");
 	image_resolution = gtk_builder_get_object (builder, "image_resolution");
 	image_close = gtk_builder_get_object(builder, "image_close");
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
+
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
@@ -748,7 +882,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	}
 	LogInfo("init_ctrl_pos  pic_close_width = %d, pic_close_height =%d .\n", pic_close_width, pic_close_height);
 	LogInfo("init_ctrl_pos  pic_logo_width = %d, pic_logo_height =%d .\n", pic_logo_width, pic_logo_height);
-	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
+	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 		(scr_width == 1600 && scr_height == 1080))
 	{
 		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
@@ -880,7 +1014,7 @@ static void loadimage(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 
-	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
+	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
 		(scr_width == 1600 && scr_height == 1080) )
 	{
 		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
@@ -906,6 +1040,38 @@ static void loadimage(GtkBuilder *builder)
 	gtk_image_set_from_pixbuf(GTK_IMAGE(image_close), g_imageclose);
 }
 
+void hide_logo_ctrl(GtkBuilder *builder)
+{
+	GObject *image_logo;
+	image_logo = gtk_builder_get_object(builder, "image_logo");
+	if (g_interfacetype == 2)
+	{
+		gtk_widget_hide(GTK_WIDGET(image_logo));
+	}
+}
+
+void hide_resol_ctrl(GtkBuilder *builder)
+{
+	GObject *eventbox_manualresol = gtk_builder_get_object (builder, "eventbox_manualresol");
+	GObject *comboboxtext_resol = gtk_builder_get_object (builder, "comboboxtext_resol");
+	GObject *label_sysresol = gtk_builder_get_object (builder, "label_sysresol");
+	GObject *eventbox_resolution = gtk_builder_get_object (builder, "eventbox_resolution");
+	GObject *label_resolution = gtk_builder_get_object (builder, "label_resolution");
+
+	if (g_interfacetype == 2 || g_interfacetype == 0)
+	{
+		gtk_widget_hide(GTK_WIDGET(eventbox_manualresol));
+		gtk_widget_hide(GTK_WIDGET(comboboxtext_resol));
+		gtk_widget_hide(GTK_WIDGET(label_sysresol));
+		gtk_widget_hide(GTK_WIDGET(eventbox_resolution));
+		gtk_widget_hide(GTK_WIDGET(label_resolution));
+		gtk_widget_set_sensitive(GTK_WIDGET(eventbox_manualresol), 1);
+		gtk_widget_set_sensitive(GTK_WIDGET(comboboxtext_resol), 1);
+		gtk_widget_set_sensitive(GTK_WIDGET(label_sysresol), 1);
+		gtk_widget_set_sensitive(GTK_WIDGET(eventbox_resolution), 1);
+		gtk_widget_set_sensitive(GTK_WIDGET(label_resolution), 1);
+	}
+}
 
 void int_tmp(GtkBuilder *builder)
 {
@@ -946,7 +1112,7 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_resolution), 12);
 	}
 	else if ( (scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 	    layout2_width = 500;
 		layout2_height = 30;
@@ -994,6 +1160,11 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(comboboxtext_resol), 9);
 		setctrlFont(GTK_WIDGET(label_resolution), 9);
 		setctrlFont(GTK_WIDGET(btn_save), 9);
+		if (g_interfacetype == 2)
+		{
+			gtk_widget_set_sensitive(GTK_WIDGET(eventbox_manualresol), TRUE);
+			gtk_widget_set_sensitive(GTK_WIDGET(comboboxtext_resol), TRUE);
+		}
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024)|| (scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
@@ -1077,6 +1248,8 @@ static void init_entry_event()
 	g_signal_connect(G_OBJECT(entry_port), "insert-text", G_CALLBACK(on_entry_port_insert_text), NULL);
 }
 
+
+extern void sethidewan();
 int  SY_Setting_main ()
 {
   if (showsettingwindow == 1)
@@ -1116,8 +1289,15 @@ int  SY_Setting_main ()
   setAbout_win_Size(box_win_width, box_win_height);
   SY_AboutWindow();
   g_layout_about = GetAboutLayout();
-  set_soundwin_size(box_win_width, box_win_height);
-  g_soundWin = SYSoundWin();
+  //set_soundwin_size(box_win_width, box_win_height);
+  //g_soundWin = SYSoundWin();
+  //set_stu_server_win_size(box_win_width, box_win_height);
+  //g_stuserwin = stu_server_win();
+#ifdef MEETING
+  //set_modify_pass_win_size(box_win_width, box_win_height);
+  //modify_pass_window();
+  //g_modiypassWindow = GetModifyPassLayout();
+#endif
 
   GtkWidget *view;
   GtkTreeSelection *selection;
@@ -1129,7 +1309,7 @@ int  SY_Setting_main ()
   int scr_height = gdk_screen_get_height(screen);
   if ((scr_width == 1024 && scr_height == 768) ||
   	   (scr_width == 1440 && scr_height == 900) ||
-  	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  ||  (scr_width == 1600 && scr_height == 896 )  ||
+  	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
   	  (scr_width == 1600 && scr_height == 1080) )
   {
 	 setctrlFont(GTK_WIDGET(view), 10);
@@ -1152,7 +1332,12 @@ int  SY_Setting_main ()
   gtk_tree_selection_select_iter(selection, &iter);
   g_layout1 = gtk_builder_get_object (builder, "layout_base");
   gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_layout2, TRUE, TRUE, 1);
-//  gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_soundWin, TRUE, TRUE, 1);
+  //gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_soundWin, TRUE, TRUE, 1);
+ // gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_stuserwin, TRUE, TRUE, 1);
+#ifdef MEETING
+  //gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_modiypassWindow, TRUE, TRUE, 1);
+#endif
+
   gtk_box_pack_start(GTK_BOX(boxwindow), (GtkWidget *)g_layout_about, TRUE, TRUE, 1);
 
   GObject * label_tip;
@@ -1226,13 +1411,21 @@ int  SY_Setting_main ()
   gtk_widget_show_all((GtkWidget *)window);
   gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
-  gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+#ifdef MEETING
+  gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
+#endif
+  //gtk_widget_set_visible((GtkWidget *)g_soundWin, 0);
+  //gtk_widget_set_visible((GtkWidget *)g_stuserwin, 0);
+
   SY_NetworkDisableCtrl();
+  sethidewan();
   initctrl();
   setResol();
   init_entry_event();
   gtk_window_set_transient_for(GTK_WINDOW(window), g_mainWindow);
   gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  hide_logo_ctrl(builder);
+  //hide_resol_ctrl(builder);
   gtk_main();
   g_object_unref (G_OBJECT (builder));
   g_builder2 = NULL;

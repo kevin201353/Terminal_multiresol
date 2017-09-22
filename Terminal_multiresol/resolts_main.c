@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "msg.h"
-
 
 #define MAX_CTRL_SIZE   10
 #define IMAGE_BTN_SH_NOR           	  "images2/sh_nor.png"
@@ -62,8 +60,8 @@ static GdkPixbuf *g_setNor;
 static GdkPixbuf *g_shutdownPress;
 static GdkPixbuf *g_shutdownNor;
 
-GdkPixbuf *g_netstatus_Up;
-GdkPixbuf *g_netstatus_Down;
+static GdkPixbuf *g_netstatus_Up;
+static GdkPixbuf *g_netstatus_Down;
 
 static cairo_surface_t *surface1 = NULL;
 static cairo_surface_t *surface_topwindow = NULL;
@@ -74,25 +72,22 @@ static GObject *g_window;
 
 extern void Net_status_checking(GtkBuilder *builder, GtkWidget *widget);
 extern GdkPixbuf *create_pixbuf(const gchar * filename);
-int g_mainExit = 0;
 extern GObject *g_settingwindow;
 static gint my_button_handler(GtkWidget *widget,GdkEvent *event);
-extern int GetManufactureType();
-
-void msg_respose_win(gpointer data)
+extern int ShenCloud_autoLogin();
+extern void wait_net_setup();
+extern void GetManufactureType();
+extern void linux_key_press();
+extern void linux_key_press2();
+static void* thrd_keypress()
 {
-	if (g_selectProto == 0 && g_nVmCount > 1)
-	{
-	    printf("terminate  44444444  2222222 8888.\n");
-		report_msg.action = MSG_WINDOW_CLOSE;
-		server_send_msg(report_msg);
-		SY_vmlistwindow_main();
-	}
+	linux_key_press2();
 }
+
 
 static void setfontcolor(GtkWidget * widget, char *value)
 {
-	GdkRGBA color1;
+	GdkRGBA color1;	
 	gdk_rgba_parse(&color1, value);
 	gtk_widget_override_color(widget, GTK_STATE_FLAG_NORMAL, &color1);
 }
@@ -171,7 +166,7 @@ static void init_sys_time_ctrl(GtkBuilder *builder, GtkWidget *widget)
 	int font_size = 0;
 	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 		font_size = 14;
-	else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 		font_size = 12;
 	else if (scr_width == 1024 && scr_height == 768)
 		font_size = 12;
@@ -186,36 +181,36 @@ static void init_sys_time_ctrl(GtkBuilder *builder, GtkWidget *widget)
 
 static void *thrd_Vmarefunc(void *arg)
 {
-    int nRet = Run_VmwareView("admin", "123456", "127.0.0.1", "Test");
-    if (nRet < 0)
-    {
-        LogInfo("Debug: login window connect vmare failed, nRet: %d. \n", nRet);
-        SYMsgDialog(11, "vmare 登录失败!");
-        return -1;
-    }
+//    int nRet = Run_VmwareView("admin", "123456", "127.0.0.1", "Test");
+//    if (nRet < 0)
+//    {
+//        LogInfo("Debug: login window connect vmare failed, nRet: %d. \n", nRet);
+//        SYMsgDialog2(11, "vmare 登录失败!");
+//        return -1;
+//    }
 }
 
 //set Sensitive
 void SettopSensitive(int sitive)
 {
-    GObject *btn_vm;
-    GObject *btn_cit;
-    GObject *btn_mir;
-    GObject *btn_sh;
-    GObject *btn_setting;
-    GObject *btn_shutdown;
-    btn_vm = gtk_builder_get_object(g_builder, "btn_vm");
-    btn_cit = gtk_builder_get_object(g_builder, "btn_cit");
-    btn_mir = gtk_builder_get_object(g_builder, "btn_mir");
-    btn_sh = gtk_builder_get_object(g_builder, "btn_sh");
-    btn_setting = gtk_builder_get_object(g_builder, "btn_setting");
-    btn_shutdown = gtk_builder_get_object(g_builder, "btn_shutdown");
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_vm), sitive);
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_cit), sitive);
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_mir), sitive);
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_sh), sitive);
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_setting), sitive);
-    gtk_widget_set_sensitive(GTK_WIDGET(btn_shutdown), sitive);
+//    GObject *btn_vm;
+//    GObject *btn_cit;
+//    GObject *btn_mir;
+//    GObject *btn_sh;
+//    GObject *btn_setting;
+//    GObject *btn_shutdown;
+//    btn_vm = gtk_builder_get_object(g_builder, "btn_vm");
+//    btn_cit = gtk_builder_get_object(g_builder, "btn_cit");
+//    btn_mir = gtk_builder_get_object(g_builder, "btn_mir");
+//    btn_sh = gtk_builder_get_object(g_builder, "btn_sh");
+//    btn_setting = gtk_builder_get_object(g_builder, "btn_setting");
+//    btn_shutdown = gtk_builder_get_object(g_builder, "btn_shutdown");
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_vm), sitive);
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_cit), sitive);
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_mir), sitive);
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_sh), sitive);
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_setting), sitive);
+//    gtk_widget_set_sensitive(GTK_WIDGET(btn_shutdown), sitive);
 }
 
 static void show_loginwindow()
@@ -271,9 +266,9 @@ static void  on_btn_vm_pressed(GtkButton *button,  gpointer   user_data)
 	gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_vmarePress);
 	g_selectProto = 3;
 	// �����߳�tid�����̺߳�����thrd_funcָ������thrd_func�����ڵ㣬������ִ�д��̺߳���
-	if ( pthread_create(&tid, NULL, thrd_Vmarefunc, NULL) !=0 ) {
-		printf("Create vmare thread error!\n");
-	}
+//	if ( pthread_create(&tid, NULL, thrd_Vmarefunc, NULL) !=0 ) {
+//		printf("Create vmare thread error!\n");
+//	}
 }
 
 static void on_btn_vm_enter(GtkButton *button, gpointer  user_data)
@@ -344,7 +339,7 @@ static void get_cirfour(int scr_width, int scr_height, int *cir_width, int *cir_
 	{
 		*cir_width = 250;
 		*cir_height = 250;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		*cir_width = 187;
 		*cir_height = 187;
@@ -413,14 +408,20 @@ static void create_surfaces()
 	    }
 	}else if (scr_width == 1440 && scr_height == 900)
 	{
-		surface_topwindow = cairo_image_surface_create_from_png ("images2/1440x900/topwindow.png");
+	    if (g_interfacetype == 2)
+			surface_topwindow = cairo_image_surface_create_from_png ("images2/1440x900/zdy/topwindow.png");
+		if (g_interfacetype == 0)
+			surface_topwindow = cairo_image_surface_create_from_png ("images2/1440x900/sh/topwindow.png");
 	    if (surface_topwindow == NULL)
 	    {
 	        LogInfo("Error: create_surfaces load topwindow png failed.\n");
 	    }
-	}else if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
-		surface_topwindow = cairo_image_surface_create_from_png ("images2/1600x900/topwindow.png");
+	    if (g_interfacetype == 2)
+	    		surface_topwindow = cairo_image_surface_create_from_png ("images2/1600x900/zdy/topwindow.png");
+		else if (g_interfacetype == 0)
+			surface_topwindow = cairo_image_surface_create_from_png ("images2/1600x900/sh/topwindow.png");
 	    if (surface_topwindow == NULL)
 	    {
 	        LogInfo("Error: create_surfaces load topwindow png failed.\n");
@@ -505,7 +506,7 @@ void cal_circlectrl_hide(GtkBuilder *builder)
 	btn_cit = gtk_builder_get_object(builder, "btn_cit");
 	GObject *btn_mir;
 	btn_mir = gtk_builder_get_object(builder, "btn_mir");
-	if (g_interfacetype == 2)
+	if (g_interfacetype == 2 || g_interfacetype == 0)
 	{
 		gtk_widget_hide(GTK_WIDGET(btn_vm));
 		gtk_widget_hide(GTK_WIDGET(btn_cit));
@@ -527,7 +528,7 @@ void calcircleposition(GObject *parent, GtkBuilder *builder)
 	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 		 inter_space = 60;
 	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		    (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		    (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 		 inter_space = 62;
 	else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024))
 		 inter_space = 62;
@@ -553,7 +554,7 @@ void calcircleposition(GObject *parent, GtkBuilder *builder)
 	setctrl_size((GtkWidget *)btn_cit, pic_width, pic_height);
 	setctrl_size((GtkWidget *)btn_mir, pic_width, pic_height);
 	setctrl_size((GtkWidget *)btn_sh, pic_width, pic_height);
-	if (g_interfacetype == 2)
+	if (g_interfacetype == 2 || g_interfacetype == 0)
 	{
 		gtk_widget_set_sensitive(GTK_WIDGET(btn_vm), TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(btn_cit), TRUE);
@@ -561,7 +562,7 @@ void calcircleposition(GObject *parent, GtkBuilder *builder)
 		int x = center - pic_width/2;
 		gtk_layout_move((GtkLayout *)parent, GTK_WIDGET(btn_sh), x, cir_y);
 	}
-	else if (g_interfacetype == 0)
+	else if (g_interfacetype == 3)
 	{
 		//left
 		gtk_layout_move((GtkLayout *)parent, GTK_WIDGET(btn_vm),  center - inter_space/2 - pic_width*2 - inter_space, cir_y);
@@ -630,10 +631,17 @@ static void loadImage()
 		g_netstatus_Up = gdk_pixbuf_new_from_file("images2/1024x768/netstatus_up.png", NULL);
 	    g_netstatus_Down = gdk_pixbuf_new_from_file("images2/1024x768/netstatus_down.png", NULL);
 	}
-	else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
-		g_shPress = gdk_pixbuf_new_from_file("images2/1440x900/sh_press.png", NULL);
-	    g_shNor = gdk_pixbuf_new_from_file("images2/1440x900/sh_nor.png", NULL);
+		if (g_interfacetype == 2)
+		{
+			g_shPress = gdk_pixbuf_new_from_file("images2/1440x900/zdy/sh_press.png", NULL);
+			g_shNor = gdk_pixbuf_new_from_file("images2/1440x900/sh/sh_nor.png", NULL);
+		}else if (g_interfacetype == 0)
+		{
+			g_shPress = gdk_pixbuf_new_from_file("images2/1440x900/sh/sh_press.png", NULL);
+			g_shNor = gdk_pixbuf_new_from_file("images2/1440x900/sh/sh_nor.png", NULL);
+		}
 
 	    g_mirPress = gdk_pixbuf_new_from_file("images2/1440x900/mirsoft_press.png", NULL);
 	    g_mirNor = gdk_pixbuf_new_from_file("images2/1440x900/mirsoft_nor.png", NULL);
@@ -805,13 +813,27 @@ gboolean on_draw_event (GtkWidget * widget,
     return FALSE;
 }
 
-static void show_netInfo_window()
+void show_netInfo_window()
 {
 	printf("Debug : show_netInfo_window(). \n");
 	SYNetInfoWin();
 }
 
-
+static void show_ctrl_status_bar(GtkBuilder *builder, int show)
+{
+	GObject *button1;
+	GObject *button2;
+	GObject *btn_netstatus;
+	button1 = gtk_builder_get_object (builder, "btn_setting");
+	button2 = gtk_builder_get_object (builder, "btn_shutdown");
+	btn_netstatus = gtk_builder_get_object (builder, "btn_netstatus");
+	gtk_widget_set_visible(GTK_WIDGET(button1), show);
+	gtk_widget_set_visible(GTK_WIDGET(button2), show);
+	gtk_widget_set_visible(GTK_WIDGET(btn_netstatus), show);
+	gtk_widget_set_sensitive(GTK_WIDGET(button1), !show);
+	gtk_widget_set_sensitive(GTK_WIDGET(button2), !show);
+	gtk_widget_set_sensitive(GTK_WIDGET(btn_netstatus), !show);
+}
 static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout4_height)
 {
 	//cal subctrl button
@@ -819,7 +841,7 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout
     screen = gdk_screen_get_default();
     int scr_width = gdk_screen_get_width(screen);
     int scr_height = gdk_screen_get_height(screen);
-	int picset_width = 0;
+	int picset_width = 0; 
 	int picset_height = 0;
 	int picexit_width = 0;
 	int picexit_height = 0;
@@ -843,7 +865,7 @@ static void init_ctrlbtn_pos(GtkBuilder *builder, GtkLayout * widget, int layout
 		gdk_pixbuf_get_file_info(IMAGE_SETTING_NOR, &picset_width, &picset_height);
 		gdk_pixbuf_get_file_info(IMAGE_BTN_SHUTDWON_NOR, &picexit_width, &picexit_height);
 		gdk_pixbuf_get_file_info("images2/netstatus_up.png", &picnet_width, &picnet_height);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		gdk_pixbuf_get_file_info("images2/1440x900/set_nor.png", &picset_width, &picset_height);
 		gdk_pixbuf_get_file_info("images2/1440x900/exit_nor.png", &picexit_width, &picexit_height);
@@ -951,19 +973,35 @@ int main(int argc, char *argv[])
     system("sudo ./tmp.sh");
     system("sudo chmod +x netstatic.sh");
     system("sudo chmod +x dhcp.sh");
+    system("sudo chmod +x ar_dhcp.sh");
     system("sudo chmod +x netget.sh");
     system("sudo xrandr > resol.txt");
     //print version info
     g_mainExit = 0;
-	g_interfacetype = GetManufactureType(); //ÖÚ¶¹ÔÆ
+	g_thinviewlog = 0;
+	g_openModifyUserPas = 0;
+	GetManufactureType(); //2: �ڶ���
+	char sztmp[100] = {0};
+	sprintf(sztmp, "g_interfacetype = %d,   g_thinviewlog = %d.\n", g_interfacetype, g_thinviewlog);
+	printf(sztmp);
+	LogInfo(sztmp);
     Init_Curlc();
 	Checking_log();
-	SetLogFlag(1);
+	//SetLogFlag(1);
+#ifdef MEETING
+	if ( pthread_create(&tid, NULL, thrd_keypress, NULL) !=0 ) {
+		    printf("Create thread error!\n");
+	};
+#endif
+	SY_loginwindow_main();
+	return 0;
+	/*************************************************************************/
 	//calculate screen resolution
     GdkScreen* screen;
     screen = gdk_screen_get_default();
     int scr_width = gdk_screen_get_width(screen);
     int scr_height = gdk_screen_get_height(screen);
+	LogInfo("Debug: main resolution is scr_width = %d, scr_height=%d .\n", scr_width, scr_height);
 	int scr_layout3_height = scr_height - scr_layout2_height - scr_layout4_height; //The height of the four circle area
 
 	GtkBuilder *builder;
@@ -973,7 +1011,7 @@ int main(int argc, char *argv[])
 	int nRet = gtk_builder_add_from_file (builder, "windowts.glade", &error);
 	window = gtk_builder_get_object (builder, "window1");
 	g_window = window;
-	g_mainWindow = window;
+	//g_mainWindow = window;
 	g_builder = builder;
 	loadcss();
 	create_surfaces();
@@ -1023,20 +1061,21 @@ int main(int argc, char *argv[])
 	gtk_container_child_set_property(GTK_CONTAINER(layout1), GTK_WIDGET(layout4), "y", &a);
 	//printf("widget layout4, x: =%d, y:=%d, width :=%d, height :=%d \n .", allocation_layout4.x, allocation_layout4.y, allocation_layout4.width, allocation_layout4.height);
     init_ctrlbtn_pos(builder, layout4, scr_layout4_height);
+	//show_ctrl_status_bar(builder, 0);
 	calcircleposition(layout3, builder); //cal  four cir
 	setcirctrl_image(builder);
 	signal_ctrlevent(builder);
 	init_sys_time_ctrl(builder, layout2);
-	server_init(); //start msg server thrd
+	//server_init(); //start msg server thrd
 	Net_status_checking(builder, layout4);
 	gtk_window_set_icon(GTK_WINDOW(window), create_pixbuf("images2/logo.png"));
 	gtk_window_fullscreen(GTK_WINDOW(window));
 	gtk_window_set_decorated(GTK_WINDOW(window), FALSE); /* hide the title bar and the boder */
 	//g_signal_connect(G_OBJECT(window), "button-press-event", G_CALLBACK(window_press_event), NULL);
 	gtk_window_set_position (GTK_WINDOW (window), GTK_WIN_POS_CENTER);                    
-	 gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
 	gtk_widget_show_all((GtkWidget *)window);
-	if (g_interfacetype == 2)
+	if (g_interfacetype == 2 || g_interfacetype == 0)
 	{
 		cal_circlectrl_hide(GTK_WIDGET(builder));
 	}
@@ -1046,7 +1085,7 @@ int main(int argc, char *argv[])
 //	{
 //		wait_net_setup();
 //	}
-	//SYMsgDialog2(23, "æ­£åœ¨è¿žæŽ¥ï¼Œ è¯·ç¨åŽ...");
+	//SYMsgDialog2(23, "正在连接， 请稍后...");
 	start_monitor_file_thrd();
 	gtk_main();
     g_object_unref(G_OBJECT(builder));
@@ -1054,7 +1093,7 @@ int main(int argc, char *argv[])
 	Unit_Curlc();
     system("rm -rf resol.txt");
 	g_mainExit = 1;
-	CloseLog();
-	close_msg_server(); //close msg server thrd
+	//CloseLog();
+	//close_msg_server(); //close msg server thrd
 	return 0;
 }

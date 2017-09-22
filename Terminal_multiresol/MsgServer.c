@@ -104,6 +104,7 @@ static void *thrd_connect(void *arg)
 			if (nbytes == 0)
 			{
 				LogInfo("tcpserver read from client data finish nbytes = 0.\n");
+				break;
 			}
 			printf("read tcpclient msg data len = %d .\n", nbytes);
 			sleep(1);

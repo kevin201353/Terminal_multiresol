@@ -14,6 +14,9 @@
 
 char g_szUrl[MAX_DATA_SIZE] = {0};
 
+int  g_working = 0;
+extern int Http_Post2(char *url, char *user, char* password, char* data);
+
 int Ovirt_Login(char *url, char *user, char* password)
 {
     if (url == NULL && strlen(url) <= 0)
@@ -22,6 +25,9 @@ int Ovirt_Login(char *url, char *user, char* password)
     {
         return SY_USER_ISNULL;
     }
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_LOGIN);
@@ -32,8 +38,10 @@ int Ovirt_Login(char *url, char *user, char* password)
     {
        printf("Ovirt login failed.\n");
        LogInfo("Debug: Ovirt login failed.\n");
+	   g_working = 0;
        return SY_OVIRT_LOGIN_FAILED;
     }
+	 g_working = 0;
     return 0;
 }
 
@@ -45,6 +53,9 @@ int Ovirt_GetVms(char *url, char *user, char* password)
     {
         return SY_USER_ISNULL;
     }
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_GET_VMS);
@@ -55,8 +66,10 @@ int Ovirt_GetVms(char *url, char *user, char* password)
     {
        printf("Ovirt get vms failed.\n");
        LogInfo("Debug: Ovirt get vms failed.\n");
+	   g_working = 0;
        return SY_OVIRT_GETVMS_FAILED;
     }
+	 g_working = 0;
     return 0;
 }
 
@@ -68,6 +81,9 @@ int Ovirt_GetVmsTmp(char *url, char *user, char* password)
     {
         return SY_USER_ISNULL;
     }
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_GET_VMS);
@@ -78,8 +94,10 @@ int Ovirt_GetVmsTmp(char *url, char *user, char* password)
     {
        printf("Ovirt get vms tmp failed.\n");
        LogInfo("Debug: Ovirt get vms tmp failed.\n");
+	   g_working = 0;
        return SY_OVIRT_GETVMS_FAILED;
     }
+	g_working = 0;
     return 0;
 }
 
@@ -91,6 +109,9 @@ int Ovirt_GetVm2(char *url, char *user, char* password, char *vm)
     {
         return SY_USER_ISNULL;
     }
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_GET_VMS);
@@ -106,8 +127,10 @@ int Ovirt_GetVm2(char *url, char *user, char* password, char *vm)
     {
        printf("Ovirt get vm2 failed.\n");
        LogInfo("Debug: Ovirt get vm2 failed.\n");
+	   g_working = 0;
        return SY_OVIRT_GETVMS_FAILED;
     }
+	 g_working = 0;
     return 0;
 }
 
@@ -115,6 +138,9 @@ int Ovirt_GetVm3(char *url, char *vm)
 {
     if (url == NULL && strlen(url) <= 0)
         return -1;
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_GET_VMS);
@@ -129,8 +155,10 @@ int Ovirt_GetVm3(char *url, char *vm)
     {
        printf("Ovirt get vm3 failed.\n");
        LogInfo("Debug: Ovirt get vm3 failed.\n");
+	   g_working = 0;
        return SY_OVIRT_GETVMS_FAILED;
     }
+	g_working = 0;
     return 0;
 }
 
@@ -143,6 +171,9 @@ int Ovirt_GetClusters(char *url, char *user, char* password)
     {
         return SY_USER_ISNULL;
     }
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_GET_CLUSTER);
@@ -153,8 +184,10 @@ int Ovirt_GetClusters(char *url, char *user, char* password)
     {
        printf("Ovirt get clusters failed.\n");
        LogInfo("Debug: Ovirt get clusters failed.\n");
+	   g_working = 0;
        return SY_OVIRT_GETCLUSTERS_FAILED;
     }
+	g_working = 0;
     return 0;
 }
 
@@ -167,6 +200,9 @@ int Ovirt_StartVms(char *url, char *user, char* password, char *vm)
   {
       return SY_USER_ISNULL;
   }
+  if (g_working == 1)
+		return 0;
+	g_working = 1;
   memset(g_szUrl, 0, MAX_DATA_SIZE);
   strcat(g_szUrl, url);
   strcat(g_szUrl, "api/vms/");
@@ -181,8 +217,10 @@ int Ovirt_StartVms(char *url, char *user, char* password, char *vm)
   {
      printf("Ovirt StartVms failed.\n");
      LogInfo("Debug: Ovirt StartVms failed.\n");
+	 g_working = 0;
      return SY_OVIRT_STARTVMS_FAILED;
   }
+  g_working = 0;
   return 0;
 }
 
@@ -194,6 +232,9 @@ int Ovirt_ShutdownVms(char *url, char *user, char* password, char *vm)
   {
       return SY_USER_ISNULL;
   }
+   if (g_working == 1)
+		return 0;
+	g_working = 1;
   memset(g_szUrl, 0, MAX_DATA_SIZE);
   strcat(g_szUrl, url);
   strcat(g_szUrl, "api/vms/");
@@ -208,8 +249,10 @@ int Ovirt_ShutdownVms(char *url, char *user, char* password, char *vm)
   {
      printf("Ovirt ShutdownVms failed.\n");
      LogInfo("Debug: Ovirt ShutdownVms failed.\n");
+	 g_working = 0;
      return SY_OVIRT_SHUTDOWNVMS_FAILED;
   }
+  g_working = 0;
   return 0;
 }
 
@@ -222,6 +265,9 @@ int Ovirt_SuspendVms(char *url, char *user, char* password, char *vm)
   {
       return SY_USER_ISNULL;
   }
+   if (g_working == 1)
+		return 0;
+	g_working = 1;
   memset(g_szUrl, 0, MAX_DATA_SIZE);
   strcat(g_szUrl, url);
   strcat(g_szUrl, "api/vms/");
@@ -236,10 +282,45 @@ int Ovirt_SuspendVms(char *url, char *user, char* password, char *vm)
   {
      printf("Ovirt SuspendVms failed.\n");
      LogInfo("Debug: Ovirt SuspendVms failed.\n");
+	 g_working = 0;
      return SY_OVIRT_SUSPENDVMS_FAILED;
   }
+  g_working = 0;
   return 0;
 }
+
+int Ovirt_RebootVms(char *url, char *user, char* password, char *vm)
+{
+  if (url == NULL && strlen(url) <= 0)
+      return -1;
+  if (user == NULL && strlen(user) <= 0)
+  {
+      return SY_USER_ISNULL;
+  }
+   if (g_working == 1)
+		return 0;
+	g_working = 1;
+  memset(g_szUrl, 0, MAX_DATA_SIZE);
+  strcat(g_szUrl, url);
+  strcat(g_szUrl, "api/vms/");
+  strcat(g_szUrl, vm);
+  strcat(g_szUrl, "/");
+  strcat(g_szUrl, "reboot");
+  //printf("Ovirt_RebootVms url :%s.\n", g_szUrl);
+  LogInfo("Debug: Ovirt_RebootVms url : %s.\n", g_szUrl);
+  char szData[MAX_BUFF_SIZE] = {0};
+  strcpy(szData, "<action></action>");
+  if (Http_Post(g_szUrl, user, password, szData) < 0)
+  {
+     printf("Ovirt RebootVms failed.\n");
+     LogInfo("Debug: Ovirt RebootVms failed.\n");
+	 g_working = 0;
+     return SY_OVIRT_SUSPENDVMS_FAILED;
+  }
+   g_working = 0;
+  return 0;
+}
+
 
 int Ovirt_GetVmTicket(char *url, char *user, char* password, char *vm)
 {
@@ -249,6 +330,9 @@ int Ovirt_GetVmTicket(char *url, char *user, char* password, char *vm)
     {
         return SY_USER_ISNULL;
     }
+	 if (g_working == 1)
+		return 0;
+	g_working = 1;
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, "api/vms/");
@@ -264,8 +348,107 @@ int Ovirt_GetVmTicket(char *url, char *user, char* password, char *vm)
     {
         printf("Ovirt GetVmTicket failed.\n");
         LogInfo("Debug: Ovirt GetVmTicket failed.\n");
+		g_working = 0;
         return SY_OVIRT_GETVMSTICKET_FAILED;
     }
+	g_working = 0;
     printf("ovirt send get vms ticker request success.\n");
     return 0;
 }
+
+//test
+int Ovirt_allocatevm(char *url, char *user, char* password)
+{
+    if (url == NULL && strlen(url) <= 0)
+        return -1;
+    if (user == NULL && strlen(user) <= 0)
+    {
+        return SY_USER_ISNULL;
+    }
+	 if (g_working == 1)
+		return 0;
+	g_working = 1;
+    memset(g_szUrl, 0, MAX_DATA_SIZE);
+    strcat(g_szUrl, url);
+    //printf("Ovirt_Login url :%s.\n", g_szUrl);
+    LogInfo("Debug: Ovirt_allocatevm url : %s.\n", g_szUrl);
+
+    if (Http_Request2(g_szUrl, user, password, "catevm.xml") < 0)
+    {
+       printf("Ovirt_allocatevm failed.\n");
+       LogInfo("Debug: Ovirt_allocatevm failed.\n");
+	   g_working = 0;
+       return SY_OVIRT_LOGIN_FAILED;
+    }
+	g_working = 0;
+    return 0;
+}
+//test end
+
+
+int Ovirt_ModifyPass(char *url, char *user, char* old_password, char* new_password, char* ret, char* token)
+{
+	if (url == NULL && strlen(url) <= 0)
+	    return -1;
+	if (user == NULL && strlen(user) <= 0)
+	{
+	    return SY_USER_ISNULL;
+	}
+	if (g_working == 1)
+		return 0;
+	g_working = 1;
+	memset(g_szUrl, 0, MAX_DATA_SIZE);
+	strcat(g_szUrl, url);
+	strcat(g_szUrl, "api/user/add_or_update");
+	LogInfo("Debug: Ovirt_ModifyPass url : %s.\n", g_szUrl);
+	char sz_data[512] = {0};
+	char szTmp[20] = {0};
+	char szflag[20] = {0};
+	strcpy(szTmp, user);
+	char *p = strtok(szTmp, "@");
+	char *p1 = strtok(NULL, "@");
+	if (strcmp(p, "Administrator") == 0)
+	{
+		strcpy(szflag, "true");
+	}else
+	{
+		strcpy(szflag, "false");
+	}
+	sprintf(sz_data, "user.name=%s&user.domain=%s&user.password=%s&user.superuser=%s&user.oldPassword=%s&token=%s", p, p1, new_password, szflag, old_password, token);
+	LogInfo("Debug: Ovirt_ModifyPass http_get data = %s.\n", sz_data);
+	if (http_get(g_szUrl, sz_data, ret) < 0)
+	{
+		LogInfo("Debug: Ovirt_ModifyPass Http_Post2 failed.\n");
+		g_working = 0;
+		return SY_OVIRT_LOGIN_FAILED;
+	}
+	g_working = 0;
+	return 0;
+}
+
+int Ovirt_Login_Pass(char *url, char *user, char* password, char* ret)
+{
+	if (url == NULL && strlen(url) <= 0)
+	    return -1;
+	if (user == NULL && strlen(user) <= 0)
+	{
+	    return SY_USER_ISNULL;
+	}
+	if (g_working == 1)
+		return 0;
+	char sz_data[512] = {0};
+	memset(g_szUrl, 0, MAX_DATA_SIZE);
+	strcat(g_szUrl, url);
+	strcat(g_szUrl, "api/user/login");
+	sprintf(sz_data, "username=%s&userpass=%s", user, password);
+	LogInfo("Debug: Ovirt_Login_Pass url : %s.\n", g_szUrl);
+	if (http_get(g_szUrl, sz_data, ret) < 0)
+	{
+		LogInfo("Debug: Ovirt_Login_Pass failed.\n");
+		g_working = 0;
+		return SY_OVIRT_LOGIN_FAILED;
+	}
+	g_working = 0;
+	return 0;
+}
+

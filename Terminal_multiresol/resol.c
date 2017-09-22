@@ -33,6 +33,19 @@ int iSNumber(char c)
        return 0;
 }
 
+int mystrcmp(char *sz0, char *sz1)
+{
+	int ntmp0 = atoi(sz0);
+	int ntmp1 = atoi(sz1);
+	if (ntmp0 == ntmp1)
+		return 0;
+	if (ntmp0 < ntmp1)
+		return -1;
+	if (ntmp0 > ntmp1)
+		return 1;
+	return -2;
+}
+
 //获取系统支持的分辨率
 int GetResol()
 {
@@ -88,29 +101,42 @@ int GetResol()
         strcpy(szw, p);
         p = strtok(NULL, delim);
         strcpy(szh, p);
-        LogInfo("Debug : resol del lower resolution, szw :%s, szh :%s.\n", szw, szh);
-        //if (strcmp(szw, "1000") > 0 &&
-        //    strcmp(szh, "800") >= 0)
-        if ( (strcmp(szw, "1920") == 0 && strcmp(szh, "1080") == 0) || 
-			(strcmp(szw, "1920") == 0 && strcmp(szh, "1200") == 0) ||
-			 (strcmp(szw, "1440") == 0 && strcmp(szh, "900") == 0) ||
-			 (strcmp(szw, "1024") == 0 && strcmp(szh, "768") == 0) ||
-			(strcmp(szw, "1280") == 0 && strcmp(szh, "720") == 0) || 
-			(strcmp(szw, "1280") == 0 && strcmp(szh, "768") == 0) || 
-			(strcmp(szw, "1280") == 0 && strcmp(szh, "1024") == 0) ||
-			(strcmp(szw, "1360") == 0 && strcmp(szh, "768") == 0) ||
-			(strcmp(szw, "1366") == 0 && strcmp(szh, "768") == 0) ||
-			(strcmp(szw, "1600") == 0 && strcmp(szh, "900") == 0) ||
-			(strcmp(szw, "1600") == 0 && strcmp(szh, "1080") == 0) ||
-			(strcmp(szw, "1368") == 0 && strcmp(szh, "768") == 0))
-        {
-           char sztmp[100] = {0};
-           sprintf(sztmp, "%s", g_resol[i]);
-		   LogInfo("Debug: resol ######## sztmp :%s .\n", sztmp);
-           strcpy(szResol[g_resolCount], sztmp);
-		   LogInfo("Debug: resol ######## g_resolCount :%d .\n", g_resolCount);
-           g_resolCount++;
-        }
+        LogInfo("Debug : resol del lower resolution, g_interfacetype = %d, szw :%s, szh :%s.\n", g_interfacetype, szw, szh);
+//	    if (g_interfacetype == 2)
+//	    	{
+//			 if (mystrcmp(szw, "1600") >= 0 &&
+//	            mystrcmp(szh, "900") >= 0)
+//			 {
+//				char sztmp[100] = {0};
+//				sprintf(sztmp, "%s", g_resol[i]);
+//				LogInfo("Debug: resol ######## sztmp 00 :%s .\n", sztmp);
+//				strcpy(szResol[g_resolCount], sztmp);
+//				LogInfo("Debug: resol ######## g_resolCount 00 :%d .\n", g_resolCount);
+//				g_resolCount++;
+//			 }
+//		}else
+		{
+	        if ( (mystrcmp(szw, "1920") == 0 && mystrcmp(szh, "1080") == 0) || 
+				(mystrcmp(szw, "1920") == 0 && mystrcmp(szh, "1200") == 0) ||
+				 (mystrcmp(szw, "1440") == 0 && mystrcmp(szh, "900") == 0) ||
+				 (mystrcmp(szw, "1024") == 0 && mystrcmp(szh, "768") == 0) ||
+				(mystrcmp(szw, "1280") == 0 && mystrcmp(szh, "720") == 0) || 
+				(mystrcmp(szw, "1280") == 0 && mystrcmp(szh, "768") == 0) || 
+				(mystrcmp(szw, "1280") == 0 && mystrcmp(szh, "1024") == 0) ||
+				(mystrcmp(szw, "1360") == 0 && mystrcmp(szh, "768") == 0) ||
+				(mystrcmp(szw, "1366") == 0 && mystrcmp(szh, "768") == 0) ||
+				(mystrcmp(szw, "1600") == 0 && mystrcmp(szh, "900") == 0) ||
+				(mystrcmp(szw, "1600") == 0 && mystrcmp(szh, "1080") == 0) ||
+				(mystrcmp(szw, "1368") == 0 && mystrcmp(szh, "768") == 0))
+	        {
+	           char sztmp[100] = {0};
+	           sprintf(sztmp, "%s", g_resol[i]);
+			   LogInfo("Debug: resol ######## sztmp 11 :%s .\n", sztmp);
+	           strcpy(szResol[g_resolCount], sztmp);
+			   LogInfo("Debug: resol ######## g_resolCount 11 :%d .\n", g_resolCount);
+	           g_resolCount++;
+	        }
+		}
     }
     //g_resolCount = nCount;
     LogInfo("Debug: resol ######## 222 g_resolCount :%d .\n", g_resolCount);

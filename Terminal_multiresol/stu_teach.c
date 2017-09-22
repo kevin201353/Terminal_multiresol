@@ -4,11 +4,11 @@
 #include "global.h"
 #include <string.h>
 #include <errno.h>
-#include<sys/types.h>   
-#include<sys/wait.h> 
-#include<fcntl.h>   
-#include<limits.h>  
-
+#include <sys/types.h>   
+#include <sys/wait.h> 
+#include <fcntl.h>   
+#include <limits.h>
+#include "global.h"
 
 
 #define  FILE_BEGIN_CLASS   "/tmp/begin_class"
@@ -16,7 +16,7 @@
 static pthread_t tid;
 static pthread_t tid_finish;
 
-extern int g_mainExit;
+//extern int g_mainExit;
 extern int ShenCloud_classLogin();
   
   
@@ -73,7 +73,6 @@ int IsFileExist(const char * file)
 		LogInfo("monitor file exist.\n");
 		return 1;
 	}
-	return 0;
 }
 
 int operator_stu()
@@ -168,11 +167,11 @@ void start_monitor_file_thrd()
 	if ( pthread_create(&tid, NULL, thrd_monitor, NULL) != 0 ) {
 	//fprintf(stderr,"pthread_create Error:%s\a\n",strerror(errno));
 		LogInfo("pthread_create monitor file Error:%s\a\n", strerror(errno));
-		return;
+		return -1;
 	}
 	if ( pthread_create(&tid_finish, NULL, thrd_monitor_finish, NULL) != 0 ) {
 	//fprintf(stderr,"pthread_create Error:%s\a\n",strerror(errno));
 		LogInfo("pthread_create thrd_monitor_finish file Error:%s\a\n", strerror(errno));
-		return;
+		return -1;
 	}
 }

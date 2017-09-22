@@ -74,7 +74,7 @@ int set_ovirt_tcm(char * tcmserver, char *teacher)
 	FILE *fp;
 	fp=fopen(FILE_TCM_PATH,"r+"); 
 	if (fp == NULL)
-		return 0;
+		return -1;
 	char szTmp[100][200] = {0};
 	int nflag1 = 0;
 	int nflag2 = 0;
@@ -117,25 +117,103 @@ int set_ovirt_tcm(char * tcmserver, char *teacher)
 	fp = NULL;
 	fp = fopen(FILE_TCM_PATH,"w+");
 	if (fp == NULL)
-		return 0;
+		return -1;
 	int j = 0;
 	for(j=0;j<i;j++)  
 	{  
 	   fwrite(szTmp[j],strlen(szTmp[j]),1,fp);  
 	}  
-    fclose(fp);  
-}
-/* int main()
-{
-	char  sznew[100] = {0};
-	strcpy(sznew, "https://192.168.0.170:443/api");
-	set_ovirt_baseurl(sznew);
-	
-	memset(sznew, 0, 100);
-	strcpy(sznew, "http://192.168.0.170:8000");
-	char teacher[100] = {0};
-	strcpy(teacher, "http://192.168.0.170:8090");
-	set_ovirt_tcm(sznew, teacher);
+    fclose(fp);
 	return 0;
 }
- */
+
+int set_ovirt_conf(char * key, char *value)
+{
+	FILE *fp;
+	fp=fopen(FILE_OVIRT_PATH,"r+"); 
+	if (fp == NULL)
+		return -1;
+	char szTmp[100][200] = {0};
+	char sznew[100] = {0};
+	int i = 0;
+	while (fgets(szTmp[i], 200, fp) != NULL)
+	{
+		 if (strstr(szTmp[i], key) != NULL)
+		 {
+			strcpy(sznew, key);
+			strcat(sznew, " = ");
+			strcat(sznew, value);
+			strcat(sznew, "\r\n");
+			memset(szTmp[i], 0, 200);
+			strcpy(szTmp[i], sznew);
+		 }
+		 i++;
+	}
+	fclose(fp);
+	fp = NULL;
+	fp = fopen(FILE_OVIRT_PATH,"w+");
+	if (fp == NULL)
+		return -1;
+	int j = 0;
+	for(j=0;j<i;j++)  
+	{  
+	   fwrite(szTmp[j],strlen(szTmp[j]),1,fp);  
+	}  
+    fclose(fp);
+	return 0;
+}
+
+int get_ovirt_conf(char *key, char *value)
+{
+	if (value == NULL || key == NULL)
+		return -1;
+	FILE *fp;
+	fp=fopen(FILE_OVIRT_PATH,"r+"); 
+	if (fp == NULL)
+		return -1;
+	char data[200] = {0};
+	int i = 0;
+	while (fgets(data, 200, fp) != NULL)
+	{
+		 if (strstr(data, key) != NULL)
+		 {
+			char* token = strtok(data, "=");
+			if (token != NULL)
+			{
+				char * tmp = strtok(NULL, "");
+				strcpy(value, tmp);
+				if (tmp = strstr(value, "\n"))
+					*tmp = '\0';
+				if (tmp = strstr(value, "\r"))
+					*tmp = '\0';
+				break;
+			}
+		 }
+		 i++;
+	}
+	fclose(fp);
+	return 0;
+}
+
+//int main()
+//{
+//	char  sznew[100] = {0};
+//	strcpy(sznew, "https://192.168.0.170:443/api");
+//	set_ovirt_baseurl(sznew);
+//	
+//	memset(sznew, 0, 100);
+//	strcpy(sznew, "http://192.168.0.170:8000");
+//	char teacher[100] = {0};
+//	strcpy(teacher, "http://192.168.0.170:8090");
+//	set_ovirt_tcm(sznew, teacher);
+
+//	set_ovirt_conf("user_name", "zhao122");
+//	set_ovirt_conf("user_dpt_name", "zhao111");
+//	char szTmp[100] = {0};
+//	get_ovirt_conf("user_name", szTmp);
+//	printf("get value : %s .\n", szTmp);
+//	memset(szTmp, 0, 100);
+//	get_ovirt_conf("user_dpt_name", szTmp);
+//	printf("get value : %s .\n", szTmp);
+//	return 0;
+//}

@@ -27,3 +27,12 @@
   color: #282C34;
   font-family: "Microsoft YaHei";
 }
+#Entry_pass {
+   border-image: none;
+   background-image: none;
+   border-style: solid;
+   border-width: 1px;
+   color: #282C34;
+   border-color: #282C34;
+   border-radius: 0.2px;
+}

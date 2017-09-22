@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.3 -->
+<interface>
+  <requires lib="gtk+" version="3.10"/>
+  <object class="GtkImage" id="image_syclose">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">images2/close_set_22.png</property>
+  </object>
+  <object class="GtkWindow" id="window_Pass">
+    <property name="width_request">470</property>
+    <property name="height_request">324</property>
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="resizable">False</property>
+    <property name="window_position">center</property>
+    <property name="decorated">False</property>
+    <property name="gravity">center</property>
+    <child>
+      <object class="GtkFixed" id="fixed_thrdmsg">
+        <property name="width_request">300</property>
+        <property name="height_request">170</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <object class="GtkLayout" id="layout_thrdtitle">
+            <property name="name">layout_thrdtitle</property>
+            <property name="width_request">470</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="width">0</property>
+            <property name="height">0</property>
+            <child>
+              <object class="GtkImage" id="image_sylogo">
+                <property name="width_request">30</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="pixbuf">images2/logo22.png</property>
+              </object>
+              <packing>
+                <property name="x">1</property>
+                <property name="y">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btnsymsg_close">
+                <property name="name">btnsymsg_close</property>
+                <property name="width_request">30</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image_syclose</property>
+                <property name="relief">none</property>
+              </object>
+              <packing>
+                <property name="x">437</property>
+                <property name="y">1</property>
+              </packing>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLayout" id="layout_thrdtext">
+            <property name="name">layout_thrdtex</property>
+            <property name="width_request">470</property>
+            <property name="height_request">218</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="label_user">
+                <property name="name">label_user</property>
+                <property name="width_request">60</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">用户名</property>
+              </object>
+              <packing>
+                <property name="x">16</property>
+                <property name="y">38</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_modifyuser">
+                <property name="name">entry_modifyuser</property>
+                <property name="width_request">193</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+              </object>
+              <packing>
+                <property name="x">105</property>
+                <property name="y">17</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_oldpass">
+                <property name="name">label_oldpass</property>
+                <property name="width_request">60</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">baseline</property>
+                <property name="label">旧密码</property>
+              </object>
+              <packing>
+                <property name="x">18</property>
+                <property name="y">87</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_oldpass">
+                <property name="name">entry_oldpass</property>
+                <property name="width_request">193</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="visibility">False</property>
+                <property name="invisible_char">*</property>
+              </object>
+              <packing>
+                <property name="x">105</property>
+                <property name="y">63</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_newpass">
+                <property name="name">label_newpass</property>
+                <property name="width_request">60</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">新密码</property>
+              </object>
+              <packing>
+                <property name="x">15</property>
+                <property name="y">135</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_newpass">
+                <property name="name">entry_newpass</property>
+                <property name="width_request">193</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="visibility">False</property>
+                <property name="invisible_char">*</property>
+              </object>
+              <packing>
+                <property name="x">105</property>
+                <property name="y">110</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_okpass">
+                <property name="name">label_okpass</property>
+                <property name="width_request">60</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label">确认新密码</property>
+              </object>
+              <packing>
+                <property name="x">15</property>
+                <property name="y">180</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="entry_okpass">
+                <property name="name">entry_okpass</property>
+                <property name="width_request">193</property>
+                <property name="height_request">80</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="visibility">False</property>
+                <property name="invisible_char">*</property>
+              </object>
+              <packing>
+                <property name="x">105</property>
+                <property name="y">154</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_rul1">
+                <property name="name">label_rul1</property>
+                <property name="width_request">164</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">label</property>
+              </object>
+              <packing>
+                <property name="x">303</property>
+                <property name="y">135</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label_rul2">
+                <property name="name">label_rul2</property>
+                <property name="width_request">165</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="x">302</property>
+                <property name="y">179</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="y">30</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="btn_OK">
+            <property name="name">btn_OK</property>
+            <property name="width_request">60</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+          </object>
+          <packing>
+            <property name="x">379</property>
+            <property name="y">279</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="btn_Cancel">
+            <property name="name">btn_Cancel</property>
+            <property name="width_request">60</property>
+            <property name="height_request">30</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+          </object>
+          <packing>
+            <property name="x">256</property>
+            <property name="y">279</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

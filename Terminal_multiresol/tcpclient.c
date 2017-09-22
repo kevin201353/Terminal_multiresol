@@ -13,7 +13,6 @@
 #include "tcpclient.h"
 #include <sys/time.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
 
 #define portnumber 12321 //定义端口号：（0-1024为保留端口号，最好不要用）
@@ -26,6 +25,8 @@ static int nbytes = 0;
 static char buffer[1024];
 static int g_thrdExit = 0;
 static int connect_refused = 0;
+static pthread_t classtid;
+
 static void *thrd_connect(void *arg)
 {
 	//设置为阻塞模式
@@ -254,6 +255,44 @@ int close_tcpclient()
 		}
 	}
 	return 0;
+}
+
+static void *thrd_class(void *arg)
+{
+	char data[MAX_DATA_SIZE] = {0};
+    int nRet = 0;
+	for (;;)
+	{
+		if (g_thrdExit)
+		{
+		    close(sockfd);
+			break;
+		}
+		nRet = read(sockfd, &data, MAX_DATA_SIZE*sizeof(char));
+		if( nRet == -1)
+		{
+			//fprintf(stderr,"tcpclient read from server data failed :%s\n", strerror(errno));
+			LogInfo("tcpclient thrd_class read from server data failed :%s\a\n", strerror(errno));
+			return -1;
+		}
+		if (nRet == 0)
+		{
+		    LogInfo("Debug: thrd_class reach the end of file .\n");
+			return 0;
+		}
+		LogInfo("tcpclient thrd_class success, data = %s.\n", data);
+		sleep(2);
+	}
+}
+
+
+void start_class_monitor()
+{
+	if ( pthread_create(&classtid, NULL, thrd_class, NULL) != 0 ) {
+        //fprintf(stderr,"pthread_create Error:%s\a\n",strerror(errno));
+		LogInfo("pthread_create Error:%s\a\n", strerror(errno));
+		return -1;
+    }
 }
 
 //int main(int argc, char *argv[])

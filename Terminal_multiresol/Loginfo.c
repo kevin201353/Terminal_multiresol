@@ -16,28 +16,32 @@
 #include <pthread.h>
 #include "global.h"
 
-#define MAX_BUFFER_SZIE   1024
+
+#define MAX_BUFFER_SZIE   10240
 #define FILE_DEBUG_LOG_PATH    "/var/log/shencloud/shencloud_ui.log"   //日志文件名
 static void *thrd_func(void *arg);
 static pthread_t tid;
 
+
+//extern int g_mainExit;
 void LogInfo(const char* ms, ... )
 {
+	if (g_thinviewlog == 0)
+		return;
 	char wzLog[MAX_BUFFER_SZIE] = {0};
 	char buffer[MAX_BUFFER_SZIE] = {0};
 	va_list args;
 	va_start(args, ms);
 	vsprintf( wzLog ,ms,args);
 	va_end(args);
-
 	time_t now;
 	time(&now);
 	struct tm *local;
 	local = localtime(&now);
-	printf("%04d-%02d-%02d %02d:%02d:%02d %s\n", local->tm_year+1900, local->tm_mon,
+	printf("%04d-%02d-%02d %02d:%02d:%02d %s\n", local->tm_year+1900, local->tm_mon + 1,
 			local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec,
 			wzLog);
-	sprintf(buffer,"%04d-%02d-%02d %02d:%02d:%02d %s\n", local->tm_year+1900, local->tm_mon,
+	sprintf(buffer,"%04d-%02d-%02d %02d:%02d:%02d %s\n", local->tm_year+1900, local->tm_mon + 1,
 				local->tm_mday, local->tm_hour, local->tm_min, local->tm_sec,
 				wzLog);
 	FILE* file = fopen(FILE_DEBUG_LOG_PATH,"a+");
@@ -70,33 +74,45 @@ static char szCmd[100] = {0};
 static del_back_file(char *path)
 {
 	unsigned long shlog_size = get_file_size(path);
+	//LogInfo("debug: del_back_file:  file size xxxxxxx = %d.\n", shlog_size);
 	int compare_size = (int)shlog_size/(1024 *1024); //mb
 	if (compare_size > 10)
 	{ 
-	    char sztmp[100] = {0};
-		strcpy(sztmp, path);
-	    strcat(sztmp, "bk");
-		if (!access(sztmp, F_OK) && !access(path, F_OK))
-		{
-		    sprintf(szCmd, "sudo rm -rf %s", sztmp);
-		}else
-		{
-	 		sprintf(szCmd, "sudo cp %s %s", path, sztmp);
-		}
-	 	system(szCmd);
+//	    char sztmp[100] = {0};
+//		strcpy(sztmp, path);
+//	    strcat(sztmp, "bk");
+//		if (!access(sztmp, F_OK) && !access(path, F_OK))
+//		{
+//		    sprintf(szCmd, "sudo rm -rf %s", sztmp);
+//		}else
+//		{
+//	 		sprintf(szCmd, "sudo cp %s %s", path, sztmp);
+//		}
+//	 	system(szCmd);
+         LogInfo("debug: start open back file 00000 .\n", shlog_size);
+//		FILE* fd = open(path, "w");
+//		ftruncate(fd, 0);
+//		lseek(fd, 0, SEEK_SET);
+//		close(fd);
+		remove(path);
+		LogInfo("debug: start del back file xxxxxxx .\n", shlog_size);
 	}
 }
 
 static void *thrd_func(void *arg)
 {
-    LogInfo("debug: checking_log New process11 :  PID: %d, TID: %u.\n", getpid(), tid);
+    //LogInfo("debug: checking_log New process11 :  PID: %d, TID: %u.\n", getpid(), tid);
     for(;;)
     {
        if (g_mainExit == 1)
 	   	  break;
       del_back_file(FILE_DEBUG_LOG_PATH);
 	  del_back_file("/var/log/shencloud/spicy.log");
-      sleep(10);
+#ifdef ARM
+	 sleep(3);
+#else
+      sleep(3);
+#endif
     }
 	printf("exit checking log thrd func .\n");
     pthread_exit(NULL); //退出线程

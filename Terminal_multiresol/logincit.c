@@ -54,12 +54,12 @@ int cit_login()
 {
     if(vfork() == 0)
     {
-       if (Run_Citrix(g_szURL) < 0)
-       {
-          //MsgDailog("登录失败！");
-          SYMsgDialog(7, "登录失败！");
-          return -1;
-       }
+//       if (Run_Citrix(g_szURL) < 0)
+//       {
+//          //MsgDailog("登录失败！");
+//          SYMsgDialog2(7, "登录失败！");
+//          return -1;
+//       }
     }else
     {
        printf("This is the parent process, dddd.\n");
@@ -158,7 +158,7 @@ void cit_login2()
     {
         //MsgDailog("URL不能为空！");
         g_citExit = 0;
-        SYMsgDialog(7, "URL不能为空！");
+        SYMsgDialog2(7, "URL不能为空！");
         return;
     }
     LogInfo("debug: cit_login http: %s.\n", ip);
@@ -278,7 +278,7 @@ static init_ctrl_pos(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_http), 9);
 		setctrlFont(GTK_WIDGET(entry_http), 9);
 		
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		layout1_height = 100;
 		layout3_height = 200;
@@ -412,11 +412,11 @@ void SY_logincit_main()
 	    g_prevNor = gdk_pixbuf_new_from_file("images2/1024x768/loginout_nor.png", NULL);
 		g_shutdownPress = gdk_pixbuf_new_from_file("images2/1024x768/exit_press.png", NULL);
 	    g_shutdownNor = gdk_pixbuf_new_from_file("images2/1024x768/exit_nor.png", NULL);
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_press.png", NULL);
 	    g_loginNor = gdk_pixbuf_new_from_file("images2/1440x900/btnlogin_nor.png", NULL);
-		if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  || (scr_width == 1600 && scr_height == 1080))
+		if ((scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
 			surface = cairo_image_surface_create_from_png ("images2/1600x900/cit_login.png");
 		else if (scr_width == 1440 && scr_height == 900)
 	    		surface = cairo_image_surface_create_from_png ("images2/1440x900/cit_login.png");

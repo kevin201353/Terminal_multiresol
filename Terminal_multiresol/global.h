@@ -15,6 +15,10 @@
 #include <pthread.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h> /* the key value defines can be found here */
+#include "msg.h"
+
+#define  BUF_MSG_LEN      512
+
 
 #define MAX_RESOL_SIZE  			3
 #define MAX_DATA_SIZE               1024
@@ -23,18 +27,22 @@
 #define FILE_OVIRT_INFO_PATH        "ovirtInfo.xml"
 #define FILE_OVIRT_TICKET_PATH      "ticket.xml"
 #define FILE_OVIRT_INFOTMP_PATH     "ovirtInfoTmp.xml"
+#define FILE_OVIRT_RESPONSE_PATH    "respose.xml"
+
 
 #define  SY_VM_COMMON_SPICE         "SPICE"
 #define  SY_VM_COMMON_RDP           "RDP"
 #define  STR_OVIRT_LOGIN            "api"
 #define  STR_OVIRT_GET_VMS          "api/vms"
 #define  STR_OVIRT_GET_CLUSTER      "api/clusters"
+#define  THINVIEW_CONFIG_PASSWORD    "wbxy1234"
 
 typedef int (*CallBackFun)(char *);
 struct list_head head, *plist;
 //static char ovirt_url[] = "https://192.168.0.220/ovirt-engine/";  //test
 char ovirt_url[MAX_BUFF_SIZE];
 static const gchar* g_home_css = "mygtk.css";
+
 
 int  g_selectProto;   //0:sh   1:mirsoft  2: cit  3:vm
 static pthread_mutex_t g_mutex1 = PTHREAD_MUTEX_INITIALIZER;
@@ -48,10 +56,22 @@ GObject *g_mainWindow;
 int   g_citExit;
 static int g_auto_get_ns = 1;
 int showSyMsgDlg11;
-int g_interfacetype;
-int g_stu_begin_class;
+int g_interfacetype;   //�ͻ����ƽ��泧��
+int g_thinviewlog; //record debug log
+int g_stu_begin_class;  
 int g_stu_finish_class;
+int g_showSetting;
 int g_mainExit;
+int g_auto_login_first;
+extern int g_workflag;
+int g_openModifyUserPas;
+
+
+//#define PIPE_WAIT(x) ({ FILE* fp = fopen("wait_signal", "w"); \
+//     if (fp != NULL){ \
+//	 fwrite(x, 1, strlen(x), fp); \
+//	 fclose(fp); }\
+//	 })
 
 
 typedef void (*MsgCallWin)(gpointer data);
@@ -88,7 +108,7 @@ enum LOGIN_STATUS{
     LOGIN_SUCCESSED
  };
 
-int g_loginstatus;
+volatile int g_loginstatus;
 
 struct Vms{
    char name[MAX_BUFF_SIZE];  //name
@@ -96,7 +116,7 @@ struct Vms{
    char tab[MAX_BUFF_SIZE]; //tab
    unsigned int status; //运行状态
    unsigned int vcpu;  //cpu 个数
-   unsigned long memory; //内存  MB
+   double memory; //内存  MB
    char ip[MAX_BUFF_SIZE]; //IP 地址
    unsigned int usb;   // sub策略
    char vmid[MAX_BUFF_SIZE];  //vm id
@@ -138,6 +158,16 @@ struct SoundInfo{
 	int volume;
 };
 
+
+struct StuServerInfo{
+	char stu_addr[16];
+	char upgrade_addr[16];
+	int stu_port;
+	int upgrade_port;
+	char terminal_name[32];
+	char techer_no[32];
+};
+
 //写日志
 void LogInfo(const char* ms, ... );
 void Init_Curlc();
@@ -171,6 +201,8 @@ int Ovirt_StartVms(char *url, char *user, char *password, char *vm);
 int Ovirt_ShutdownVms(char *url, char *user, char *password, char *vm);
 int Ovirt_SuspendVms(char *url, char *user, char *password, char *vm);
 int Ovirt_GetVm2(char *url, char *user, char* password, char *vm);
+int Ovirt_RebootVms(char *url, char *user, char* password, char *vm);
+
 
 void Parsexml(char *element,  char *value, int ntype);
 void SaveLogin(struct LoginInfo info);
@@ -202,7 +234,7 @@ void SY_logincit_main();
 void SYMsgDialog(int nflag, char *msg);
 int ShenCloud_login();
 void SetSymsgContext(int msg);
-int ShowMsgWindow();
+void ShowMsgWindow();
 void Checking_log();
 void SYMsgDialog2(int nflag, char *msg);
 void SYMsgDialogVm(int nflag, char *msg);
@@ -212,6 +244,27 @@ void SYNetInfoWin();
 GtkWidget * SYSoundWin();
 void Save_Sound(struct SoundInfo info);
 void Get_Sound(struct SoundInfo *info);
+void start_monitor_file_thrd();
+void Save_StuServerInfo(struct StuServerInfo info);
+void Get_StuServerInfo(struct StuServerInfo *info);
+void SYPassDialog();
+void Save_ConfigPass(char *szPass);
+void Get_ConfigPass(char *szPass);
+void sy_md5_encryption(char* pdata, char* pencry_data);
+void msg_queue_del();
+void msg_send(char* dataTmp);
+void create_msg_queue();
+//#define PIPE_WAIT(x) ({ msg_send(x);})
+extern int g_exit_waitting;
+#define PIPE_WAIT(x) ({g_exit_waitting = 1;})
+extern void close_setting_window();
+int Ovirt_ModifyPass(char *url, char *user, char* old_password, char* new_password, char* ret, char* token);
+int http_get(char *url, char* data, char *ret);
+
+
+
+void SYPassModifyDialog();
+
 
 
 #endif //_GLOBAL_H
