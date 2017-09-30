@@ -752,6 +752,7 @@ void connectVms()
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
 		   if (node->val.status != 0)
 		   {
+		   #if 0
 				if ( Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
 				{
 					SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
@@ -762,6 +763,7 @@ void connectVms()
 					SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
 					return;
 				}
+		  #endif
 				//find vm
 				if (strcmp(szTicket, "") == 0)
 				{
@@ -1045,6 +1047,7 @@ static void connectVm22()
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
 		   if (node->val.status != 0)
 		   {
+		   #if 0
 				if ( Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
 				{
 					SYMsgDialog2(7, "获取连接虚拟机密码失败！");
@@ -1055,6 +1058,7 @@ static void connectVm22()
 					SYMsgDialog2(7, "获取连接虚拟机密码失败！");
 					return;
 				}
+		   #endif
 				//find vm
 				if (strcmp(szTicket, "") == 0)
 				{

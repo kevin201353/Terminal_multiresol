@@ -455,6 +455,9 @@ static void  on_btn_login_enter(GtkButton *button,  gpointer   user_data)
 static void  on_btn_login_pressed(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_loginPress);
+   GetLoginInfo(&g_loginfo);
+   if (g_exit_waitting == 0 && g_loginfo.autologin == 1)
+   		return;
    SYMsgDialog(0, "�������ӣ����Ժ� ... ");
 }
 
@@ -671,18 +674,25 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 		printf("connectDisVm 222 .\n");
 	}
 	printf("connectDisVm 444 .\n");
+	
+#if 0
 	if (Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
 	{
 		SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
 		return -1;
 	}
+#endif
+
     char szTicket[MAX_BUFF_SIZE] = {0};
     char shellcmd[MAX_BUFF_SIZE] = {0};
+#if 0
     if ( SY_GetVmsTicket(szTicket) < 0)
     	{
     	    SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
 		return -1;
 	}
+#endif
+
     //find vm
     if (SY_GetVms() < 0)
     	{
@@ -703,9 +713,9 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 		send_data(report);
 	}
 	if (strcmp(szTicket, "") == 0)
-		sprintf(shellcmd, "spicy -h %s -p %d -f >> %s", szIP, nport, "/var/log/shencloud/spicy.log 2>&1");
+		sprintf(shellcmd, "spicy -h %s -p %d -f > %s", szIP, nport, "/var/log/shencloud/spicy.log 2>&1");
     else
-    		sprintf(shellcmd, "spicy -h %s -p %d -w %s -f >> %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log 2>&1");
+    		sprintf(shellcmd, "spicy -h %s -p %d -w %s -f > %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log 2>&1");
     LogInfo("Debug: login window directly connect vms  : %s. \n", shellcmd);
 	//add reconnect cmd
 	if (g_workflag == 1)
@@ -800,18 +810,24 @@ static int connectDisVm2(char *ip, int port, char *vmid, int nstate)
 		printf("connectDisVm 222 .\n");
 	}
 	printf("connectDisVm 444 .\n");
+#if 0
 	if (Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
 	{
 		//SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
 		return -1;
 	}
+#endif
+
     char szTicket[MAX_BUFF_SIZE] = {0};
     char shellcmd[MAX_BUFF_SIZE] = {0};
+#if 0
     if ( SY_GetVmsTicket(szTicket) < 0)
     	{
     	    //SetSymsgContext(SY_OVIRT_GETVMSTICKET_FAILED);
 		return -1;
 	}
+#endif
+
     //find vm
     if (SY_GetVms() < 0)
     	{

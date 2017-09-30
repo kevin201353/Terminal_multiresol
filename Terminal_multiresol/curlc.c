@@ -135,69 +135,73 @@ void Xml_Close()
 
 int Http_Request(char *url, char *user, char* password)
 {
-    Start_Session();
-    if (g_curl == NULL)
-    {
-        printf("Http_request g_curl == null ,return.\n");
-        return -1;
-    }
-    Xml_Open();
-    char szbuf[512] = {0};
-    strcat(szbuf, user);
-    //strcat(szbuf, "@internal");
-    strcat(szbuf, ":");
-    strcat(szbuf, password);
-    char * p = strstr(user, "admin@internal");
-    struct curl_slist *headers = NULL;
-    CURLcode res;
+	Start_Session();
+	if (g_curl == NULL)
+	{
+	    printf("Http_request g_curl == null ,return.\n");
+	    return -1;
+	}
+	Xml_Open();
+	char szbuf[512] = {0};
+	strcat(szbuf, user);
+	//strcat(szbuf, "@internal");
+	strcat(szbuf, ":");
+	strcat(szbuf, password);
+	char * p = strstr(user, "admin@internal");
+	struct curl_slist *headers = NULL;
+	CURLcode res;
 	LogInfo(" Debug: curl.c  Http_Request g_szUser and pass : %s.\n", szbuf);
-    if (p == NULL)
-    {
-        //printf("Debug:###########    00000 filter : true.\n");
-        headers = curl_slist_append(headers, "filter: true");
-	    headers = curl_slist_append(headers, "Prefer: persistent-auth");
+	if (p == NULL)
+	{
+	    //printf("Debug:###########    00000 filter : true.\n");
+		headers = curl_slist_append(headers, "filter: true");
+		headers = curl_slist_append(headers, "Prefer: persistent-auth");
 		headers = curl_slist_append(headers, "Connection: close");
-        curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(g_curl, CURLOPT_URL, url);
-        curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
-        curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	   curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 3);  //add http timeout
-	   // printf("Debug:###########    00000 filter aaaaaa: true.\n");
-	   if (g_curl != NULL)
-        		res = curl_easy_perform(g_curl);
+		curl_easy_setopt(g_curl, CURLOPT_COOKIEJAR, "/tmp/cookies.txt");
+		curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
+		curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
+		curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(g_curl, CURLOPT_URL, url);
+		curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
+		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 3);  //add http timeout
+		// printf("Debug:###########    00000 filter aaaaaa: true.\n");
+		if (g_curl != NULL)
+				res = curl_easy_perform(g_curl);
 		if (headers != NULL)
-        		curl_slist_free_all(headers);
+				curl_slist_free_all(headers);
 
 		//printf("Debug:###########    00000 filter bbbbbbb: true.\n");
-    }else{
-    		 //printf("Debug:###########    00000 111 filter : true.\n");
-        curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(g_curl, CURLOPT_URL, url);
-        curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
-        curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
-	    curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 3);
-        if (g_curl == NULL)
-        {
-            printf("http request g_curl == null.\n");
-        }
-	   if (g_curl != NULL)
-        	res = curl_easy_perform(g_curl);
-   }
-   if(res != CURLE_OK)
-   {
-     fprintf(stderr, "curl_easy_perform() failed: %s\n",
-             curl_easy_strerror(res));
-     Close_Session();
-	 Xml_Close();
-     return -1;
-   }
-   //printf("http request success.\n" );
-   Close_Session();
-   Xml_Close();
-    return 0;
+	}else{
+			 //printf("Debug:###########    00000 111 filter : true.\n");
+	    curl_easy_setopt(g_curl, CURLOPT_COOKIEJAR, "/tmp/cookies.txt");
+		curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
+		curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(g_curl, CURLOPT_URL, url);
+		curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
+		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 3);
+		if (g_curl == NULL)
+		{
+			printf("http request g_curl == null.\n");
+		}
+		if (g_curl != NULL)
+			res = curl_easy_perform(g_curl);
+	}
+	if(res != CURLE_OK)
+	{
+		 fprintf(stderr, "curl_easy_perform() failed: %s\n",
+		         curl_easy_strerror(res));
+		 Close_Session();
+		 Xml_Close();
+		 return -1;
+	}
+	//printf("http request success.\n" );
+	Close_Session();
+	Xml_Close();
+	return 0;
 }
 
 int Http_Post(char *url, char *user, char* password, char *data)
@@ -233,8 +237,9 @@ int Http_Post(char *url, char *user, char* password, char *data)
 	headers = curl_slist_append(headers, "Connection: close");
     headers = curl_slist_append(headers, "Content-Type: application/xml");
     curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);// 改协议头
-    curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
-    curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_ticket);
+    //curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
+    //curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_ticket);
+    curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
     curl_easy_setopt(g_curl, CURLOPT_URL, url);
     curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
     curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
@@ -279,6 +284,7 @@ int Http_Request3(char *url, char *path)
 		printf("http request3 g_curl == null.\n");
 	}
 	LogInfo(" Debug: curl.c  Http_Request3 url : %s.\n", url);
+	curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
 	curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_dataTmp);
 	curl_easy_setopt(g_curl, CURLOPT_URL, url);
 	curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
@@ -334,6 +340,7 @@ int Http_Request2(char *url, char *user, char* password, char *path)
 		headers = curl_slist_append(headers, "filter: true");
 		headers = curl_slist_append(headers, "Prefer: persistent-auth");
 		headers = curl_slist_append(headers, "Connection: close");
+		curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
 		curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_dataTmp);
 		curl_easy_setopt(g_curl, CURLOPT_URL, url);
@@ -348,6 +355,7 @@ int Http_Request2(char *url, char *user, char* password, char *path)
     	}
 	else{
     		 //printf("Debug:###########    00000 222 filter : true.\n");
+    	    curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
         curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(g_curl, CURLOPT_URL, url);
         curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
@@ -416,7 +424,7 @@ int Http_Post2(char *url, char *user, char* password, char* data)
 	headers = curl_slist_append(headers, "Connection: close");
 	headers = curl_slist_append(headers, "Content-Type: application/xml");
 	curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt");
+	curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
 	curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_response);
 	curl_easy_setopt(g_curl, CURLOPT_URL, szurl);
 //	curl_easy_setopt(g_curl, CURLOPT_USERPWD, szbuf);
