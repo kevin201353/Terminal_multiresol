@@ -28,6 +28,7 @@
 #define  FILE_MANUFACTURE_TYPE   "manufact.xml"
 #define  FILE_CONFIG_TEASERVER   "teaserver.xml"
 #define  FILE_CONFIG_PASSWORD    "/usr/bin/sypassword.xml"
+#define  FILE_CONFIG_DLNET      "dlnet.xml"
 
 extern int g_interfacetype;
 extern int g_thinviewlog;
@@ -44,6 +45,8 @@ void Parsexml(char * element,  char * value,  int ntype)
          strcpy(szFile, FILE_CONFIG_MIRLOGIN);
     else if (ntype == 3)
          strcpy(szFile, FILE_CONFIG_VMARECONF);
+	else if (ntype == 7)
+		 strcpy(szFile, FILE_CONFIG_DLNET);
   	fp = fopen(szFile, "r");
     if (fp)
     {
@@ -95,8 +98,33 @@ void Parsexml2(char * file, char *element, char * value)
     }
 }
 
+void GetDlnet(char * sznet)
+{
+	if (NULL == sznet)
+		return;
+	Parsexml("curnet", sznet, 7);
+    LogInfo("GetDlnet   curnet: %s", sznet);
+}
 
+void SaveDlnet(char* sznet)
+{
+	mxml_node_t *xml;    /* <?xml ... ?> */
+    mxml_node_t *data;   /* <data> */
+    mxml_node_t *node;   /* <node> */
 
+    xml = mxmlNewXML("1.0");
+    data = mxmlNewElement(xml, "dlnet");
+    node = mxmlNewElement(data, "curnet");
+    LogInfo("configxml SaveDlnet curnet: %s.\n", sznet);
+    mxmlNewText(node, 0, sznet);
+	FILE *fp;
+    fp = fopen(FILE_CONFIG_DLNET, "w");
+    if (fp)
+    {
+        mxmlSaveFile(xml, fp, MXML_NO_CALLBACK);
+        fclose(fp);
+    }
+}
 void SaveLogin(struct LoginInfo info)
 {
     mxml_node_t *xml;    /* <?xml ... ?> */
@@ -390,7 +418,7 @@ void SaveMirLogin(struct LoginInfo info)
     mxml_node_t *data;   /* <data> */
     mxml_node_t *node;   /* <node> */
 
-   char szTmp[MAX_BUFF_SIZE] = {0};
+    char szTmp[MAX_BUFF_SIZE] = {0};
     xml = mxmlNewXML("1.0");
     data = mxmlNewElement(xml, "login");
     node = mxmlNewElement(data, "address");

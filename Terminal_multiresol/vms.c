@@ -12,6 +12,8 @@
 
 mxml_node_t *g_tree = NULL;  //用来解析xml文件
 mxml_node_t *g_treeTmp = NULL;  //用来解析xml文件
+static struct ServerInfo  serverInfo;
+
 
 void InitVmsUpdate()
 {
@@ -48,7 +50,6 @@ int SY_Loadxml(char *file)
         LogInfo("SY_Loadxml open file failed.\n");
         return -1;
     }
-    printf("xml file: %s.\n", file);
     g_tree = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
     if (g_tree == NULL)
     {
@@ -66,7 +67,6 @@ int SY_LoadxmlTmp(char *file)
     struct stat buf;
     stat (file, &buf);
     int len = (int)buf.st_size;
-    LogInfo("SY_LoadxmlTmp $$$$$$$$$$$, file size :%d .\n", len);
     if (len <= 0)
     {
         LogInfo("SY_LoadxmlTmp failed, file size <= 0.\n");
@@ -78,7 +78,6 @@ int SY_LoadxmlTmp(char *file)
         LogInfo("SY_LoadxmlTmp open file failed.\n");
         return -1;
     }
-    printf("xml file: %s.\n", file);
     g_treeTmp = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
     if (g_treeTmp == NULL)
     {
@@ -118,43 +117,33 @@ void SY_FreeVmsList()
 
 void FindNode(char* value)
 {
-    if (g_tree == NULL)
-    {
-        printf("findNode g_tree == NULL , return.\n");
-        return ;
-    }
-    mxml_node_t *node = NULL;
-    mxml_node_t *heading = NULL;
-    node = mxmlFindElement(g_tree, g_tree, value,
-                              NULL, NULL,
-                              MXML_DESCEND);
-   printf("1111  node %s\n", mxmlGetElement(node));
+	if (g_tree == NULL)
+	{
+	    printf("findNode g_tree == NULL , return.\n");
+	    return ;
+	}
+	mxml_node_t *node = NULL;
+	mxml_node_t *heading = NULL;
+	node = mxmlFindElement(g_tree, g_tree, value, NULL, NULL, MXML_DESCEND);
    if (node)
    {
      for (heading = mxmlGetFirstChild(node);
           heading;
           heading = mxmlGetNextSibling(heading))
           {
-            //printf("[xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-          //  printf("[xml :xxx node 22 : %s].\n", mxmlGetElement (heading));
             //LogInfo("Debug: [xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
              if (mxmlGetElement(heading) != NULL)
              {
-                 //printf("11111111111111.\n");
                  if (strcmp(mxmlGetElement(heading), "vm") == 0)
                  {
-                     //printf("[xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-                     //printf("[xml :xxx node 22 : %s].\n", mxmlGetElement (heading));
-				   LogInfo("Debug: [FindNode xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-
+				     //LogInfo("Debug: [FindNode xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
                      struct Vms_Node *pNode = malloc(sizeof(struct Vms_Node));
                      if (pNode == NULL)
                      {
-                        printf("findnode malloc Vms_node failed.\n");
                         LogInfo("Debug: findnode malloc Vms_node failed. \n");
                         return ;
                      }
-				   memset(pNode, 0, sizeof(struct Vms_Node));
+				    memset(pNode, 0, sizeof(struct Vms_Node));
                     strcpy(pNode->val.vmid, mxmlElementGetAttr(heading, "id"));
                      //get vms name
                      mxml_node_t * tmp_node = mxmlFindElement(heading, node, "name",
@@ -164,9 +153,7 @@ void FindNode(char* value)
                      if (tmp_node)
                      {
                         strcpy(pNode->val.name, tmp_node->child->value.text.string);
-                        //printf("pNode-val.name : %s.\n", pNode->val.name);
-                        //printf(" vms name : %s. \n", tmp_node->child->value.text.string);
-                        LogInfo("Debug: pNode-val.name : %s.\n", pNode->val.name);
+                        //LogInfo("Debug: pNode-val.name : %s.\n", pNode->val.name);
                      }//if name
 
                      //get vms os
@@ -176,8 +163,7 @@ void FindNode(char* value)
                      if (tmp_node)
                      {
                         strcpy(pNode->val.os, mxmlElementGetAttr(tmp_node, "type"));
-                        printf("pNode-val.os : %s.\n", pNode->val.os);
-                        LogInfo("Debug: pNode-val.os :%s.\n", pNode->val.os);
+                        //LogInfo("Debug: pNode-val.os :%s.\n", pNode->val.os);
                      }//os
 
                      //get status
@@ -186,11 +172,7 @@ void FindNode(char* value)
                                                MXML_DESCEND);
                      if (tmp_node)
                      {
-                      //  strcpy(pNode->val.os, mxmlElementGetAttr(tmp_node, "type"));
-                      //  printf("pNode-val.os : %s.\n", tmp_node->child->value.text.string);
-                      //  LogInfo("Debug: pNode-val.os :%s.\n", tmp_node->child->value.text.string);
-                        LogInfo("Debug: findNode vms status : %s. \n", tmp_node->child->value.text.string);
-                        //printf(" vms status : %s. \n", tmp_node->child->value.text.string);
+                        //LogInfo("Debug: findNode vms status : %s. \n", tmp_node->child->value.text.string);
                         if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UP) == 0)
                           pNode->val.status = 1;
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0)
@@ -220,8 +202,7 @@ void FindNode(char* value)
                             const char *strcpu = mxmlElementGetAttr(cpuNode, "cores");
                             if (strcmp(strcpu, "") >= 0)
                             {
-                                //printf(" vms cpu count : %s. \n", strcpu);
-							 LogInfo("vms cpu count : %s. \n", strcpu);
+							 	//LogInfo("vms cpu count : %s. \n", strcpu);
                                 pNode->val.vcpu = atoi(strcpu);
                             }
                         }
@@ -233,9 +214,7 @@ void FindNode(char* value)
                                               MXML_DESCEND);
                     if (tmp_node)
                     {
-                        //printf(" vms memory : %s. \n", tmp_node->child->value.text.string);
                         pNode->val.memory = strtod(tmp_node->child->value.text.string, NULL)/(1024*1024*1024);
-                        //printf(" vms memory long: %ld. \n", pNode->val.memory);
                     }//get memory
 
                     //get usb strategy
@@ -249,8 +228,6 @@ void FindNode(char* value)
                                                  MXML_DESCEND);
                         if (typeNode)
                         {
-                            printf(" vms usb strategy : %s.\n", typeNode->child->value.text.string);
-                            //strcpy(pNode->val.usb, typeNode->child->value.text.string);
                             if (strcmp(typeNode->child->value.text.string, "true") == 0)
                                 pNode->val.usb = 1;
                             else
@@ -261,25 +238,28 @@ void FindNode(char* value)
                     }//usb strategy
 
                     //get address
-                    tmp_node = mxmlFindElement(heading, node, "address",
+					tmp_node = mxmlFindElement(heading, node, "display",
                                               NULL, NULL,
                                               MXML_DESCEND);
                     if (tmp_node)
                     {
-                        //printf(" vms address : %s. \n", tmp_node->child->value.text.string);
-                        strcpy(pNode->val.ip, tmp_node->child->value.text.string);
+                    	mxml_node_t * typeNode = mxmlFindElement(tmp_node, heading, "address",
+                                                 NULL, NULL,
+                                                 MXML_DESCEND);
+						if (typeNode)
+						{
+                        	strcpy(pNode->val.ip, /*g_szServerIP*/typeNode->child->value.text.string);
+						}
+
+						typeNode = mxmlFindElement(tmp_node, heading, "port",
+                                              NULL, NULL,
+	                                              MXML_DESCEND);
+	                    if (typeNode)
+	                    {
+	                       pNode->val.port = atoi(typeNode->child->value.text.string);
+	                       //LogInfo("Debug: pNode-val.port :%d.\n", pNode->val.port);
+	                    }
                     }
-
-                    tmp_node = mxmlFindElement(heading, node, "port",
-                                              NULL, NULL,
-                                              MXML_DESCEND);
-                    if (tmp_node)
-                    {
-                       pNode->val.port = atoi(tmp_node->child->value.text.string);
-                       //printf("pNode-val.port : %d.\n", pNode->val.port);
-                       LogInfo("Debug: pNode-val.port :%d.\n", pNode->val.port);
-                    }//os
-
 				  //sc
                     g_nVmCount++;
                     list_add(&pNode->list, &head);
@@ -303,37 +283,26 @@ void FindNode2(char* value)
     node = mxmlFindElement(g_treeTmp, g_treeTmp, value,
                               NULL, NULL,
                               MXML_DESCEND);
-   printf("1111  node %s\n", mxmlGetElement(node));
    if (node)
    {
      for (heading = mxmlGetFirstChild(node);
           heading;
           heading = mxmlGetNextSibling(heading))
           {
-            //printf("[xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-          //  printf("[xml :xxx node 22 : %s].\n", mxmlGetElement (heading));
-            //LogInfo("Debug: [xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
              if (mxmlGetElement(heading) != NULL)
              {
-                 //printf("11111111111111.\n");
                  if (strcmp(mxmlGetElement(heading), "vm") == 0)
                  {
-                     //printf("[xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-                     //printf("[xml :xxx node 22 : %s].\n", mxmlGetElement (heading));
-                     LogInfo("Debug: [FindNode2 xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
-
+                     //LogInfo("Debug: [FindNode2 xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
                     strcpy(g_vmsComUpdate[g_vmsComCount].vmid, mxmlElementGetAttr(heading, "id"));
                      //get vms name
                      mxml_node_t * tmp_node = mxmlFindElement(heading, node, "name",
                                                NULL, NULL,
                                                MXML_DESCEND);
-                     printf("222222222, get vms attribute.\n");
                      if (tmp_node)
                      {
                         strcpy(g_vmsComUpdate[g_vmsComCount].name, tmp_node->child->value.text.string);
-                        //printf("g_vmsComUpdate.name : %s.\n", g_vmsComUpdate[g_vmsComCount].name);
-                        //printf(" vms name : %s. \n", tmp_node->child->value.text.string);
-                        LogInfo("Debug: g_vmsComUpdate.name : %s.\n", g_vmsComUpdate[g_vmsComCount].name);
+                        //LogInfo("Debug: g_vmsComUpdate.name : %s.\n", g_vmsComUpdate[g_vmsComCount].name);
                      }//if name
 
                      //get vms os
@@ -343,8 +312,7 @@ void FindNode2(char* value)
                      if (tmp_node)
                      {
                         strcpy(g_vmsComUpdate[g_vmsComCount].os, mxmlElementGetAttr(tmp_node, "type"));
-                        printf("g_vmsComUpdate.os : %s.\n", g_vmsComUpdate[g_vmsComCount].os);
-                        LogInfo("Debug: g_vmsComUpdate.os :%s.\n", g_vmsComUpdate[g_vmsComCount].os);
+                        //LogInfo("Debug: g_vmsComUpdate.os :%s.\n", g_vmsComUpdate[g_vmsComCount].os);
                      }//os
 
                      //get status
@@ -356,7 +324,7 @@ void FindNode2(char* value)
                       //  strcpy(pNode->val.os, mxmlElementGetAttr(tmp_node, "type"));
                       //  printf("pNode-val.os : %s.\n", tmp_node->child->value.text.string);
                       //  LogInfo("Debug: pNode-val.os :%s.\n", tmp_node->child->value.text.string);
-                        printf(" vms status : %s. \n", tmp_node->child->value.text.string);
+                      //  printf(" vms status : %s. \n", tmp_node->child->value.text.string);
                         if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UP) == 0)
                           g_vmsComUpdate[g_vmsComCount].status = 1;
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0)
@@ -406,25 +374,30 @@ void FindNode2(char* value)
                     }//usb strategy
 
                     //get address
-                    tmp_node = mxmlFindElement(heading, node, "address",
+					tmp_node = mxmlFindElement(heading, node, "display",
                                               NULL, NULL,
                                               MXML_DESCEND);
                     if (tmp_node)
                     {
-                        printf(" vms address : %s. \n", tmp_node->child->value.text.string);
-                        strcpy(g_vmsComUpdate[g_vmsComCount].ip, tmp_node->child->value.text.string);
+                    	mxml_node_t * typeNode = mxmlFindElement(tmp_node, heading, "enabled",
+                                                 NULL, NULL,
+                                                 MXML_DESCEND);
+                        //printf(" vms address : %s. \n", tmp_node->child->value.text.string);
+                        if (typeNode)
+                        {
+                        	strcpy(g_vmsComUpdate[g_vmsComCount].ip, /*g_szServerIP*/typeNode->child->value.text.string);
+                        }
+						//port
+	                    typeNode = mxmlFindElement(tmp_node, heading, "port",
+	                                              NULL, NULL,
+	                                              MXML_DESCEND);
+	                    if (typeNode)
+	                    {
+	                       g_vmsComUpdate[g_vmsComCount].port = atoi(typeNode->child->value.text.string);
+	                       //printf("g_vmsComUpdate.port : %d.\n", g_vmsComUpdate[g_vmsComCount].port);
+	                       //LogInfo("Debug: g_vmsComUpdate.port :%d.\n", g_vmsComUpdate[g_vmsComCount].port);
+	                    }
                     }
-
-                    //port
-                    tmp_node = mxmlFindElement(heading, node, "port",
-                                              NULL, NULL,
-                                              MXML_DESCEND);
-                    if (tmp_node)
-                    {
-                       g_vmsComUpdate[g_vmsComCount].port = atoi(tmp_node->child->value.text.string);
-                       //printf("g_vmsComUpdate.port : %d.\n", g_vmsComUpdate[g_vmsComCount].port);
-                       LogInfo("Debug: g_vmsComUpdate.port :%d.\n", g_vmsComUpdate[g_vmsComCount].port);
-                    }//os
                     g_vmsComCount++;
                  }//if vm
              }//if null
@@ -441,6 +414,12 @@ int SY_GetVms()
     SY_FreeVmsList();
     g_nVmCount = 0;
     //printf("SY_Get Vms @@@@@ 22.\n");
+#if 1
+    //test
+    memset(g_szServerIP, 0, MAX_BUFF_SIZE);
+	GetServerInfo2(&serverInfo);
+	strcpy(g_szServerIP, serverInfo.szIP);
+#endif
     if (SY_Loadxml(FILE_OVIRT_INFO_PATH) < 0)
     {
         return -1;
@@ -457,6 +436,12 @@ int SY_GetVms2()
     {
         return -1;
     }
+	#if 1
+    //test
+    memset(g_szServerIP, 0, MAX_BUFF_SIZE);
+	GetServerInfo2(&serverInfo);
+	strcpy(g_szServerIP, serverInfo.szIP);
+#endif
     FindNode2("vms");
     SY_Unloadxml(g_treeTmp);
     return 0;

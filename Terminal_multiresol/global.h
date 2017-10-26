@@ -16,6 +16,9 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h> /* the key value defines can be found here */
 #include "msg.h"
+#include <stdio.h>
+#include <string.h>
+
 
 #define  BUF_MSG_LEN      512
 
@@ -65,7 +68,7 @@ int g_mainExit;
 int g_auto_login_first;
 extern int g_workflag;
 int g_openModifyUserPas;
-
+int g_curNetworkType;
 
 //#define PIPE_WAIT(x) ({ FILE* fp = fopen("wait_signal", "w"); \
 //     if (fp != NULL){ \
@@ -105,7 +108,8 @@ enum LOGIN_STATUS{
     LOGIN_STATUS_USERNAME_NONULL,  //user name not NULL
     LOGIN_STATUS_PASS_NONULL,  //password not null
     LOGIN_STATUS_VM_DESKTOP, //connect vm desktop failed
-    LOGIN_SUCCESSED
+    LOGIN_SUCCESSED,
+    LOGIN_SIGNELVM
  };
 
 volatile int g_loginstatus;
@@ -167,6 +171,14 @@ struct StuServerInfo{
 	char terminal_name[32];
 	char techer_no[32];
 };
+
+struct St_calldata {
+	int flag;
+	char szMsg[1024];
+};
+
+struct St_calldata  g_MsgCall;
+char g_szServerIP[MAX_BUFF_SIZE];
 
 //写日志
 void LogInfo(const char* ms, ... );
@@ -260,11 +272,14 @@ extern int g_exit_waitting;
 extern void close_setting_window();
 int Ovirt_ModifyPass(char *url, char *user, char* old_password, char* new_password, char* ret, char* token);
 int http_get(char *url, char* data, char *ret);
-
-
-
 void SYPassModifyDialog();
-
+void parse_json(char *data, char *key, char *val, char* arrkey);
+char * right_strtok(const char *s, const char* del);
+void set_network_type(char * szMsg);
+void dlnet_vm_connect();
+void dlnet_login();
+void GetDlnet(char * sznet);
+void SaveDlnet(char* sznet);
 
 
 #endif //_GLOBAL_H

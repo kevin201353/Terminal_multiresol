@@ -111,6 +111,37 @@ static float g_scr_old_height = 1080.0;
 
 //
 static GtkTreeIter * g_iter = NULL;
+static void initUpdateVms();
+static void adddata();
+GObject *g_label_login;
+
+
+void set_vm_network_type()
+{
+    //network type
+    if (showvmlistwindow == 1)
+    {
+	    char szTmp[MAX_BUFF_SIZE] = {0};
+	    sprintf(szTmp, "当前登录用户: %s", g_szUser);
+		char szMsg2[1024*2] = {0};
+		strcpy(szMsg2, g_MsgCall.szMsg);
+		strcat(szMsg2, "  ");
+		strcat(szMsg2, szTmp);
+	    gtk_label_set_text(GTK_LABEL(g_label_login), szMsg2);
+		//vm tree clear
+		gtk_list_store_clear(g_store);
+		SY_FreeVmsList();
+		//reset login outer net or inter net
+		dlnet_login();
+		g_vmsCount = 0;
+		initUpdateVms();
+	    adddata();
+		//reply to java
+		char szMsg[BUF_MSG_LEN]= {0};
+		strcpy(szMsg, "\napagentui.ThinviewNetworkTypeChangeReply####{\"success\":true}\n");
+		write(1, szMsg, strlen(szMsg));
+    }
+} 
 
 void exit_vimlist_win()
 {
@@ -362,14 +393,23 @@ static void init_ctrl_posit(GtkBuilder *builder)
 	GObject *label_login;
     label_login = gtk_builder_get_object (builder, "label_login");
 	gtk_widget_get_size_request(GTK_WIDGET(label_login), width, height);
+	LogInfo("vmlist window init_ctrl_posit, label_login old: factor_x=%f, width = %d.", factor_x, width); 
+#ifdef DOUBLENET
+	if (width == 0)
+		width = 100;
+	int expand = width * 2;
+	gtk_widget_set_size_request(GTK_WIDGET(label_login), expand, height);
+    x = layout1_width - (pic_width * 4) - ndelay*2 - nspace_delay - login_user_width - expand;
+#else
 	x = layout1_width - (pic_width * 4) - ndelay*2 - nspace_delay - login_user_width;
+#endif
 	x *= factor_x;
 	y += 10;
 	y *= factor_y;
 	width *= factor_x;
 	height *= factor_y;
+	LogInfo("vmlist window init_ctrl_posit, label_login: x=%d, width = %d.", x, width);
 	gtk_layout_move((GtkLayout *)layout1, GTK_WIDGET(label_login), x, y);
-	gtk_widget_set_size_request(GTK_WIDGET(label_login), width, height);
 	init_vmctrlbtn_pos(builder, layout4, layout4_width, layout4_height);
 }
 
@@ -478,17 +518,17 @@ void *thrd_func(void *arg)
     {
       if (g_sUpdateVmStatus)
       {
-      	 LogInfo(" Debug: vmlist window thrd_func 000, start upadate vm status.... .\n");
+      	  //LogInfo(" Debug: vmlist window thrd_func 000, start upadate vm status.... .\n");
           UpdateVmsStatus();
       }
       if (g_exitvm)
       {
          break;
       }
-	  LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
+	  //LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
       sleep(3);
     }
-	printf("exit thrd func .\n");
+	//printf("exit thrd func .\n");
     pthread_exit(NULL); //退出线程
 }
 
@@ -596,7 +636,7 @@ int UpdateVmsStatus()
     {
          if (g_exitvm)
 			break;
-        LogInfo(" Debug: vmlist window UpdateVmsStatus ovirt getvm2 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
+//        LogInfo(" Debug: vmlist window UpdateVmsStatus ovirt getvm2 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
 //        if (Ovirt_GetVm2(ovirt_url, g_szUser, g_szPass, g_upVms[i].szvmid) < 0)
 //        {
 //            printf("Update vms status failed.\n");
@@ -620,16 +660,14 @@ int UpdateVmsStatus()
             if (g_exitvm)
 				break;
             struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-		   LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
+		   //LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
             if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
             {
-                //printf("vms status : %d , old nstate : %d.\n", node->val.status, g_upVms[i].state);
-                LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
+                //LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
                 char szTmp[20] = {0};
                 if (node->val.status != g_upVms[i].state)
                 {
                     nstate = node->val.status;
-                   //printf("vmlist window UpdateVmsStatus vms name: %s, vms status : %d , nstate : %d.\n", node->val.name, node->val.status, g_nstate);
                     if (nstate == 0)
                         strcpy(szTmp, "关闭");
                     else if (nstate == 1)
@@ -643,7 +681,7 @@ int UpdateVmsStatus()
                     else if (nstate == 5)
                         strcpy(szTmp, "正在保存");
                     gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
-				   gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
+				    gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
                     g_upVms[i].state = node->val.status;
                 }//if
             }
@@ -1036,12 +1074,10 @@ static void  on_btn_close_clicked(GtkButton *button,  gpointer   user_data)
 
 static void connectVm22()
 {
-	//printf("$$$$$$$　connectVms enter. \n");
     list_for_each(plist, &head)
     {
         struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-        //printf("connect vms g_vmName 000 = %s.\n", g_vmName);
-         char szTicket[MAX_BUFF_SIZE] = {0};
+        char szTicket[MAX_BUFF_SIZE] = {0};
         if (strcmp(node->val.name, g_vmName) == 0)
         {
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
@@ -1064,7 +1100,7 @@ static void connectVm22()
 				{
 					strcpy(szTicket, "abc");
 				}
-				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log 2>&1");
+				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f > %s", node->val.ip, node->val.port, szTicket, "/var/log/shencloud/spicy.log 2>&1");
 				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
 				if (g_workflag == 1)
 				{
@@ -1093,13 +1129,50 @@ static void connectVm22()
 					report.action = 3;
 					send_data(report);
 				}
+				g_sUpdateVmStatus = 1;
 				break;
 		   	}else
 		   	{
 		   		SYMsgDialog2(7, "连接失败!");
+				g_sUpdateVmStatus = 1;
 			}
         	}
 	}
+	LogInfo("Debug: connectVm22 end !!!");
+}
+
+void dlnet_vm_connect()
+{
+	g_sUpdateVmStatus = 0;
+
+	if (strcmp(g_vmName, "") != 0)
+	{
+		if (g_nVmCount == 1)
+		{
+			//直接连接虚拟机
+			list_for_each(plist, &head)
+			{
+				struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+				if (node != NULL)
+				{
+#ifdef MEETING
+					char szMsg[BUF_MSG_LEN]= {0};
+					sprintf(szMsg, "\napagentui.ThinviewConnect####{\"vmid\":\"%s\",\"username\": \"%s\", \"vmName\":\"%s\"}\n", node->val.vmid, g_szUser, node->val.name);
+					write(1, szMsg, strlen(szMsg));
+#endif
+					char szcmd[1024] = {0};
+					sprintf(szcmd, "spicy -h %s -p %d -f > %s", node->val.ip, node->val.port, "/var/log/shencloud/spicy.log 2>&1");
+					LogInfo(szcmd);
+					system(szcmd);
+					break;
+				}
+			}
+		}else
+		{
+			connectVm22();
+		}
+	}
+	g_sUpdateVmStatus = 1;
 }
 
 static void  on_btn_btn_desktop_clicked(GtkButton *button,  gpointer   user_data)
@@ -1138,12 +1211,9 @@ static void  on_btn_logout_pressed(GtkButton *button,  gpointer   user_data)
 	cleanVms();
 	if (g_window != NULL)
 	{
-	    printf("ddddddddddddddddd.\n");
 	    gtk_widget_destroy((GtkWidget *)g_window);
-		printf("ffffffffffffffffff.\n");
 		g_window = NULL;
 	    gtk_main_quit();
-		printf("cccccccccccccccc.\n");
 	}
 }
 
@@ -1412,7 +1482,6 @@ static void get_string_width(char *str, int* width, int* height)
 }
 
 static void setup_tree_view(GtkWidget*);
-static void adddata();
 static void loadcss2()
 {
     GtkCssProvider *provider;
@@ -1714,6 +1783,12 @@ void SY_vmlistwindow_main()
     window = gtk_builder_get_object (builder, "vmlist_window");
     gtk_widget_set_app_paintable((GtkWidget * )window, TRUE);
     treeview = gtk_builder_get_object (builder, "treeview_vm");
+	/*
+   * Create a new tree model with three columns, as string,
+   * gint and guint.
+   */
+	g_store = gtk_list_store_new(COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+	                  G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 	column_len();
     setup_tree_view(GTK_WIDGET(treeview));
     g_window = window;
@@ -1721,6 +1796,7 @@ void SY_vmlistwindow_main()
     g_exitvm = 0;
     g_flushState = 0;
 	memset(g_upVms, 0, sizeof(g_upVms));
+	memset(g_vmName, 0, sizeof(g_vmName));
 
     btn_start = gtk_builder_get_object (builder, "btn_start");
     btn_close = gtk_builder_get_object (builder, "btn_close");
@@ -1749,9 +1825,18 @@ void SY_vmlistwindow_main()
 
     GObject *label_login;
     label_login = gtk_builder_get_object (builder, "label_login");
-    char *szTmp[MAX_BUFF_SIZE] = {0};
+	g_label_login = label_login;
+    char szTmp[MAX_BUFF_SIZE] = {0};
     sprintf(szTmp, "当前登录用户: %s", g_szUser);
-    gtk_label_set_text(GTK_LABEL(label_login), szTmp);
+	int width = 0;
+	int height = 0;
+	gtk_widget_get_size_request(GTK_WIDGET(label_login), width, height);
+	char szMsg2[1024*2] = {0};
+	strcpy(szMsg2, g_MsgCall.szMsg);
+	strcat(szMsg2, "  ");
+	strcat(szMsg2, szTmp);
+	LogInfo("vmlist window init szMsg2 = %s.", szMsg2);
+    gtk_label_set_text(GTK_LABEL(label_login), szMsg2);
 
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
     gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
@@ -1853,13 +1938,13 @@ void SY_vmlistwindow_main()
         printf("Create checkstate thread error!\n");
     }*/
     if (g_workflag == 1)
-    	{
-    		start_tcpclient();
+	{
+		start_tcpclient();
 		strcpy(report.uname, g_szUser);
 		strcpy(report.vname, g_vmName);
 		report.action = 1;
 		send_data(report);
-    	}
+	}
 
 	//add 170727
 #ifdef MEETING
@@ -1970,17 +2055,10 @@ static void setup_tree_view(GtkWidget *treeview) {
 
 void adddata()
 {
-  /*
-   * Create a new tree model with three columns, as string,
-   * gint and guint.
-   */
-  GtkTreeIter  iter;
-  g_store = gtk_list_store_new(COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-                      G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
   /* Add all of the products to the GtkListStore. */
   //vms data deal with
   //insert vms data into list
-
+  GtkTreeIter  iter;
   list_for_each(plist, &head)
   {
       struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
@@ -1993,7 +2071,7 @@ void adddata()
       printf("main get vms usb strategy = %d.\n", node->val.usb);*/
 
       strcpy(g_upVms[g_vmsCount].szvmid, node->val.vmid);
-	  LogInfo("adddata, g_upVms, g_vmsCont : %d, vmsid : %s", g_vmsCount, g_upVms[g_vmsCount].szvmid);
+	  //LogInfo("adddata, g_upVms, g_vmsCont : %d, vmsid : %s", g_vmsCount, g_upVms[g_vmsCount].szvmid);
       char szStatus[MAX_BUFF_SIZE] = {0};
       char szMemory[MAX_BUFF_SIZE] = {0};
       char szUsb[MAX_BUFF_SIZE] = {0};

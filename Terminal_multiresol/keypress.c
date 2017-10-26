@@ -6,6 +6,40 @@
 #include "global.h"
 #include <sys/time.h>
 #include <assert.h>
+#include <termios.h> 
+
+static struct termios oldt;
+
+//restore terminal settings
+void restore_terminal_settings(void)
+{
+    //Apply saved settings
+    tcsetattr(0, TCSANOW, &oldt); 
+}
+
+//make terminal read 1 char at a time
+void disable_terminal_return(void)
+{
+    struct termios newt;
+    
+    //save terminal settings
+    tcgetattr(0, &oldt); 
+    //init new settings
+    newt = oldt;  
+    //change settings
+    newt.c_lflag &= ~(ICANON | ECHO);
+    //apply settings
+    tcsetattr(0, TCSANOW, &newt);
+    
+    //make sure settings will be restored when program ends
+    atexit(restore_terminal_settings);
+}
+
+gboolean show_vmlist_dialog(gpointer* message)
+{
+	SY_vmlistwindow_main();
+	return FALSE;
+}
 
 void linux_key_press()
 {
@@ -52,6 +86,9 @@ void linux_key_press()
 	close(fd_kb);
 }
 
+
+#define KEYUI   (KEY_U & KEY_I)
+
 #define test_bit(bit) (mask[(bit)/8] & (1 << ((bit)%8)))
 void linux_key_press2()
 {
@@ -63,6 +100,9 @@ void linux_key_press2()
 	int		i = 0;
 	unsigned char mask[EV_MAX/8 + 1];
     int		version;
+	short    nshift = 0;
+	short    key_u = 0;
+	short    key_i = 0;
 	while(1)
 	{
 		for (i = 0; i < 32; i++) 
@@ -75,7 +115,7 @@ void linux_key_press2()
 	            //LogInfo("linux_key_press2, %s\n", buf);
 	            if (strcmp(buf, "Generic USB Keyboard") == 0)
 	            {
-	            		LogInfo("linux_key_press2, find USB Keyboard.\n");
+	            	LogInfo("linux_key_press2, find USB Keyboard.\n");
 					flag = 1;
 					break;
 			   }
@@ -106,6 +146,24 @@ void linux_key_press2()
 						}
 						if(event_kb.code == KEY_W)
 							LogInfo("list_key_press xxxxx  W\n");
+#if 0
+#ifdef WUHUDX
+						if (event_kb.code == KEY_LEFTSHIFT)
+							nshift = 1;
+						if (event_kb.code == KEY_U)
+							key_u = 1;
+						if (event_kb.code == KEY_I)
+							key_i = 1;
+						if (key_u == 1 && key_i == 1 && nshift == 1)
+						{
+							nshift = 0;
+							key_u = 0;
+							key_i = 0;
+							LogInfo("list_key_press xxxxx  shift + u + i \n");
+							g_idle_add(show_vmlist_dialog, NULL);
+						}
+#endif
+#endif
 					}
 				}
 			}
@@ -113,9 +171,13 @@ void linux_key_press2()
 			flag = 0;
 		}
 	}
-	sleep(1);
 }
 
+
+void read_input()
+{
+   //do where
+}
 //int main()
 //{
 //	return 0;

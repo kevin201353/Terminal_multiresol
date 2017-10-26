@@ -69,6 +69,8 @@ static cairo_surface_t *surface_vmlistwindow = NULL;
 static GtkBuilder *g_builder;
 static pthread_t tid;
 static GObject *g_window;
+static pthread_t tidtwo;
+
 
 extern void Net_status_checking(GtkBuilder *builder, GtkWidget *widget);
 extern GdkPixbuf *create_pixbuf(const gchar * filename);
@@ -79,9 +81,16 @@ extern void wait_net_setup();
 extern void GetManufactureType();
 extern void linux_key_press();
 extern void linux_key_press2();
+extern void read_input();
 static void* thrd_keypress()
 {
 	linux_key_press2();
+}
+
+static void* thrd_readinput()
+{
+	read_input();
+	return NULL;
 }
 
 
@@ -993,6 +1002,15 @@ int main(int argc, char *argv[])
 		    printf("Create thread error!\n");
 	};
 #endif
+
+#if 0
+#ifdef WUHUDX
+	if ( pthread_create(&tidtwo, NULL, thrd_readinput, NULL) !=0 ) {
+		    printf("Create threadtwo error!\n");
+	};
+#endif
+#endif
+
 	SY_loginwindow_main();
 	return 0;
 	/*************************************************************************/

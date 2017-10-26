@@ -11,7 +11,7 @@
 static GdkPixbuf * g_pixbuf = NULL;
 static pthread_t wait_win_tid;
 
-int  g_exit_waitting;
+int  g_exit_waitting; //检测自动登录或登录时是否失败，退出loading
 
 #define  MAX_TEXT   100
 #define  MAX_SIZE   100

@@ -23,7 +23,7 @@ static int g_auto_login = 0;
 static struct LoginInfo infot = {"", "", "", "", 3389, 0, 0, 0};
 static int ping_count = 0;
 
-
+static int g_netstatfirst = 0;
 
 /* for passing single values */  
 struct ethtool_value  
@@ -214,6 +214,16 @@ void check_net_status(GtkWidget *widget)
 					//LogInfo("thrd_net_setup 22222222222222222222 .\n");
 					g_auto_login = 1;
 				}
+#ifdef DOUBLENET
+				if (g_netstatfirst == 0)
+				{
+					char szMsg[BUF_MSG_LEN]= {0};
+					sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"1\",\"pre\":\"%d\"}\n", g_curNetworkType);
+					write(1, szMsg, strlen(szMsg));
+					g_netstatfirst = 1;
+					LogInfo("network check status is normal, notice java msg: %s.", szMsg);
+				}
+#endif
 			}
 			break;	
 		  
@@ -221,6 +231,16 @@ void check_net_status(GtkWidget *widget)
 			//printf("%s : link down\n", hw_name);
 			gtk_image_set_from_pixbuf(GTK_IMAGE(image_netstatus), g_netstatus_Down);
 			LogInfo("thrd_net_setup, network check status is down.");
+#ifdef DOUBLENET
+			if (g_netstatfirst == 1)
+			{
+				char szMsg[BUF_MSG_LEN]= {0};
+				sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"0\",\"pre\":\"%d\"}\n", g_curNetworkType);
+				write(1, szMsg, strlen(szMsg));
+				LogInfo("network check status is down, notice java msg: %s.", szMsg);
+				g_netstatfirst = 0;
+			}
+#endif
 			break;	
 		  
 		default:  
@@ -236,6 +256,7 @@ void Net_status_checking(GtkBuilder *builder, GtkWidget *widget)
 	g_builder = builder;
 	gethw_name();
 	g_auto_login = 0;
+	g_netstatfirst = 0;
 	g_thread_new ("netstatus", (GThreadFunc)thread_func, widget);
 //	if ( pthread_create(&tid_autologin, NULL, thrd_auto_login, NULL) !=0 )
 //	{

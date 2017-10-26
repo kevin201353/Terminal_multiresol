@@ -139,6 +139,7 @@ void parse_json(char *data, char *key, char *val, char* arrkey)
 	cJSON *json , *json_data;
 	char szDebug[10240] = {0};
     // �������ݰ�
+    LogInfo("parse_json, data = :%s.", data);
     json = cJSON_Parse(data);
     if (!json)
     {

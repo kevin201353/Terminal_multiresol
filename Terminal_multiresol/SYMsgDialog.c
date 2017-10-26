@@ -39,7 +39,7 @@ static gboolean terminate(GThread *thread)
 	    gtk_widget_destroy((GtkWidget *)window);
 		window = NULL;
 	    gtk_main_quit();
-    	}
+    }
 	if (g_loginstatus == LOGIN_SUCCESSED)
 	{
 #ifdef SHOWVMLISTONE
@@ -48,12 +48,23 @@ static gboolean terminate(GThread *thread)
 		if (g_selectProto == 0 && g_nVmCount > 1)
 #endif
 	    {
-	         printf("terminate  44444444  2222222 .\n");
-	    		//close_loginwindow();
-	    		clean_ctrlpass();
-	    		SY_vmlistwindow_main();
+			printf("terminate  44444444  2222222 .\n");
+			//close_loginwindow();
+			clean_ctrlpass();
+			SY_vmlistwindow_main();
 			g_loginstatus = 0;
-	    	}
+	    }
+	}
+	if (g_loginstatus == LOGIN_SIGNELVM)
+	{
+#ifdef WUHUDX
+	 if (g_selectProto == 0 && g_nVmCount == 1)
+	 	{
+	 		clean_ctrlpass();
+			SY_vmlistwindow_main();
+			g_loginstatus = 0;
+	 	}
+#endif 
 	}
     return FALSE;
 }
@@ -457,10 +468,10 @@ void SYMsgDialog(int nflag, char *msg)
 	printf("Debug: SYMsgDialog enter, showSyMsgDlg11 000 = %d.\n", showSyMsgDlg11);
 
     if (showSyMsgDlg11 == 1)
-    	{
-    	    printf("Debug: SYMsgDialog showSyMsgDlg==1 return .\n");
-        return;
-    	}
+	{
+	    printf("Debug: SYMsgDialog showSyMsgDlg==1 return .\n");
+    	return;
+	}
     showSyMsgDlg11 = 1;
 	g_window_exit = 0;
 	printf("Debug: SYMsgDialog enter, showSyMsgDlg11 = %d.\n", showSyMsgDlg11);

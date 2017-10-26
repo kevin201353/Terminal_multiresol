@@ -337,6 +337,7 @@ static void init_ctrl_image(GtkBuilder *builder)
 	}
 }
 
+//single tips
 void SYMsgDialog2(int nflag, char *msg)
 {
     if (showSyMsgDlg == 1)

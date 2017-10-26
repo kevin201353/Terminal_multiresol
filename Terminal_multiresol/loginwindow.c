@@ -98,6 +98,38 @@ static pthread_t g_readdataid;
 extern void exit_vimlist_win();
 
 extern int  g_working;
+static GtkWidget *label_nettype;
+static void* read_data();
+extern void set_vm_network_type();
+
+
+//static char g_sztok[512] = {0};
+static gboolean read_data_terminate(GThread *thread)
+{
+	g_thread_join(thread);
+	return FALSE;
+}
+
+static void *thrd_read_data(GtkWidget *widget)
+{
+	read_data();
+	gdk_threads_add_idle ((GSourceFunc)read_data_terminate, g_thread_self());
+	return NULL;
+}
+
+char * right_strtok(const char *s, const char* del)
+{
+	if (NULL == s || NULL == del)
+		return NULL;
+	char *p = strtok(s, del);
+	if (NULL != p)
+	{
+		//strcpy(g_sztok, strtok(NULL, del));
+		//LogInfo("right_strtok string = :%s.", g_sztok);
+		return strtok(NULL, del);
+	}
+	return NULL;
+}
 
 static void* read_data()
 {
@@ -105,13 +137,14 @@ static void* read_data()
 	{
 		if (g_mainExit == 1)
 			break;
-		char buf[128] = {0};  
+		char buf[1024] = {0};
 		int len;
-		if((len = read(0,buf,128)) == -1)  
-		{   
-		    //����д���׼�������   
-		    write(2,"ThinView read stdin error\n",11) ;  
+		if((len = read(0,buf,1024)) == -1)
+		{
+		    //����д����׼��������
+		    write(2,"ThinView read stdin error\n",11) ;
 		}
+		LogInfo("ThinView read stdin java value 0000: %s.", buf);
 		if (NULL != strstr(buf, "apagentui.ThinviewLogout####{}"))
 		{
 			//notice exit to login
@@ -122,9 +155,61 @@ static void* read_data()
 				write(1, szMsg, strlen(szMsg));
 #endif
 		}
-		LogInfo("ThinView read stdin java value: %s.", buf);
+#ifdef DOUBLENET
+		if (NULL != strstr(buf, "apagentui.ThinviewErrorTips####"))
+		{
+			char *p = right_strtok(buf, "####");
+			LogInfo("read_data, right_strtok() = :%s.", p);
+			if (NULL != p)
+			{
+				char szCode[20] = {0};
+				char szMsg[512] = {0};
+				char szTmp[1024] = {0};
+				parse_json(p, "code", szCode, NULL);
+				parse_json(p, "message", szMsg, NULL);
+				strcpy(szTmp, "错误码:");
+				strcat(szTmp, szCode);
+				strcat(szTmp, ", ");
+				strcat(szTmp, "错误信息:");
+				strcat(szTmp, szMsg);
+				LogInfo("read_data, show error dialog");
+				g_MsgCall.flag = 3;
+				strcpy(g_MsgCall.szMsg, szTmp);
+				if (g_MsgCall.flag == 3)
+				{
+					call_msg_win_back(msg_respose_win, 3);
+				}
+			}
+		}
+		if (NULL != strstr(buf, "apagentui.ThinviewNetworkTypeChange####"))
+		{
+			char *p = right_strtok(buf, "####");
+			if (NULL != p)
+			{
+				char szCure[2] = {0};
+				char szPre[2] = {0};
+				parse_json(p, "current", szCure, NULL);
+				parse_json(p, "pre", szPre, NULL);
+				SaveDlnet(szCure);
+				g_curNetworkType = atoi(szCure);
+				char szMsg[100] = {0};
+				if (g_curNetworkType == 1)
+					strcpy(szMsg, "当前环境:外网");
+				else if (g_curNetworkType == 2 || g_curNetworkType == 0)
+					strcpy(szMsg, "当前环境:内网");
+				g_MsgCall.flag = 4;
+				strcpy(g_MsgCall.szMsg, szMsg);
+				if (g_MsgCall.flag == 4)
+				{
+					call_msg_win_back(msg_respose_win, 4);
+				}
+			}
+		}
+#endif
+		//LogInfo("ThinView read stdin java value 1111: %s.", buf);
 		sleep(3);
 	}
+	return NULL;
 }
 
 void clean_ctrlpass()
@@ -144,8 +229,6 @@ static void on_modify_pass_pressed(GtkButton *button,  gpointer   user_data)
 {
 	SYPassModifyDialog();
 }
-
-
 
 void setfontcolor(GtkWidget * widget, char *value)
 {
@@ -219,6 +302,11 @@ static void init_sys_time_ctrl(GtkBuilder *builder, GtkWidget *widget)
 	x = width - 20 - label_width;
 	y = (height - label_height)/2;
 	gtk_layout_put((GtkLayout *)widget, label_time, x, y);
+#ifdef DOUBLENET
+	label_nettype = gtk_label_new("");
+	x = x - 100 - 50;
+	gtk_layout_put((GtkLayout *)widget, label_nettype, x, y);
+#endif
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
 	screen = gdk_screen_get_default();
@@ -236,9 +324,48 @@ static void init_sys_time_ctrl(GtkBuilder *builder, GtkWidget *widget)
 	else if ((scr_width == 1368 && scr_height == 768) || (scr_width == 1366 && scr_height == 768) || (scr_width == 1360 && scr_height == 768) )
 		font_size = 12;
 	setctrlFont(GTK_WIDGET(label_time), font_size);
-    setfontcolor(GTK_WIDGET(label_time), "#ffffff");
+	setfontcolor(GTK_WIDGET(label_time), "#ffffff");
 	gtk_widget_show(GTK_WIDGET(label_time));
 	g_thread_new ("dummy", (GThreadFunc)thread_func, label_time);
+
+#ifdef DOUBLENET
+	setctrlFont(GTK_WIDGET(label_nettype), font_size);
+	setfontcolor(GTK_WIDGET(label_nettype), "#ffffff");
+	gtk_widget_show(GTK_WIDGET(label_nettype));
+	char szdlnet[2] = {0};
+	GetDlnet(szdlnet);
+	int parTmp = atoi(szdlnet);
+	if (parTmp == 1)
+	{
+		strcpy(g_MsgCall.szMsg, "当前环境:外网");
+	}else if (parTmp == 2 || parTmp == 0)
+	{
+		strcpy(g_MsgCall.szMsg, "当前环境:内网");
+	}
+	set_network_type(g_MsgCall.szMsg);
+#endif
+
+}
+
+void set_network_type(char * szMsg)
+{
+	gtk_label_set_text(label_nettype, szMsg);
+	//reply to java
+	char szMsg2[BUF_MSG_LEN]= {0};
+	strcpy(szMsg2, "\napagentui.ThinviewNetworkTypeChangeReply####{\"success\":true}\n");
+	write(1, szMsg2, strlen(szMsg2));
+}
+
+gboolean show_message_dialog(gpointer* message)
+{
+	if (g_MsgCall.flag == 3)
+		SYMsgDialog2(7, g_MsgCall.szMsg);
+	if (g_MsgCall.flag == 4)
+	{
+		set_network_type(g_MsgCall.szMsg);
+	    set_vm_network_type();
+	}
+	return FALSE;
 }
 
 void msg_respose_win(gpointer data)
@@ -251,7 +378,6 @@ void msg_respose_win(gpointer data)
 		if (g_selectProto == 0 && g_nVmCount > 1)
 #endif
 		{
-		    printf("terminate  44444444  2222222 8888.\n");
 			if (g_workflag == 1)
 			{
 				report_msg.action = MSG_WINDOW_CLOSE;
@@ -270,6 +396,13 @@ void msg_respose_win(gpointer data)
 		}
 		clean_ctrlpass();
 	}
+#ifdef DOUBLENET
+	if ((int)data == 3 || (int)data == 4)
+	{
+		//LogInfo("msg_respose_win, show error dialog msg = %s .\n", g_MsgCall.szMsg);
+		g_idle_add(show_message_dialog, NULL);
+	}
+#endif
 }
 
 //data end
@@ -296,7 +429,6 @@ static gint my_button_handler(GtkWidget *widget,GdkEvent *event)
 	      return TRUE;
 	    }
 	}
-
 	return FALSE;
 }
 
@@ -334,6 +466,8 @@ static void  on_btn_setting_enter(GtkButton *button,  gpointer   user_data)
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_setPress);
 }
 
+static int g_nshift = 0;
+static int g_nkeyu = 0;
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
     switch(event->keyval)
@@ -343,6 +477,9 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 				if (showSyMsgDlg11 == 0)
 				{
 					LogInfo("Debug zhaosenhua test reconnect: key press enter , gdk_key_return.\n");
+					GetLoginInfo(&g_loginfo);
+					if (g_exit_waitting == 0 && g_loginfo.autologin == 1)
+							return;
 					SYMsgDialog(0, "�������ӣ����Ժ� ... ");
 				}
 			}
@@ -354,6 +491,21 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 //			}
 //			break;
     }
+
+#ifdef WUHUDX
+	guint modifiers;
+	modifiers = gtk_accelerator_get_default_mod_mask();
+	if ((event->state & modifiers) == GDK_SHIFT_MASK && event->keyval == GDK_KEY_U)
+		{
+			g_nshift = 1;
+		}
+	if (event->keyval == GDK_KEY_I && g_nshift == 1)
+		{
+			g_nshift = 0;
+			LogInfo("Debug on_key_press , key press shift + u + i.");
+			SY_vmlistwindow_main();
+		}
+#endif
     return FALSE;
 }
 
@@ -656,8 +808,8 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 	            SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
 	            return -1;
 	        }
-			 list_for_each(plist, &head)
-	          {
+			list_for_each(plist, &head)
+			{
 				struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
 				if (strcmp(node->val.vmid, vmid) == 0 && node->val.status != 0)
 				{
@@ -666,7 +818,7 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 					nflag = 1;
 					break;
 				}
-			 }
+			}
 			 if (nflag == 1)
 			 	break;
 			 sleep(2);
@@ -674,7 +826,7 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 		printf("connectDisVm 222 .\n");
 	}
 	printf("connectDisVm 444 .\n");
-	
+
 #if 0
 	if (Ovirt_GetVmTicket(ovirt_url, g_loginfo.user, g_loginfo.pass, vmid) < 0)
 	{
@@ -695,7 +847,7 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 
     //find vm
     if (SY_GetVms() < 0)
-    	{
+    {
 		LogInfo("Debug: ShenCloud_login, SY_GetVms() failed. \n");
 		return -1;
 	}
@@ -715,7 +867,7 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 	if (strcmp(szTicket, "") == 0)
 		sprintf(shellcmd, "spicy -h %s -p %d -f > %s", szIP, nport, "/var/log/shencloud/spicy.log 2>&1");
     else
-    		sprintf(shellcmd, "spicy -h %s -p %d -w %s -f > %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log 2>&1");
+    	sprintf(shellcmd, "spicy -h %s -p %d -w %s -f > %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log 2>&1");
     LogInfo("Debug: login window directly connect vms  : %s. \n", shellcmd);
 	//add reconnect cmd
 	if (g_workflag == 1)
@@ -733,13 +885,13 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
     //system(shellcmd);
     //thrd_monitor(shellcmd);
     if (g_workflag == 1)
-    	{
+    {
 		report.action = 3;
 	    send_data(report);
 		report.action = 4;
 		send_data(report);
 		close_tcpclient();
-    	}
+    }
 	gtk_widget_queue_draw((GtkWidget *)g_window);
 	//close_loginwindow();
 	return 0;
@@ -869,14 +1021,14 @@ static int connectDisVm2(char *ip, int port, char *vmid, int nstate)
     shell_exec(shellcmd);
     //system(shellcmd);
     //thrd_monitor(shellcmd);
-    if (g_workflag == 1)
-    	{
+	if (g_workflag == 1)
+	{
 		report.action = 3;
-	    send_data(report);
+		send_data(report);
 		report.action = 4;
 		send_data(report);
 		close_tcpclient();
-    	}
+	}
 	gtk_widget_queue_draw((GtkWidget *)g_window);
 	//close_loginwindow();
 	return 0;
@@ -920,11 +1072,13 @@ int ShenCloud_autoLogin()
 	if (strcmp(g_loginfo.user, "") == 0 && strlen(g_loginfo.user) <= 0)
 	{
 		LogInfo("ShenCloud_autoLogin,  user == "" or user len <= 0 .\n");
+		g_exit_waitting = 1;
 		return -1;
 	}
 	if (strcmp(g_loginfo.pass, "") == 0 && strlen(g_loginfo.pass) <= 0)
 	{
 		LogInfo("ShenCloud_autoLogin,  pass == "" or pass len <= 0 .\n");
+		g_exit_waitting = 1;
 		return -1;
 	}
 	LogInfo("start auto login, ShenCloud_autoLogin use.\n");
@@ -959,6 +1113,7 @@ int ShenCloud_autoLogin()
 	    {
 	        LogInfo("main Ovirt get vms failed.\n");
 	        //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+	        g_exit_waitting = 1;
 	        return -1;
 	    }
 	}
@@ -968,6 +1123,7 @@ int ShenCloud_autoLogin()
         if (SY_GetVms() < 0)
         {
             //SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+            g_exit_waitting = 1;
             return -1;
         }
         //SetSymsgContext(LOGIN_STATUS_GETVMS);
@@ -997,9 +1153,13 @@ int ShenCloud_autoLogin()
 					LogInfo("Debug: login window autologin ---- directly connectVms g_loginfo.pass: = %s,  g_loginfo.pass = %s, vmid = %s, ip = %s.\n", g_loginfo.user, g_loginfo.pass, node->val.vmid, node->val.ip);
 					if (connectDisVm2(node->val.ip, node->val.port, node->val.vmid, node->val.status) < 0)
 					{
+						g_exit_waitting = 1;
 						return -1;
 					}
 					g_exit_waitting = 1;
+#ifdef WUHUDX
+					SY_vmlistwindow_main();
+#endif
 					return 0;
 				}
             }
@@ -1008,6 +1168,7 @@ int ShenCloud_autoLogin()
 	    if (g_nVmCount == 0)
 	    {
 		   //SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+		   	g_exit_waitting = 1;
 	        return -1;
 		}
     }
@@ -1017,7 +1178,7 @@ int ShenCloud_autoLogin()
 	if (g_selectProto == 0 && g_nVmCount > 1)
 #endif
     {
-    		g_exit_waitting = 1;
+    	g_exit_waitting = 1;
 		SY_vmlistwindow_main();
 	}
     //SetSymsgContext(LOGIN_SUCCESSED);
@@ -1031,7 +1192,7 @@ int ShenCloud_autoLogin()
     return 0;
 }
 
-//�ƽ�����Ŀ�õ�
+//�ƽ�����Ŀ�õ�
 int ShenCloud_classLogin()
 {
    if (g_auto_login_first != 0)
@@ -1109,14 +1270,60 @@ int ShenCloud_classLogin()
     return 0;
 }
 
+struct St_calldata  g_dlneterr;
 
+gboolean show_dlneterror_dialog(gpointer* message)
+{
+	g_exit_waitting = 1;
+	SYMsgDialog2(7, g_dlneterr.szMsg);
+	exit_vimlist_win();
+	return FALSE;
+}
+
+void dlnet_login_error()
+{
+	g_idle_add(show_dlneterror_dialog, NULL);
+}
+void dlnet_login()
+{
+	if (Ovirt_Login(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	{
+		LogInfo("dlnet_login failed.\n");
+		strcpy(g_dlneterr.szMsg, "用户名或密码错误！");
+		dlnet_login_error();
+		return;
+	}
+	if (Ovirt_GetVms(ovirt_url, g_loginfo.user, g_loginfo.pass) < 0)
+	{
+		LogInfo("dlnet_login Ovirt get vms failed.\n");
+		strcpy(g_dlneterr.szMsg, "获取虚拟机信息失败！");
+		dlnet_login_error();
+		return;
+	}
+	if (SY_GetVms() < 0)
+    {
+    	LogInfo("dlnet_login Ovirt get vms failed.\n");
+		strcpy(g_dlneterr.szMsg, "获取虚拟机信息失败！");
+		dlnet_login_error();
+        return;
+    }
+#ifdef MEETING
+		char szMsg[BUF_MSG_LEN]= {0};
+		sprintf(szMsg, "\napagentui.ThinviewLogin####{\"username\": \"%s\"}\n", g_loginfo.user);
+		write(1, szMsg, strlen(szMsg));
+#endif
+	dlnet_vm_connect();
+}
 int ShenCloud_login()
 {
     LogInfo("it is login_window exit. \n");
 	g_selectProto = 0;
 	initOvirtUrl();
     if (get_ctrldata() < 0)
-      return -1;
+    {
+    	g_exit_waitting = 1;
+      	return -1;
+    }
      SetSymsgContext(LOGIN_STATUS_CONNECTING);
 	if (g_selectProto == 0)
 	{
@@ -1138,6 +1345,7 @@ int ShenCloud_login()
 	        LogInfo("main Ovirt login failed.\n");
 	        SetSymsgContext(LOGIN_STATUS_FAILED);
 	        g_loginExit = 1;
+			g_exit_waitting = 1;
 	        return -1;
 	    }
 		g_loginfo.repass = g_checkrepass;
@@ -1147,6 +1355,7 @@ int ShenCloud_login()
 	    {
 	        LogInfo("main Ovirt get vms failed.\n");
 	        SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
+			g_exit_waitting = 1;
 	        return -1;
 	    }
 	}
@@ -1156,6 +1365,7 @@ int ShenCloud_login()
         if (SY_GetVms() < 0)
         {
             SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
+			g_exit_waitting = 1;
             return -1;
         }
         SetSymsgContext(LOGIN_STATUS_GETVMS);
@@ -1186,9 +1396,15 @@ int ShenCloud_login()
 					if ( connectDisVm(node->val.ip, node->val.port, node->val.vmid, node->val.status) < 0 ) //add by kevin 2016/9/30
 					{
 						SetSymsgContext(LOGIN_STATUS_FAILED);
+						g_exit_waitting = 1;
 						return -1;
 					}
 					clean_ctrlpass();
+					g_exit_waitting = 1;
+#ifdef WUHUDX
+//退出到虚拟机列表
+					SetSymsgContext(LOGIN_SIGNELVM);
+#endif
 					return 0;
 				}
             }
@@ -2062,7 +2278,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(modify_pass), space_left2 + 40 + delay + 30 + delay + delay_image*2 - 10 + 40 + 10, 2*15 + delay_height + 20 + 20 + delay_height/2 - 2 + 10);
 		gtk_widget_set_size_request(GTK_WIDGET(modify_pass), 40, 20);
 	}
-	
+
 
 	//set text
   	gtk_label_set_justify(GTK_LABEL(label_user), GTK_JUSTIFY_RIGHT);
@@ -2112,7 +2328,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	setctrlFont(GTK_WIDGET(entry_pass), nsize);
 	setctrlFont(GTK_WIDGET(label_user), nsize);
 	setctrlFont(GTK_WIDGET(comboboxtext_user), nsize);
-	
+
 	setfontcolor(GTK_WIDGET(label_user), "#ffffff");
 	setfontcolor(GTK_WIDGET(label_pass), "#ffffff");
 	setfontcolor(GTK_WIDGET(label_rempass), "#ffffff");
@@ -2146,7 +2362,7 @@ void initUserCtrl(GtkBuilder *builder, GtkWidget *widget)
 	my_resize(widget, GTK_WIDGET(modify_pass), factor_x, factor_y);
 	gtk_widget_show(GTK_WIDGET(modify_pass));
 	*/
-	
+
 }
 
 void initLoginCtrl(GtkBuilder *builder, GtkWidget *widget)
@@ -2600,6 +2816,9 @@ void SY_loginwindow_main()
 {
 	if (showloginwindow == 1)
 	   return;
+	memset(g_MsgCall.szMsg, 0, sizeof(g_MsgCall.szMsg));
+	memset(g_szServerIP, 0, MAX_BUFF_SIZE);
+	g_curNetworkType = 0;
 	g_working = 0;
 	g_exit_waitting = 0;
 	glob.count = 0;
@@ -2614,7 +2833,7 @@ void SY_loginwindow_main()
     screen = gdk_screen_get_default();
     int scr_width = gdk_screen_get_width(screen);
     int scr_height = gdk_screen_get_height(screen);
-     LogInfo("ARM xxxxx scr_width = %d, scr_height = %d .\n", scr_width, scr_height);
+    LogInfo("ARM xxxxx scr_width = %d, scr_height = %d .\n", scr_width, scr_height);
 	int scr_layout3_height = scr_height - scr_layout2_height - scr_layout4_height; //The height of the four circle area
 	builder = gtk_builder_new();
 	int nRet = gtk_builder_add_from_file (builder, "loginwindow.glade", &error);
@@ -2713,10 +2932,12 @@ void SY_loginwindow_main()
 	//start_monitor_file_thrd();
 #ifdef MEETING
 	//add by kevin 170619
+	/*
 	if ( pthread_create(&g_readdataid, NULL, read_data, NULL) != 0 ) {
 		LogInfo("pthread_create read_data Error:%s\a\n", strerror(errno));
 		return -1;
-    }
+    }*/
+    g_thread_new("read_data", (GThreadFunc)thrd_read_data, g_window);
 #endif
 	gtk_main();
     g_object_unref(G_OBJECT(builder));
