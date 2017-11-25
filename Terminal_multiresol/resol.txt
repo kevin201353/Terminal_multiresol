@@ -1,3 +1,0 @@
-Screen 0: minimum 1280 x 1024, current 1280 x 1024, maximum 1280 x 1024
-default connected 1280x1024+0+0 0mm x 0mm
-   1280x1024      73.0* 
