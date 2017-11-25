@@ -9,6 +9,8 @@
 #include <termios.h> 
 
 static struct termios oldt;
+extern int g_mainExit;
+
 
 //restore terminal settings
 void restore_terminal_settings(void)
@@ -105,6 +107,8 @@ void linux_key_press2()
 	short    key_i = 0;
 	while(1)
 	{
+		if (g_mainExit == 1)
+			break;
 		for (i = 0; i < 32; i++) 
 		{
 	        sprintf(name, "/dev/input/event%d", i);
@@ -113,7 +117,8 @@ void linux_key_press2()
 	            ioctl(fd, EVIOCGNAME(sizeof(buf)), buf);
 	            ioctl(fd, EVIOCGBIT(0, sizeof(mask)), mask);
 	            //LogInfo("linux_key_press2, %s\n", buf);
-	            if (strcmp(buf, "Generic USB Keyboard") == 0)
+	           char *p = strstr(buf, "USB Keyboard");
+	           if (NULL != p)
 	            {
 	            	LogInfo("linux_key_press2, find USB Keyboard.\n");
 					flag = 1;

@@ -31,12 +31,19 @@ int Ovirt_Login(char *url, char *user, char* password)
     memset(g_szUrl, 0, MAX_DATA_SIZE);
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_LOGIN);
-    //printf("Ovirt_Login url :%s.\n", g_szUrl);
     LogInfo("Debug: Ovirt_Login url : %s.\n", g_szUrl);
+#if 1
+	char * p = strstr(user, "admin@internal");
+	if (NULL == p)
+	{
+		//普通用户，登录获取不到虚拟机列表
+		//用admin 用户登录一遍
+		Http_Request(g_szUrl, "admin@internal", password);
+	}
+#endif
 
     if (Http_Request(g_szUrl, user, password) < 0)
     {
-       printf("Ovirt login failed.\n");
        LogInfo("Debug: Ovirt login failed.\n");
 	   g_working = 0;
        return SY_OVIRT_LOGIN_FAILED;
@@ -61,15 +68,21 @@ int Ovirt_GetVms(char *url, char *user, char* password)
     strcat(g_szUrl, STR_OVIRT_GET_VMS);
   //  printf("Ovirt_getvms url :%s.\n", g_szUrl);
     LogInfo("Debug: Ovirt_getvms url : %s.\n", g_szUrl);
-
+    
     if (Http_Request(g_szUrl, user, password) < 0)
     {
-       printf("Ovirt get vms failed.\n");
-       LogInfo("Debug: Ovirt get vms failed.\n");
-	   g_working = 0;
-       return SY_OVIRT_GETVMS_FAILED;
+    	//这里增加获取两次虚拟机列表
+       LogInfo("Debug: Ovirt_getvms url, http request first failed, start second request.\n");
+       if (Http_Request(g_szUrl, user, password) < 0)
+	   {
+	       printf("Ovirt get vms failed.\n");
+	       LogInfo("Debug: Ovirt get vms failed.\n");
+		   g_working = 0;
+	       return SY_OVIRT_GETVMS_FAILED;
+       	}
     }
-	 g_working = 0;
+	LogInfo("Debug: Ovirt_getvms url, http request success.\n");
+	g_working = 0;
     return 0;
 }
 

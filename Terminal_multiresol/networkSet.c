@@ -4,15 +4,15 @@
 #include "global.h"
 #include <string.h>
 #include <unistd.h>
-static GtkBuilder *g_builder;
 
+GtkBuilder *g_builder = NULL;
 #define IMAGE_CHECKBUTTON_NOR  "images2/checkbtnset_nor.png"
 #define IMAGE_CHECKBUTTON_PRESS  "images2/checkbtnset_press.png"
 
 GdkPixbuf *g_checkNorimage;
 GdkPixbuf *g_checkPressimage;
 static unsigned short g_checkrepass = 0;
-static unsigned short g_bnetstatic = 0;
+int g_bnetstatic = 0;
 struct NetStaticInfo{
      char szIP[MAX_BUFF_SIZE];
      char szNetMask[MAX_BUFF_SIZE];
@@ -33,6 +33,9 @@ extern int check_ipv4_valid(char *s);
 extern void setfontcolor(GtkWidget * widget, char *value);
 static GtkWidget *btn_auto_dns;
 static GtkWidget *btn_manual_dns;
+//static GtkWidget *radio1;
+//static GtkWidget *radio2;
+
 
 void Msg2Dailog(char * sMsg)
 {
@@ -48,7 +51,7 @@ void Msg2Dailog(char * sMsg)
       case GTK_RESPONSE_YES:
          gtk_main_quit();
 #ifdef ARM
-			system("sudo echo 1 > /sys/class/graphics/fb0/blank");
+		 system("sudo echo 1 > /sys/class/graphics/fb0/blank");
 #endif
          system("sudo reboot");
          break;
@@ -276,7 +279,7 @@ int SetDhcpNet()
 int SetDns()
 {
     if (g_auto_get_ns == 1)
-    	{
+    {
 		system("sudo ifdown eth0 \nifup eth0");
 		if (access("/etc/resolvconf/resolv.conf.d/tail", F_OK) != -1)
 		{
@@ -425,11 +428,13 @@ void initStaticNetctrl()
     rabtn_dhcp = gtk_builder_get_object (g_builder, "rabtn_dhcp");
     if (isDhcp() == 1)
     {
-        gtk_toggle_button_set_active(rabtn_static, FALSE);
-		 gtk_toggle_button_set_active(btn_auto_dns, TRUE);
-		  SetDnsSensitive(0);
-	    netstaitc_entry_color("#EDF0F2");
-        LogInfo("Debug: initStaticNetctrl isDhcp .\n");
+		gtk_toggle_button_set_active(rabtn_static, FALSE);
+		gtk_toggle_button_set_active(btn_auto_dns, TRUE);
+		SetDnsSensitive(0);
+		netstaitc_entry_color("#EDF0F2");
+		LogInfo("Debug: initStaticNetctrl isDhcp .\n");
+		g_bnetstatic = 0;
+		
     }
 
     if (isStatic() == 1)
@@ -445,24 +450,8 @@ void initStaticNetctrl()
         gtk_entry_set_text(GTK_ENTRY(entry_netgatway), g_NetStaticInfo.szGatWay);
 		netstaitc_entry_color("#ffffff");
         LogInfo("Debug: initStaticNetctrl isStatic .\n");
+		g_bnetstatic = 1;
     }
-//	LogInfo("initStaticNetctrl  g_auto_get_us = %d.\n", g_auto_get_ns);
-//	if (isDynamic_dns() == 0)
-//	{
-//		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
-//		GetDns();
-//	    LogInfo("initStaticNetctrl  get dns, init control , dns1=%s, dns2=%s, dns3=%s.\n", g_NetStaticInfo.szDns[0], g_NetStaticInfo.szDns[1],g_NetStaticInfo.szDns[2]);
-//	    entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
-//	    gtk_entry_set_text(GTK_ENTRY(entry_netdns), g_NetStaticInfo.szDns[0]);
-//	    entry_netdns2 = gtk_builder_get_object (g_builder, "entry_netdns2");
-//	    gtk_entry_set_text(GTK_ENTRY(entry_netdns2), g_NetStaticInfo.szDns[1]);
-//	    entry_netdns3 = gtk_builder_get_object (g_builder, "entry_netdns3");
-//	    gtk_entry_set_text(GTK_ENTRY(entry_netdns3), g_NetStaticInfo.szDns[2]);
-//	}else
-//	{
-//		gtk_toggle_button_set_active(btn_auto_dns, TRUE);
-//	}
-
 	if (access("/etc/resolvconf/resolv.conf.d/tail", F_OK) != -1)
 	{
 		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
@@ -572,30 +561,31 @@ void GetNetStaticInfo()
     //strcpy(g_NetStaticInfo.szDns, gtk_entry_get_text(GTK_ENTRY(entry_netdns)));
 }
 
-void SetNetCtrlSensitive(unsigned short value)
+void SetNetCtrlSensitive(int value)
 {
     GObject *label_netip;
     GObject *label_netmask;
     GObject *label_netgatway;
-    GObject *label_netdns;
+    //GObject *label_netdns;
 
     GObject *entry_netip;
     GObject *entry_netmask;
     GObject *entry_netgatway;
-    GObject *entry_netdns;
-
+    //GObject *entry_netdns;
+	if (NULL == g_builder)
+		return;
     label_netip = gtk_builder_get_object (g_builder, "label_netip");
     label_netmask = gtk_builder_get_object (g_builder, "label_netmask");
     label_netgatway = gtk_builder_get_object (g_builder, "label_netgatway");
-    label_netdns = gtk_builder_get_object (g_builder, "label_netdns");
+    //label_netdns = gtk_builder_get_object (g_builder, "label_netdns");
     gtk_widget_set_sensitive(GTK_WIDGET(label_netip), value);
     gtk_widget_set_sensitive(GTK_WIDGET(label_netmask), value);
     gtk_widget_set_sensitive(GTK_WIDGET(label_netgatway), value);
-    gtk_widget_set_sensitive(GTK_WIDGET(label_netdns), value);
+    //gtk_widget_set_sensitive(GTK_WIDGET(label_netdns), value);
     entry_netip = gtk_builder_get_object (g_builder, "entry_netip");
     entry_netmask = gtk_builder_get_object (g_builder, "entry_netmask");
     entry_netgatway = gtk_builder_get_object (g_builder, "entry_netgatway");
-    entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
+    //entry_netdns = gtk_builder_get_object (g_builder, "entry_netdns");
     gtk_widget_set_sensitive(GTK_WIDGET(entry_netip), value);
     gtk_widget_set_sensitive(GTK_WIDGET(entry_netmask), value);
     gtk_widget_set_sensitive(GTK_WIDGET(entry_netgatway), value);
@@ -608,24 +598,23 @@ void rabtn_static_button_callback(GtkWidget *check_button, gpointer data)
     {
         printf("check button selected\n");
         //到这里，是选这了Radio 静态IP地址
-        SetNetCtrlSensitive(1);
+		SetNetCtrlSensitive(1);
 		netstaitc_entry_color("#ffffff");
 		dns_entry_color("#ffffff");
 		gtk_toggle_button_set_active(btn_manual_dns, TRUE);
 		gtk_widget_set_sensitive(GTK_WIDGET(btn_auto_dns), FALSE);
-        g_bnetstatic = 1;
+		g_bnetstatic = 1;
     }
     else
     {
         printf("check button unselected\n");
-        SetNetCtrlSensitive(0);
+		SetNetCtrlSensitive(0);
 		netstaitc_entry_color("#EDF0F2");
 		gtk_widget_set_sensitive(GTK_WIDGET(btn_auto_dns), TRUE);
 		net_static_data_clean();
-        g_bnetstatic = 0;
+		g_bnetstatic = 0;
     }
 }
-
 
 void selnet_static_button_callback(GtkWidget *check_button, gpointer data)
 {
@@ -776,11 +765,11 @@ void init_network_pos(GtkBuilder *g_builder)
     GObject * comboboxtext_netinter = gtk_builder_get_object (g_builder, "comboboxtext_netinter");
     gtk_combo_box_text_insert_text((GtkComboBoxText *)comboboxtext_netinter, 0, "eth0");
     gtk_combo_box_set_active((GtkComboBox *)comboboxtext_netinter, 0);
-	g_signal_connect(G_OBJECT(rabtn_static), "toggled", G_CALLBACK(rabtn_static_button_callback), NULL);
+	g_signal_connect(G_OBJECT(rabtn_static), "toggled", G_CALLBACK(rabtn_static_button_callback), NULL); //toggled
     g_signal_connect(G_OBJECT(btn_savenetwork), "clicked", G_CALLBACK(savenetwork_button_clicked), NULL);
 	int font_size = 0;
 	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		font_size = 9;
 		setctrlFont(GTK_WIDGET(label_wan), font_size);
@@ -1347,16 +1336,11 @@ static void init_entry_event()
 
 void init_dnssel_pos(GtkWidget * widget, int x, int y)
 {
-	GtkWidget *box, *radio1, *radio2;
+	GtkWidget *box;
 	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
 	gtk_box_set_homogeneous (GTK_BOX(box), TRUE);
-	radio1 = gtk_radio_button_new_with_label (NULL, "自动获得DNS服务器地址");
-	radio2 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON (radio1),
-	                                                 "手动设置DNS服务器地址");
-	btn_auto_dns = radio1;
-	btn_manual_dns = radio2;
-	gtk_box_pack_start (GTK_BOX (box), radio1, TRUE, TRUE, 2);
-	gtk_box_pack_start (GTK_BOX (box), radio2, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), btn_auto_dns, TRUE, TRUE, 2);
+	gtk_box_pack_start (GTK_BOX (box), btn_manual_dns, TRUE, TRUE, 2);
 	gtk_container_add (GTK_CONTAINER (widget), box);
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(box), x, y);
 	GdkScreen* screen;
@@ -1367,10 +1351,10 @@ void init_dnssel_pos(GtkWidget * widget, int x, int y)
 	if ((scr_width == 1024 && scr_height == 768  ) ||
 		(scr_width == 1440 && scr_height == 900) ||
 		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-		(scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		font_size = 9;
-	}else if ( (scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
+	}else if ( (scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		font_size = 11;
 	}
@@ -1381,12 +1365,12 @@ void init_dnssel_pos(GtkWidget * widget, int x, int y)
 	{
 		font_size = 9;
 	}
-	setctrlFont(GTK_WIDGET(radio1), font_size);
-	setctrlFont(GTK_WIDGET(radio2), font_size);
-	setfontcolor(GTK_WIDGET(radio1),"#282C34");
-	setfontcolor(GTK_WIDGET(radio2),"#282C34");
+	setctrlFont(GTK_WIDGET(btn_auto_dns), font_size);
+	setctrlFont(GTK_WIDGET(btn_manual_dns), font_size);
+	setfontcolor(GTK_WIDGET(btn_auto_dns),"#282C34");
+	setfontcolor(GTK_WIDGET(btn_manual_dns),"#282C34");
 	gtk_widget_set_size_request(GTK_WIDGET(box), 100, 40);
-	g_signal_connect(G_OBJECT(radio1), "toggled", G_CALLBACK(selnet_static_button_callback), NULL);
+	g_signal_connect(G_OBJECT(btn_auto_dns), "toggled", G_CALLBACK(selnet_static_button_callback), NULL);
 	gtk_widget_show (box);
 }
 
@@ -1395,7 +1379,10 @@ int SY_NetworkSet_main()
     g_builder = gtk_builder_new();
     GError *error = NULL;
     gtk_builder_add_from_file (g_builder, "network.glade", &error);
-
+	btn_auto_dns = gtk_radio_button_new_with_label (NULL, "自动获得DNS服务器地址");
+	GSList *radio_group;
+	radio_group = gtk_radio_button_get_group(btn_auto_dns);  
+	btn_manual_dns = gtk_radio_button_new_with_label(radio_group, "手动设置DNS服务器地址");
 	init_network_pos(g_builder);
 
     g_checkNorimage = gdk_pixbuf_new_from_file(IMAGE_CHECKBUTTON_NOR, NULL);

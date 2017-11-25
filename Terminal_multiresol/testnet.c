@@ -35,12 +35,6 @@ void check_net_status(GtkWidget *widget);
 
 static void* thrd_auto_login()
 {
-	while(1)
-	{
-		if (g_auto_login == 1)
-			break;
-		sleep(2);
-	}
 	if (g_auto_login == 1)
 	{
 		struct ServerInfo  serverInfo;
@@ -107,7 +101,6 @@ void call_msg_win_back(MsgCallWin fun, gpointer data)
 static gboolean terminate (GThread *thread)
 {
    g_thread_join(thread);
-   call_msg_win_back(msg_respose_win, 1);
    return FALSE;
 }
 
@@ -115,15 +108,16 @@ static void *thread_func (GtkWidget *widget)
 {
   for (;;)
     {
-       //if (g_auto_login == 1)
-	   //	break;
-      //usleep (100000); /* 0.1 s */
-#ifdef ARM
-	usleep(3 * 100000);
-#else
-      sleep(3);
-#endif
       gdk_threads_add_idle ((GSourceFunc)update_widget, widget);
+#ifdef ARM
+	sleep(2);
+#else
+#ifdef DOUBLENET
+      usleep(80000);
+#else
+      sleep(2);
+#endif
+#endif
     }
 
   /* Make sure this thread is joined properly */
@@ -134,13 +128,14 @@ static void *thread_func (GtkWidget *widget)
 static gboolean login_terminate(GThread *thread)
 {
 	g_thread_join(thread);
-	call_msg_win_back(msg_respose_win, 2);
+	//call_msg_win_back(msg_respose_win, 2);
 	return FALSE;
 }
 
 static void *autologin_func(GtkWidget *widget)
 {
 	thrd_auto_login();
+	call_msg_win_back(msg_respose_win, 2);
 	gdk_threads_add_idle ((GSourceFunc)login_terminate, g_thread_self());
 	return NULL;
 }
@@ -207,40 +202,45 @@ void check_net_status(GtkWidget *widget)
 			{
 				//printf("%s : link up\n", hw_name);
 				gtk_image_set_from_pixbuf(GTK_IMAGE(image_netstatus), g_netstatus_Up);
-				GetLoginInfo(&infot);
-				LogInfo("thrd_net_setup 22222222222222222222 000000 g_auto_login = %d.\n", g_auto_login);
+				//LogInfo("thrd_net_setup 22222222222222222222 000000 g_auto_login = %d.\n", g_auto_login);
 				if (infot.autologin == 1 && g_auto_login == 0)
 				{
 					//LogInfo("thrd_net_setup 22222222222222222222 .\n");
 					g_auto_login = 1;
 				}
-#ifdef DOUBLENET
-				if (g_netstatfirst == 0)
+//#ifdef DOUBLENET
+				if (g_protype.dlnetstr == 1)
 				{
-					char szMsg[BUF_MSG_LEN]= {0};
-					sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"1\",\"pre\":\"%d\"}\n", g_curNetworkType);
-					write(1, szMsg, strlen(szMsg));
-					g_netstatfirst = 1;
-					LogInfo("network check status is normal, notice java msg: %s.", szMsg);
+					if (g_netstatfirst == 0)
+					{
+						char szMsg[BUF_MSG_LEN]= {0};
+						sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"1\",\"pre\":\"%d\"}\n", g_curNetworkType);
+						write(1, szMsg, strlen(szMsg));
+						g_netstatfirst = 1;
+						LogInfo("network check status is normal, notice java msg: %s.", szMsg);
+					}
 				}
-#endif
+//#endif
 			}
 			break;	
 		  
 		case IFSTATUS_DOWN:  
 			//printf("%s : link down\n", hw_name);
 			gtk_image_set_from_pixbuf(GTK_IMAGE(image_netstatus), g_netstatus_Down);
-			LogInfo("thrd_net_setup, network check status is down.");
-#ifdef DOUBLENET
-			if (g_netstatfirst == 1)
+			//LogInfo("thrd_net_setup, network check status is down.");
+//#ifdef DOUBLENET
+			if (g_protype.dlnetstr == 1)
 			{
-				char szMsg[BUF_MSG_LEN]= {0};
-				sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"0\",\"pre\":\"%d\"}\n", g_curNetworkType);
-				write(1, szMsg, strlen(szMsg));
-				LogInfo("network check status is down, notice java msg: %s.", szMsg);
-				g_netstatfirst = 0;
+				if (g_netstatfirst == 1)
+				{
+					char szMsg[BUF_MSG_LEN]= {0};
+					sprintf(szMsg, "\napagentui.ThinviewNetworkStateChange####{\"current\":\"0\",\"pre\":\"%d\"}\n", g_curNetworkType);
+					write(1, szMsg, strlen(szMsg));
+					LogInfo("network check status is down, notice java msg: %s.", szMsg);
+					g_netstatfirst = 0;
+				}
 			}
-#endif
+//#endif
 			break;	
 		  
 		default:  
@@ -254,87 +254,13 @@ void check_net_status(GtkWidget *widget)
 void Net_status_checking(GtkBuilder *builder, GtkWidget *widget)
 {
 	g_builder = builder;
+	GetLoginInfo(&infot);
 	gethw_name();
 	g_auto_login = 0;
 	g_netstatfirst = 0;
 	g_thread_new ("netstatus", (GThreadFunc)thread_func, widget);
-//	if ( pthread_create(&tid_autologin, NULL, thrd_auto_login, NULL) !=0 )
-//	{
-//		printf("Create thread error!\n");
-//	}
-	g_thread_new ("autologin", (GThreadFunc)autologin_func, widget);
-
+	if (infot.autologin == 1)
+	{
+		g_thread_new ("autologin", (GThreadFunc)autologin_func, widget);
+	}
 }
-
-void login_exit_thrd()
-{
-	pthread_exit(tid_autologin);
-}
-
-//static pthread_t tid;
-//static void* thrd_net_setup()
-//{
-//	for (;;)
-//	{
-//		int fd;
-//		interface_status_t status;
-//		GObject *image_netstatus;
-//		image_netstatus = gtk_builder_get_object (g_builder, "image_netstatus");
-//		  
-//		if((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)  
-//		{  
-//			perror("socket ");	
-//			break; 
-//		}
-//		LogInfo("thrd_net_setup 333333333333333333 .\n");
-//		status = interface_detect_beat_ethtool(fd, hw_name);  
-//		close(fd);
-//		if (status == IFSTATUS_UP)
-//		{
-//			LogInfo("thrd_net_setup 22222222222222222222 .\n");
-//			ShenCloud_autoLogin();
-//			break;
-//		}
-//		sleep(1);
-//	}
-//}
-
-//void wait_net_setup()
-//{
-//	gethw_name();
-//	if ( pthread_create(&tid, NULL, thrd_net_setup, NULL) !=0 ) 
-//	{
-//		printf("Create thread error!\n");
-//	};
-//	pthread_join(tid, NULL);
-//	for (;;)
-//	{
-//		int fd;
-//		interface_status_t status;
-//		GObject *image_netstatus;
-//		image_netstatus = gtk_builder_get_object (g_builder, "image_netstatus");
-//		  
-//		if((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)  
-//		{  
-//			perror("socket ");	
-//			break; 
-//		}
-//		LogInfo("thrd_net_setup 333333333333333333 .\n");
-//		status = interface_detect_beat_ethtool(fd, hw_name);  
-//		close(fd);
-//		if (status == IFSTATUS_UP)
-//		{
-//			LogInfo("thrd_net_setup 22222222222222222222 .\n");
-//			ShenCloud_autoLogin();
-//			break;
-//		}
-//		sleep(1);
-//	}
-//}
-
-//int main (int argc, char *argv[])  
-//{   
-	//g_thread_new ("netstatus", (GThreadFunc)thread_func, label_time);
-	//return 0;  
-//}  
-

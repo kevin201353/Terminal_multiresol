@@ -149,6 +149,8 @@ void parse_json(char *data, char *key, char *val, char* arrkey)
     	{
 		// ��������ֵ
 		json_data = cJSON_GetObjectItem(json, key);
+		if (NULL == json_data)
+			return;
 		if (json_data->type == cJSON_False)
 		{
 		 	sprintf(szDebug, "parse_json Number, key=%s, val=%d", key, json_data->valueint);
@@ -167,6 +169,12 @@ void parse_json(char *data, char *key, char *val, char* arrkey)
 		    sprintf(szDebug, "parse_json, key=%s, val=%s", key, json_data->valuestring);
 		    LogInfo(szDebug);
 			strcpy(val, json_data->valuestring);
+		}
+		if (json_data->type == cJSON_Number)
+		{
+			sprintf(szDebug, "parse_json Number 33, key=%s, val=%d", key, json_data->valueint);
+	    	LogInfo(szDebug);
+			sprintf(val, "%d", json_data->valueint);
 		}
 		if (json_data->type == cJSON_Array)
 		{
@@ -359,7 +367,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	else if (scr_width == 1440 && scr_height == 900 ||
 		scr_width == 1600 && scr_height == 900)
 		nsize = 12;
-	else if (scr_width == 1280 && scr_height == 1024)
+	else if ((scr_width == 1280 && scr_height == 1024))
 	{
 		nsize = 12;
 	}
@@ -421,7 +429,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 		entrypass_height = 30;
 		nsize = 12;
 	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-	  (scr_width == 1600 && scr_height == 1080) )
+	  (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050) )
 	{
 		win_width = 300;
 		win_height = 100;
@@ -497,7 +505,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int pic_logo_width = 0;
 	int pic_logo_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -559,7 +567,7 @@ static void init_ctrl_image(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 ) || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);

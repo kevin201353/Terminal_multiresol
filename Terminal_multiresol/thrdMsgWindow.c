@@ -96,7 +96,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 //		win_width = 300;
 //		win_height = 100;
 //	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)||(scr_width == 1440 && scr_height == 900) || 
-//	  (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+//	  (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 //	{
 //		win_width = 470;
 //		win_height = 170;
@@ -152,7 +152,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtext_height = 90;
 		nsize = 12;
 	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || 
-	  (scr_width == 1600 && scr_height == 1080))
+	  (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 //		win_width = 470;
 //		win_height = 160;
@@ -218,8 +218,8 @@ static void init_ctrl_size(GtkBuilder *builder)
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
-	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1440 && scr_height == 900) || 
-	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||  (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)|| (scr_width == 1440 && scr_height == 900) || 
+	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||  (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gdk_pixbuf_get_file_info("images2/close_set.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -281,8 +281,8 @@ static void init_ctrl_image(GtkBuilder *builder)
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
-	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1440 && scr_height == 900) || 
-	    (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)|| (scr_width == 1440 && scr_height == 900) || 
+	    (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/close_set_22.png", NULL);

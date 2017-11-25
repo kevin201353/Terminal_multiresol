@@ -7,17 +7,16 @@
 //Date: 2016/6/23
 **************/
 #include "vms.h"
-#include<sys/stat.h>
-#include<unistd.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 mxml_node_t *g_tree = NULL;  //用来解析xml文件
 mxml_node_t *g_treeTmp = NULL;  //用来解析xml文件
 static struct ServerInfo  serverInfo;
 
-
 void InitVmsUpdate()
 {
-    for (int i=0; i<MAX_BUFF_SIZE; i++)
+    for (int i=0; i<MAX_BUFF_VM; i++)
     {
          memset(g_vmsComUpdate[i].name, 0, sizeof(char) * MAX_BUFF_SIZE);
          memset(g_vmsComUpdate[i].os, 0, sizeof(char) * MAX_BUFF_SIZE);
@@ -149,7 +148,7 @@ void FindNode(char* value)
                      mxml_node_t * tmp_node = mxmlFindElement(heading, node, "name",
                                                NULL, NULL,
                                                MXML_DESCEND);
-                     printf("222222222, get vms attribute.\n");
+                     //printf("222222222, get vms attribute.\n");
                      if (tmp_node)
                      {
                         strcpy(pNode->val.name, tmp_node->child->value.text.string);
@@ -248,7 +247,7 @@ void FindNode(char* value)
                                                  MXML_DESCEND);
 						if (typeNode)
 						{
-                        	strcpy(pNode->val.ip, /*g_szServerIP*/typeNode->child->value.text.string);
+							strcpy(pNode->val.ip, typeNode->child->value.text.string);
 						}
 
 						typeNode = mxmlFindElement(tmp_node, heading, "port",
@@ -293,6 +292,11 @@ void FindNode2(char* value)
              {
                  if (strcmp(mxmlGetElement(heading), "vm") == 0)
                  {
+                 	if (g_vmsComCount >= 500)
+                 	{
+						LogInfo("Debug: FindNode2 , get server vm count >= 500, to Max value, return .\n");
+						return;
+					}
                      //LogInfo("Debug: [FindNode2 xml :xxx node: %s].\n", mxmlElementGetAttr(heading, "id"));
                     strcpy(g_vmsComUpdate[g_vmsComCount].vmid, mxmlElementGetAttr(heading, "id"));
                      //get vms name
@@ -385,7 +389,7 @@ void FindNode2(char* value)
                         //printf(" vms address : %s. \n", tmp_node->child->value.text.string);
                         if (typeNode)
                         {
-                        	strcpy(g_vmsComUpdate[g_vmsComCount].ip, /*g_szServerIP*/typeNode->child->value.text.string);
+							strcpy(g_vmsComUpdate[g_vmsComCount].ip, typeNode->child->value.text.string);
                         }
 						//port
 	                    typeNode = mxmlFindElement(tmp_node, heading, "port",
@@ -414,7 +418,7 @@ int SY_GetVms()
     SY_FreeVmsList();
     g_nVmCount = 0;
     //printf("SY_Get Vms @@@@@ 22.\n");
-#if 1
+#if 0
     //test
     memset(g_szServerIP, 0, MAX_BUFF_SIZE);
 	GetServerInfo2(&serverInfo);
@@ -436,7 +440,7 @@ int SY_GetVms2()
     {
         return -1;
     }
-	#if 1
+#if 0
     //test
     memset(g_szServerIP, 0, MAX_BUFF_SIZE);
 	GetServerInfo2(&serverInfo);
@@ -462,7 +466,7 @@ int SY_GetVmsTicket(char * szTicket)
       												 MXML_DESCEND);
       		if (node != NULL)
       		{
-      			 printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
+      			 //printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
              strcpy(szTicket, node->child->value.text.string);
       		}
 			node = mxmlFindElement(g_tree, g_tree, "state",
@@ -470,7 +474,7 @@ int SY_GetVmsTicket(char * szTicket)
       												 MXML_DESCEND);
       		if (node != NULL)
       		{
-      			 printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
+      			 //printf("SY Get Vms Ticket: %s.\n", node->child->value.text.string);
 				 if (strcmp(node->child->value.text.string, "failed") == 0)
 				 {
 				 	if (NULL != fp)
@@ -509,20 +513,23 @@ unsigned short SY_GetVmState(char* vmid)
                                  MXML_DESCEND);
             if (node != NULL)
             {
-                 printf("SY_GetVmsState: %s.\n", node->child->value.text.string);
-                 if (strcmp(node->child->value.text.string, VMS_STATE_UP) == 0)
-                   state = 1;
-                 else if (strcmp(node->child->value.text.string, VMS_STATE_DOWN) == 0)
-                   state = 0;
-                 else if (strcmp(node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
-				 	strcmp(node->child->value.text.string, VMS_STATE_PAUSED) == 0 )
-                   state = 2;
-                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGUP) == 0)
-                   state = 3;
-                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
-                   state = 4;
-                 else if (strcmp(node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0)
-                   state = 5;
+                 //printf("SY_GetVmsState: %s.\n", node->child->value.text.string);
+                 if (node->child)
+                 {
+	                 if (strcmp(node->child->value.text.string, VMS_STATE_UP) == 0)
+	                   state = 1;
+	                 else if (strcmp(node->child->value.text.string, VMS_STATE_DOWN) == 0)
+	                   state = 0;
+	                 else if (strcmp(node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
+					 	strcmp(node->child->value.text.string, VMS_STATE_PAUSED) == 0 )
+	                   state = 2;
+	                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGUP) == 0)
+	                   state = 3;
+	                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
+	                   state = 4;
+	                 else if (strcmp(node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0)
+	                   state = 5;
+                 }
             }//if
         }
 		if (NULL != g_tree)

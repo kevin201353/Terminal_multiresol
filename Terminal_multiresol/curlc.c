@@ -81,7 +81,7 @@ void set_share_handle(CURL *curl_handle)
 		curl_share_setopt(share_handle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
 	}
 	curl_easy_setopt(curl_handle, CURLOPT_SHARE, share_handle);
-	curl_easy_setopt(curl_handle, CURLOPT_DNS_CACHE_TIMEOUT, 5);
+	curl_easy_setopt(curl_handle, CURLOPT_DNS_CACHE_TIMEOUT, 20);
 }
 
 void Init_Curlc()
@@ -153,7 +153,8 @@ int Http_Request(char *url, char *user, char* password)
 	LogInfo(" Debug: curl.c  Http_Request g_szUser and pass : %s.\n", szbuf);
 	if (p == NULL)
 	{
-	    //printf("Debug:###########    00000 filter : true.\n");
+	    //LogInfo("Debug:###########    00000 filter : true.\n");
+	    set_share_handle(g_curl);
 		headers = curl_slist_append(headers, "filter: true");
 		headers = curl_slist_append(headers, "Prefer: persistent-auth");
 		headers = curl_slist_append(headers, "Connection: close");
@@ -166,15 +167,16 @@ int Http_Request(char *url, char *user, char* password)
 		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_easy_setopt(g_curl, CURLOPT_SSL_VERIFYHOST, 0);
 		curl_easy_setopt(g_curl,  CURLOPT_TIMEOUT, 3);  //add http timeout
-		// printf("Debug:###########    00000 filter aaaaaa: true.\n");
+		// LogInfo("Debug:###########    00000 filter aaaaaa: true.\n");
 		if (g_curl != NULL)
 				res = curl_easy_perform(g_curl);
 		if (headers != NULL)
 				curl_slist_free_all(headers);
 
-		//printf("Debug:###########    00000 filter bbbbbbb: true.\n");
+		//LogInfo("Debug:###########    00000 filter bbbbbbb: true.\n");
 	}else{
-			 //printf("Debug:###########    00000 111 filter : true.\n");
+			 //LogInfo("Debug:###########    00000 111 filter : true.\n");
+		set_share_handle(g_curl);
 	    curl_easy_setopt(g_curl, CURLOPT_COOKIEJAR, "/tmp/cookies.txt");
 		curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
 		curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_data);
@@ -192,13 +194,14 @@ int Http_Request(char *url, char *user, char* password)
 	}
 	if(res != CURLE_OK)
 	{
-		 fprintf(stderr, "curl_easy_perform() failed: %s\n",
-		         curl_easy_strerror(res));
+		 //fprintf(stderr, "curl_easy_perform() failed: %s\n",
+		 //        curl_easy_strerror(res));
+		 LogInfo("Http_Request, curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 		 Close_Session();
 		 Xml_Close();
 		 return -1;
 	}
-	//printf("http request success.\n" );
+	LogInfo("Http_Request success.\n" );
 	Close_Session();
 	Xml_Close();
 	return 0;
@@ -212,15 +215,12 @@ int Http_Post(char *url, char *user, char* password, char *data)
         //printf("Http_Post g_curl == null ,return.\n");
         return -1;
     }
-   // pthread_mutex_lock( &g_mutex1 );
     if((g_ticket = fopen(FILE_OVIRT_TICKET_PATH,"w")) == NULL)
     {
-        //pthread_mutex_unlock( &g_mutex1 );
         printf("http_post fopen ticket xml file failed.\n");
         Close_Session();
         return -1;
     }
-    //pthread_mutex_unlock( &g_mutex1 );
     char szbuf[512] = {0};
     strcat(szbuf, user);
     //strcat(szbuf, "@internal");
@@ -236,6 +236,7 @@ int Http_Post(char *url, char *user, char* password, char *data)
 	headers = curl_slist_append(headers, "Prefer: persistent-auth");
 	headers = curl_slist_append(headers, "Connection: close");
     headers = curl_slist_append(headers, "Content-Type: application/xml");
+	set_share_handle(g_curl);
     curl_easy_setopt(g_curl, CURLOPT_HTTPHEADER, headers);// 改协议头
     //curl_easy_setopt(g_curl, CURLOPT_COOKIEFILE, "/tmp/cookie.txt"); // 指定cookie文件
     //curl_easy_setopt(g_curl, CURLOPT_WRITEFUNCTION, write_ticket);
@@ -253,8 +254,9 @@ int Http_Post(char *url, char *user, char* password, char *data)
     /* Check for errors */
     if(res != CURLE_OK)
     {
-       fprintf(stderr, "curl_easy_perform() failed: %s\n",
-             curl_easy_strerror(res));
+       //fprintf(stderr, "curl_easy_perform() failed: %s\n",
+       //      curl_easy_strerror(res));
+	   LogInfo("Http_Post, curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
        curl_slist_free_all(headers);
        Close_Session();
        fclose(g_ticket);
@@ -295,8 +297,9 @@ int Http_Request3(char *url, char *path)
 		res = curl_easy_perform(g_curl);
 	if(res != CURLE_OK)
 	{
-		 fprintf(stderr, "curl_easy_perform() failed: %s\n",
-		         curl_easy_strerror(res));
+		 //fprintf(stderr, "curl_easy_perform() failed: %s\n",
+		 //        curl_easy_strerror(res));
+		 LogInfo("Http_Request3, curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 		 Close_Session();
 		 return -1;
 	}
@@ -311,14 +314,11 @@ int Http_Request3(char *url, char *path)
 
 int Http_Request2(char *url, char *user, char* password, char *path)
 {
-    //pthread_mutex_lock( &g_mutex1 );
     if((g_fptmp = fopen(path,"w")) == NULL)
     {
-        //pthread_mutex_unlock( &g_mutex1 );
         printf("http_request2 fopen ovirt info file failed.\n");
         return -1;
     }
-    //pthread_mutex_unlock( &g_mutex1 );
     Start_Session();
     if (g_curl == NULL)
     {
@@ -372,12 +372,12 @@ int Http_Request2(char *url, char *user, char* password, char *path)
    /* Check for errors */
    if(res != CURLE_OK)
    {
-     fprintf(stderr, "curl_easy_perform() failed: %s\n",
-             curl_easy_strerror(res));
+     //fprintf(stderr, "curl_easy_perform() failed: %s\n",
+     //        curl_easy_strerror(res));
+     LogInfo("Http_Request2, curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
      Close_Session();
      return -1;
    }
-   printf("http request2 success, url = %s, szbuf = %s.\n", url, szbuf);
    Close_Session();
    if (g_fptmp != NULL)
    {

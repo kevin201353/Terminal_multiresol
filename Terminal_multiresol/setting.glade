@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.16.1 -->
+<!-- Generated with glade 3.18.3 -->
 <interface>
   <requires lib="gtk+" version="3.10"/>
   <object class="GtkImage" id="image_close">
@@ -17,8 +17,6 @@
     <property name="window_position">center</property>
     <property name="decorated">False</property>
     <property name="gravity">center</property>
-    <property name="type">GTK_WINDOW_TOPLEVEL</property>
-    <property name="has_resize_grip">False</property>
     <child>
       <object class="GtkLayout" id="layout1">
         <property name="name">layout1</property>
@@ -139,7 +137,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entry_serverip">
-						    <property name="name">entry_serverip</property>
+                            <property name="name">entry_serverip</property>
                             <property name="width_request">100</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
@@ -184,8 +182,8 @@
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.85000002384185791</property>
                             <property name="justify">right</property>
+                            <property name="xalign">0.85000002384185791</property>
                           </object>
                           <packing>
                             <property name="x">173</property>
@@ -194,13 +192,13 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entry_port">
-						    <property name="name">entry_port</property>
+                            <property name="name">entry_port</property>
                             <property name="width_request">30</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="max_length">5</property>
                             <property name="width_chars">8</property>
-				   <property name="max_length">5</property>
                           </object>
                           <packing>
                             <property name="x">278</property>
@@ -214,8 +212,8 @@
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.85000002384185791</property>
                             <property name="justify">right</property>
+                            <property name="xalign">0.85000002384185791</property>
                           </object>
                           <packing>
                             <property name="x">173</property>
@@ -224,7 +222,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entryset_user">
-						    <property name="name">entryset_user</property>
+                            <property name="name">entryset_user</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -243,8 +241,8 @@
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="xalign">0.85000002384185791</property>
                             <property name="justify">right</property>
+                            <property name="xalign">0.85000002384185791</property>
                           </object>
                           <packing>
                             <property name="x">173</property>
@@ -253,7 +251,7 @@
                         </child>
                         <child>
                           <object class="GtkEntry" id="entryset_pass">
-						    <property name="name">entryset_pass</property>
+                            <property name="name">entryset_pass</property>
                             <property name="height_request">30</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -316,8 +314,8 @@
                             <property name="name">label_sysresol</property>
                             <property name="width_request">100</property>
                             <property name="height_request">30</property>
-                            <property name="can_focus">False</property>
                             <property name="visible">True</property>
+                            <property name="can_focus">False</property>
                             <property name="label" translatable="yes">label</property>
                           </object>
                           <packing>
@@ -330,9 +328,9 @@
                             <property name="name">comboboxtext_resol</property>
                             <property name="width_request">150</property>
                             <property name="height_request">30</property>
+                            <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="active">0</property>
-                            <property name="visible">True</property>
                           </object>
                           <packing>
                             <property name="x">208</property>
@@ -347,8 +345,8 @@
                             <property name="can_focus">False</property>
                             <child>
                               <object class="GtkImage" id="image_manualresol">
-                                <property name="can_focus">False</property>
                                 <property name="visible">True</property>
+                                <property name="can_focus">False</property>
                                 <property name="pixbuf">images2/checkbtn_nor.png</property>
                               </object>
                             </child>
@@ -370,6 +368,38 @@
                           <packing>
                             <property name="x">578</property>
                             <property name="y">504</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkEventBox" id="eventbox_demon">
+                            <property name="width_request">15</property>
+                            <property name="height_request">15</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <child>
+                              <object class="GtkImage" id="image_demon">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="stock">gtk-missing-image</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="x">90</property>
+                            <property name="y">436</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label_demon">
+                            <property name="width_request">100</property>
+                            <property name="height_request">30</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">label</property>
+                          </object>
+                          <packing>
+                            <property name="x">97</property>
+                            <property name="y">428</property>
                           </packing>
                         </child>
                       </object>

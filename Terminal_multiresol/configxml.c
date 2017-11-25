@@ -59,10 +59,9 @@ void Parsexml(char * element,  char * value,  int ntype)
         												 MXML_DESCEND);
         		if (node != NULL)
         		{
-               if (node->child != NULL)
-                  strcpy(value, node->child->value.text.string);
-        			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
-               //memcpy(value, node->child->value.text.string, strlen(node->child->value.text.string));
+	               if (node->child != NULL)
+	                  strcpy(value, node->child->value.text.string);
+        			 //LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
         		}
 			mxmlDelete(g_tree);
       	}
@@ -86,11 +85,11 @@ void Parsexml2(char * file, char *element, char * value)
         												 MXML_DESCEND);
         		if (node != NULL)
         		{
-               if (node->child != NULL)
-               {
-                  strcpy(value, node->child->value.text.string);
-        			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
-               }
+	               if (node->child != NULL)
+	               {
+	                  strcpy(value, node->child->value.text.string);
+	        			 LogInfo("login xml get element :%s  value: %s.\n", element, node->child->value.text.string);
+	               }
         		}//if node != NULL
         	    mxmlDelete(g_tree);
       	}
@@ -190,6 +189,12 @@ void SaveServerInfo(struct ServerInfo info)
     mxmlNewText(node, 0, szTmp);
     node = mxmlNewElement(node_server, "resolution_value");
     mxmlNewText(node, 0, info.szResol);
+#ifdef DEMONMODE
+	memset(szTmp, 0, MAX_BUFF_SIZE);
+	sprintf(szTmp, "%d", info.demon);
+	node = mxmlNewElement(node_server, "demon");
+    mxmlNewText(node, 0, szTmp);
+#endif
     FILE *fp;
     fp = fopen(FILE_CONFIG_SETTING, "w");
     if (fp)
@@ -290,6 +295,19 @@ int GetServerInfo(struct ServerInfo info)
                           strcpy(info.szResol, tmp_node->child->value.text.string);
                         LogInfo("configxml Get server info, resolution_value : %s.\n", info.szResol);
                     }
+
+#ifdef DEMONMODE
+					tmp_node = mxmlFindElement(heading, node, "demon",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                          info.demon = atoi(tmp_node->child->value.text.string);
+                        LogInfo("configxml Get server info, demon : %d.\n", info.demon);
+                    }
+#endif
+
               }//for
          }//if
          mxmlDelete(g_tree);
@@ -387,6 +405,17 @@ int GetServerInfo2(struct ServerInfo *pInfo)
                            strcpy(pInfo->szResol, tmp_node->child->value.text.string);
                         LogInfo("configxml Get server info, resolution_value : %s.\n", pInfo->szResol);
                     }
+#ifdef DEMONMODE
+					tmp_node = mxmlFindElement(heading, node, "demon",
+                                          NULL, NULL,
+                                          MXML_DESCEND);
+                    if (tmp_node)
+                    {
+                        if (tmp_node->child != NULL)
+                          pInfo->demon = atoi(tmp_node->child->value.text.string);
+                        LogInfo("configxml Get server info, demon : %d.\n", pInfo->demon);
+                    }
+#endif
               }//for
          }//if
          mxmlDelete(g_tree);
@@ -398,17 +427,17 @@ int GetServerInfo2(struct ServerInfo *pInfo)
 int GetLoginInfo(struct LoginInfo *pInfo)
 {
     Parsexml("user",  pInfo->user, 0);
-    LogInfo("GetLoginInfo   user: %s", pInfo->user);
+    //LogInfo("GetLoginInfo   user: %s", pInfo->user);
     Parsexml("password",  pInfo->pass, 0);
-    LogInfo("GetLoginInfo   password: %s", pInfo->pass);
+    //LogInfo("GetLoginInfo   password: %s", pInfo->pass);
     char szTmp[MAX_BUFF_SIZE] = {0};
     Parsexml("repass",  szTmp, 0);
-    LogInfo("GetLoginInfo   repass: %s", szTmp);
+    //LogInfo("GetLoginInfo   repass: %s", szTmp);
     pInfo->repass = atoi(szTmp);
 	//add kevin 2016/11/4
 	memset(szTmp, 0, MAX_BUFF_SIZE);
 	Parsexml("autologin",  szTmp, 0);
-	LogInfo("GetLoginInfo   autologin: %s", szTmp);
+	//LogInfo("GetLoginInfo   autologin: %s", szTmp);
 	pInfo->autologin = atoi(szTmp);
 }
 
@@ -608,7 +637,24 @@ void GetManufactureType()
 	Parsexml2(FILE_MANUFACTURE_TYPE, "modifyuserpas", szTmp);  
 	LogInfo("GetManufactureType modifyuserpas type: %s", szTmp);
 	g_openModifyUserPas = atoi(szTmp);
+	strcpy(szTmp, "");
+	Parsexml2(FILE_MANUFACTURE_TYPE, "showvmlist", szTmp);
+	g_protype.showvmlist = atoi(szTmp);
+	LogInfo("GetManufactureType showvmlist type: %s", szTmp);
+	strcpy(szTmp, "");
+	Parsexml2(FILE_MANUFACTURE_TYPE, "dlnetstr", szTmp);
+	LogInfo("GetManufactureType dlnetstr type: %s", szTmp);
+	g_protype.dlnetstr = atoi(szTmp);
+	strcpy(szTmp, "");
+	Parsexml2(FILE_MANUFACTURE_TYPE, "binduser", szTmp);
+	LogInfo("GetManufactureType binduser type: %s", szTmp);
+	g_protype.binduser = atoi(szTmp);
+	strcpy(szTmp, "");
+	Parsexml2(FILE_MANUFACTURE_TYPE, "wuhudx", szTmp);
+	LogInfo("GetManufactureType wuhudx type: %s", szTmp);
+	g_protype.wuhudx = atoi(szTmp);
 }
+
 //add end
 
 void Save_StuServerInfo(struct StuServerInfo info)

@@ -23,7 +23,6 @@ enum {
     NAME = 0,
     NAME_1,
     OS,
-    TAB,
     STATUS,
     VCPU,
     MEMORY,
@@ -54,7 +53,7 @@ GdkPixbuf *g_vmIconPix;
 GtkListStore *g_store;
 GtkTreeView *g_treeview;
 volatile unsigned short g_sUpdateVmStatus = 0;
-static int showvmlistwindow = 0;
+int showvmlistwindow = 0;
 struct Vms_Update {
     char szvmid[MAX_BUFF_SIZE];
     unsigned short state;
@@ -66,7 +65,7 @@ char g_szUser[MAX_BUFF_SIZE] = {0};  //login user
 char g_szPass[MAX_BUFF_SIZE] = {0};  //login pass
 char g_szVMid[MAX_BUFF_SIZE] = {0};
 static int g_nstate = 0;
-struct Vms_Update g_upVms[MAX_BUFF_SIZE];
+struct Vms_Update g_upVms[MAX_BUFF_VM];
 
 static int columnwidth_array[9] = {80,200,200,100,150,100,100,200,200};
 
@@ -186,17 +185,31 @@ static int column_len()
 		columnwidth_array[6] = 100;
 		columnwidth_array[7] = 200;
 		columnwidth_array[8] = 200;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )  )
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 ) )
 	{
-		columnwidth_array[0] = 80;
-		columnwidth_array[1] = 160;
-		columnwidth_array[2] = 120;
-		columnwidth_array[3] = 90;
-		columnwidth_array[4] = 120;
-		columnwidth_array[5] = 80;
-		columnwidth_array[6] = 90;
-		columnwidth_array[7] = 160;
-		columnwidth_array[8] = 60;
+		if ((scr_width == 1600 && scr_height == 900))
+		{
+			columnwidth_array[0] = 80;
+			columnwidth_array[1] = 200;
+			columnwidth_array[2] = 200;
+			columnwidth_array[3] = 100;
+			columnwidth_array[4] = 150;
+			columnwidth_array[5] = 100;
+			columnwidth_array[6] = 100;
+			columnwidth_array[7] = 200;
+			columnwidth_array[8] = 200;
+		}else
+		{
+			columnwidth_array[0] = 80;
+			columnwidth_array[1] = 160;
+			columnwidth_array[2] = 120;
+			columnwidth_array[3] = 90;
+			columnwidth_array[4] = 120;
+			columnwidth_array[5] = 80;
+			columnwidth_array[6] = 90;
+			columnwidth_array[7] = 160;
+			columnwidth_array[8] = 60;
+		}
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
 	   (scr_width == 1280 && scr_height == 1024))
 	{
@@ -222,6 +235,17 @@ static int column_len()
 		columnwidth_array[6] = 90;
 		columnwidth_array[7] = 140;
 		columnwidth_array[8] = 80;
+	}else if ((scr_width == 1680 && scr_height == 1050))
+	{
+		columnwidth_array[0] = 80;
+		columnwidth_array[1] = 200;
+		columnwidth_array[2] = 200;
+		columnwidth_array[3] = 100;
+		columnwidth_array[4] = 150;
+		columnwidth_array[5] = 100;
+		columnwidth_array[6] = 100;
+		columnwidth_array[7] = 200;
+		columnwidth_array[8] = 200;
 	}
 }
 
@@ -292,7 +316,10 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		layout1_height = 60;
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
-		layout3_width = 1060;
+		if ((scr_width == 1600 && scr_height == 900))
+			layout3_width = 1200;
+		else
+			layout3_width = 1060;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
@@ -320,6 +347,18 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		grid2_width = scr_width;
 		grid2_height = scr_height - layout1_height;
 		layout3_width = 1000;
+		layout3_height = scr_height - layout1_height;
+		layout4_width = scr_width - layout3_width;
+		layout4_height = scr_height - layout1_height;
+		treeview_vm_width = layout3_width;
+		treeview_vm_height = layout3_height;
+	}else if ((scr_width == 1680 && scr_height == 1050))
+	{
+		layout1_width = scr_width;
+		layout1_height = 80;
+		grid2_width = scr_width;
+		grid2_height = scr_height - layout1_height;
+		layout3_width = 1200;
 		layout3_height = scr_height - layout1_height;
 		layout4_width = scr_width - layout3_width;
 		layout4_height = scr_height - layout1_height;
@@ -376,6 +415,11 @@ static void init_ctrl_posit(GtkBuilder *builder)
 		gdk_pixbuf_get_file_info("images2/1366x768/loginout_nor.png", &pic_width, &pic_height);
 		nspace_delay = 20;
 		login_user_width = 60;
+	}else if ((scr_width == 1680 && scr_height == 1050))
+	{
+		gdk_pixbuf_get_file_info(IMAGE_BTN_LOGINOUT_NOR, &pic_width, &pic_height);
+		nspace_delay = 30;
+		login_user_width = 150;
 	}
 	LogInfo("init_ctrl_posit 000 layout1_width=%d, pic_width=%d, pic_height=%d.\n", layout1_width, pic_width, pic_height);
 	x = layout1_width - pic_width - ndelay;
@@ -469,6 +513,12 @@ static void create_surfaces()
 			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1366x768/vmlistwindow.png");
 		else
 			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1366x768/vmlistwindow_sh.png");
+	}else if ((scr_width == 1680 && scr_height == 1050))
+	{
+		if (g_interfacetype == 2)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1680x1050/vmlistwindow.png");
+		else if (g_interfacetype == 0)
+			surface_vmlistwindow = cairo_image_surface_create_from_png ("images2/1680x1050/vmlistwindow.png");
 	}
 }
 
@@ -480,7 +530,7 @@ static void destroy_surfaces()
 void cleanVms()
 {
 #if 0
-    for (int i=0; i<MAX_BUFF_SIZE; i++)
+    for (int i=0; i<MAX_BUFF_VM; i++)
     {
          memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE * sizeof(char));
          g_upVms[i].state = 0;
@@ -492,7 +542,7 @@ void cleanVms()
 void *thrd_checkstate(void *arg)
 {
   //  printf("New process:  PID: %d,TID: %u.\n",getpid(),pthread_self()); //why pthread_self
-    printf("New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state); //why pthread_self
+  //  printf("New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state); //why pthread_self
     LogInfo("debug: New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state);
     //for(;;)
     g_flushState = 1;
@@ -504,7 +554,7 @@ void *thrd_checkstate(void *arg)
 //      }
 //      sleep(8);
     }
-	printf("exit tid_state thrd func .\n");
+//	printf("exit tid_state thrd func .\n");
 	g_flushState = 0;
     pthread_exit(NULL); //退出线程
 }
@@ -526,7 +576,7 @@ void *thrd_func(void *arg)
          break;
       }
 	  //LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
-      sleep(3);
+      sleep(1);
     }
 	//printf("exit thrd func .\n");
     pthread_exit(NULL); //退出线程
@@ -534,7 +584,7 @@ void *thrd_func(void *arg)
 
 static void initUpdateVms()
 {
-	for (int i=0; i<MAX_BUFF_SIZE; i++)
+	for (int i=0; i<MAX_BUFF_VM; i++)
     {
     	   memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE);
     }
@@ -543,12 +593,12 @@ static void initUpdateVms()
 //增加要更新的虚拟机到列表
 unsigned short AddUpdateVms(char * vmid)
 {
-    for (int i=0; i<MAX_BUFF_SIZE; i++)
+    for (int i=0; i<MAX_BUFF_VM; i++)
     {
         if (strcmp(g_upVms[i].szvmid, vmid) == 0)
            return -1;
     }
-    for (int i=0; i<MAX_BUFF_SIZE; i++)
+    for (int i=0; i<MAX_BUFF_VM; i++)
     {
         if (strcmp(g_upVms[i].szvmid, "") == 0)
         {
@@ -570,12 +620,12 @@ unsigned short AddUpdateVms(char * vmid)
     }
 
     int len = 0;
-    printf("Add update vms 3333333  len : %d\n", g_vmsCount);
-    for (int i = 0; i < MAX_BUFF_SIZE; i++)
+    //printf("Add update vms 3333333  len : %d\n", g_vmsCount);
+    for (int i = 0; i < MAX_BUFF_VM; i++)
     {
        if (strcmp(g_upVms[i].szvmid, "") > 0)
        {
-           printf("Add update vms 3333333  vmid : %s\n", g_upVms[i].szvmid);
+           //printf("Add update vms 3333333  vmid : %s\n", g_upVms[i].szvmid);
            len++;
        }
     }
@@ -611,7 +661,7 @@ void signal_handler(int m)
     if (count > 65534)
        count = 0;
     count ++;
-    printf("signal_handler count : %d\n", count);
+    //printf("signal_handler count : %d\n", count);
 }
 
 void GetVmsId()
@@ -619,11 +669,11 @@ void GetVmsId()
     list_for_each(plist, &head)
     {
         struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-        printf("connect vms g_vmName find vms id = %s.\n", g_vmName);
+        //printf("connect vms g_vmName find vms id = %s.\n", g_vmName);
         if (strcmp(node->val.name, g_vmName) == 0)
         {
             memset(g_szVMid, 0, sizeof(g_szVMid));
-            printf("vmlist window get vms id: %s\n", node->val.vmid);
+            //printf("vmlist window get vms id: %s\n", node->val.vmid);
             strcpy(g_szVMid, node->val.vmid);
 		   g_nstate = node->val.status;
         }
@@ -636,15 +686,7 @@ int UpdateVmsStatus()
     {
          if (g_exitvm)
 			break;
-//        LogInfo(" Debug: vmlist window UpdateVmsStatus ovirt getvm2 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
-//        if (Ovirt_GetVm2(ovirt_url, g_szUser, g_szPass, g_upVms[i].szvmid) < 0)
-//        {
-//            printf("Update vms status failed.\n");
-//            return -1;
-//        }
-//        int nstate = SY_GetVmState(g_upVms[i].szvmid);
-//        printf(" 333333 update vm id: %s,  vm state: %d .\n", g_upVms[i].szvmid, nstate);
-         int nstate = 0;
+        int nstate = 0;
 		if (Ovirt_GetVms(ovirt_url, g_szUser, g_szPass) < 0)
 		{
 		  LogInfo("UpdateVmsStatus Ovirt get vms failed.\n");
@@ -660,31 +702,34 @@ int UpdateVmsStatus()
             if (g_exitvm)
 				break;
             struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-		   //LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
-            if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
-            {
-                //LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
-                char szTmp[20] = {0};
-                if (node->val.status != g_upVms[i].state)
-                {
-                    nstate = node->val.status;
-                    if (nstate == 0)
-                        strcpy(szTmp, "关闭");
-                    else if (nstate == 1)
-                        strcpy(szTmp, "运行中");
-                    else if (nstate == 2)
-                        strcpy(szTmp, "待机");
-                    else if (nstate == 3)
-                        strcpy(szTmp, "正在启动");
-                    else if (nstate == 4)
-                        strcpy(szTmp, "正在关闭");
-                    else if (nstate == 5)
-                        strcpy(szTmp, "正在保存");
-                    gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
-				    gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
-                    g_upVms[i].state = node->val.status;
-                }//if
-            }
+			if (NULL != node)
+			{
+			   //LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
+	            if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
+	            {
+	                //LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
+	                char szTmp[20] = {0};
+	                if (node->val.status != g_upVms[i].state)
+	                {
+	                    nstate = node->val.status;
+	                    if (nstate == 0)
+	                        strcpy(szTmp, "关闭");
+	                    else if (nstate == 1)
+	                        strcpy(szTmp, "运行中");
+	                    else if (nstate == 2)
+	                        strcpy(szTmp, "待机");
+	                    else if (nstate == 3)
+	                        strcpy(szTmp, "正在启动");
+	                    else if (nstate == 4)
+	                        strcpy(szTmp, "正在关闭");
+	                    else if (nstate == 5)
+	                        strcpy(szTmp, "正在保存");
+	                    gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
+					    gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
+	                    g_upVms[i].state = node->val.status;
+	                }//if
+	            }
+			}
         } //list
     }//for
     return 0;
@@ -786,7 +831,7 @@ void connectVms()
          char szTicket[MAX_BUFF_SIZE] = {0};
         if (strcmp(node->val.name, g_vmName) == 0)
         {
-        	   SetSymsgContextVm(LOGIN_STATUS_CONNECTING);
+        	SetSymsgContextVm(LOGIN_STATUS_CONNECTING);
             LogInfo("Debug: connectVms g_szUser: = %s,  g_szPass = %s.\n", g_szUser, g_szPass);
 		   if (node->val.status != 0)
 		   {
@@ -803,6 +848,12 @@ void connectVms()
 				}
 		  #endif
 				//find vm
+#ifdef DEMONMODE
+				struct ServerInfo stinfo;
+				GetServerInfo2(&stinfo);
+				if (stinfo.demon == 1)
+					strcpy(node->val.ip, stinfo.szIP);
+#endif
 				if (strcmp(szTicket, "") == 0)
 				{
 					strcpy(szTicket, "abc");
@@ -841,62 +892,6 @@ void connectVms()
 		   		SetSymsgContextVm(LOGIN_STATUS_VM_DESKTOP);
 				SetSymsgContextVm(LOGIN_SUCCESSED);
 			}
-//		   else
-//		   {
-//		   		char szIP[MAX_BUFF_SIZE] = {0};
-//				int nport = 5900;
-//				if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, node->val.vmid) < 0)
-//				{
-//					LogInfo("Debug: vmlistwindow connectVms Ovirt_StartVms() < 0, start vm failed.\n");
-//					SetSymsgContextVm(LOGIN_SUCCESSED); // ����ֻ�����˳���ʾ����
-//					return;
-//				}
-//				SetSymsgContext(LOGIN_STATUS_GETVMS);
-//				sleep(3);
-//				if (Ovirt_Login(ovirt_url, g_szUser, g_szPass) < 0)
-//				{
-//					LogInfo("main Ovirt login failed.\n");
-//					SetSymsgContext(LOGIN_STATUS_FAILED);
-//					return;
-//				}
-//				if (Ovirt_GetVms(ovirt_url, g_szUser, g_szPass) < 0)
-//				{
-//					LogInfo("main Ovirt get vms failed.\n");
-//					SetSymsgContext(LOGIN_STATUS_GETVMS_FAILD);
-//					return;
-//				}
-//				if (SY_GetVms() < 0)
-//				{
-//					SetSymsgContext(LOGIN_STATUS_USER_PASS_ERROR);
-//					return;
-//				}
-//				list_for_each(plist, &head)
-//				{
-//					struct Vms_Node *node1 = list_entry(plist, struct Vms_Node, list);
-//					if (strcmp(node1->val.vmid, node->val.vmid) == 0)
-//					{
-//						strcpy(szIP, node->val.ip);
-//						nport = node->val.port;
-//						break;
-//					}
-//				}
-//				if (strlen(szIP) <= 0)
-//					return;
-//				printf("connectDisVm 222 .\n");
-//				Ovirt_GetVmTicket(ovirt_url, g_szUser, g_szPass, node->val.vmid);
-//				SY_GetVmsTicket(szTicket);
-//				//find vm
-//				sprintf(g_shellcmd, "spicy -h %s -p %d -w %s -f >> %s", szIP, nport, szTicket, "/var/log/shencloud/spicy.log");
-//				LogInfo("Debug:vm list window connect vms : %s. \n", g_shellcmd);
-//				strcpy(report.uname, g_szUser);
-//				strcpy(report.vname, g_vmName);
-//				report.action = 2;
-//				send_data(report);
-//				system(g_shellcmd);
-//				report.action = 3;
-//				send_data(report);
-//				SetSymsgContextVm(LOGIN_SUCCESSED);
-//		   }//else
         }//if
     }//list
 }
@@ -1068,7 +1063,7 @@ static void  on_btn_start_clicked(GtkButton *button,  gpointer   user_data)
 
 static void  on_btn_close_clicked(GtkButton *button,  gpointer   user_data)
 {
-   printf("vml list window button close clicked.\n");
+   //printf("vml list window button close clicked.\n");
    operate_vm(0);
 }
 
@@ -1096,6 +1091,12 @@ static void connectVm22()
 				}
 		   #endif
 				//find vm
+#ifdef DEMONMODE
+				struct ServerInfo stinfo;
+				GetServerInfo2(&stinfo);
+				if (stinfo.demon == 1)
+					strcpy(node->val.ip, stinfo.szIP);
+#endif
 				if (strcmp(szTicket, "") == 0)
 				{
 					strcpy(szTicket, "abc");
@@ -1155,6 +1156,12 @@ void dlnet_vm_connect()
 				struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
 				if (node != NULL)
 				{
+#ifdef DEMONMODE
+					struct ServerInfo stinfo;
+					GetServerInfo2(&stinfo);
+					if (stinfo.demon == 1)
+						strcpy(node->val.ip, stinfo.szIP);
+#endif
 #ifdef MEETING
 					char szMsg[BUF_MSG_LEN]= {0};
 					sprintf(szMsg, "\napagentui.ThinviewConnect####{\"vmid\":\"%s\",\"username\": \"%s\", \"vmName\":\"%s\"}\n", node->val.vmid, g_szUser, node->val.name);
@@ -1177,16 +1184,12 @@ void dlnet_vm_connect()
 
 static void  on_btn_btn_desktop_clicked(GtkButton *button,  gpointer   user_data)
 {
-   printf("vml list window button desktop clicked.\n");
    g_sUpdateVmStatus = 0;
-   //SYMsgDialogVm(21, "connect");
    connectVm22();
 }
 
 static void  on_btn_sleep_clicked(GtkButton *button,  gpointer   user_data)
 {
-   printf("vml list window button sleep clicked, g_flushState = %d .\n", g_flushState);
-   //operate_vm(2);
    if (g_flushState == 0)
    {
 	   if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
@@ -1205,6 +1208,10 @@ static void  on_btn_logout_pressed(GtkButton *button,  gpointer   user_data)
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_loginoutPress);
    //主意： 程序中使用同一个session
    //退回到启动界面
+   //用户登出事件
+   	char szMsg[BUF_MSG_LEN]= {0};
+	sprintf(szMsg, "\napagentui.ThinviewLogoutReply####{}\n");
+	write(1, szMsg, strlen(szMsg));
 	g_sUpdateVmStatus = 0;
 	g_exitvm = 1;
 	showvmlistwindow = 0;
@@ -1230,7 +1237,6 @@ static void  on_btn_logout_enter(GtkButton *button,  gpointer   user_data)
 static void  on_btn_exit_pressed(GtkButton *button,  gpointer   user_data)
 {
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_exitPress);
-   printf("on_btn_shutdown_pressed .\n");
    SYMsgDialog2(11, "您确定要关闭系统吗？");
 }
 
@@ -1250,10 +1256,8 @@ static void  on_vmlist_changed(GtkWidget *widget,  GtkTreeModel *model)
    char *value;
    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(widget), &model, &g_iter)) {
        gtk_tree_model_get(model, &g_iter, NAME_1, &value, -1);
-       //printf("list changed 4444444  NAME_1: %s\n", value);
        memset(g_vmName, 0, sizeof(g_vmName));
        memcpy(g_vmName, value, strlen(value));
-       //printf("list changed 4444444  NAME_1  g_vmName: %s\n", value);
        g_free(value);
        GetVmsId();
    }
@@ -1346,7 +1350,7 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 		gdk_pixbuf_get_file_info("images2/1024x768/sleep.png", &pic_sleep_width, &pic_sleep_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/restart.png", &pic_restart_width, &pic_restart_height);
 		font_size = 8;
-	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gdk_pixbuf_get_file_info("images2/start.png", &pic_start_width, &pic_start_height);
 		gdk_pixbuf_get_file_info("images2/close.png", &pic_close_width, &pic_close_height);
@@ -1478,6 +1482,10 @@ static void get_string_width(char *str, int* width, int* height)
 	{
 		*width = 30;
 		*height = 20;
+	}else if ((scr_width == 1680 && scr_height == 1050))
+	{
+		*width = 30;
+		*height = 20;
 	}
 }
 
@@ -1532,7 +1540,7 @@ static void loadcss()
                                          "font-size: 9px;\n"
                                          "color: #5C82A2;\n"
                                          "padding: 1px;\n", -1, NULL);
-	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1680 && scr_height == 1050))
 	{
 	/*
 		gtk_css_provider_load_from_path (provider,
@@ -1635,7 +1643,7 @@ static void loadImage()
 	    g_loginoutPress = gdk_pixbuf_new_from_file("images2/1024x768/loginout_press.png", NULL);
 		g_vmIconPix = gdk_pixbuf_new_from_file("images2/1024x768/vm_icon.png", NULL);
 	}
-	else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
+	else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) || (scr_width == 1680 && scr_height == 1050))
 	{
 		g_startPress = gdk_pixbuf_new_from_file(IMAGE_BTN_START_PRES, NULL);
 	    g_startNor = gdk_pixbuf_new_from_file(IMAGE_BTN_START_NOR, NULL);
@@ -1783,12 +1791,6 @@ void SY_vmlistwindow_main()
     window = gtk_builder_get_object (builder, "vmlist_window");
     gtk_widget_set_app_paintable((GtkWidget * )window, TRUE);
     treeview = gtk_builder_get_object (builder, "treeview_vm");
-	/*
-   * Create a new tree model with three columns, as string,
-   * gint and guint.
-   */
-	g_store = gtk_list_store_new(COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-	                  G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 	column_len();
     setup_tree_view(GTK_WIDGET(treeview));
     g_window = window;
@@ -1947,7 +1949,8 @@ void SY_vmlistwindow_main()
 	}
 
 	//add 170727
-#ifdef MEETING
+//#ifdef MEETING
+#if 1
 		char szMsg[BUF_MSG_LEN]= {0};
 		sprintf(szMsg, "\napagentui.ThinviewLogin####{\"username\": \"%s\"}\n", g_szUser);
 		write(1, szMsg, strlen(szMsg));
@@ -2059,6 +2062,8 @@ void adddata()
   //vms data deal with
   //insert vms data into list
   GtkTreeIter  iter;
+  g_store = gtk_list_store_new(COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+                      G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
   list_for_each(plist, &head)
   {
       struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
@@ -2109,7 +2114,6 @@ void adddata()
                         IP,  node->val.ip,
                         USB, szUsb,
                         -1);
-
 	  g_upVms[g_vmsCount].iter = iter;
 	  g_vmsCount++;
   }

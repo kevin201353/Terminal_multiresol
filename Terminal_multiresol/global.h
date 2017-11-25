@@ -69,6 +69,9 @@ int g_auto_login_first;
 extern int g_workflag;
 int g_openModifyUserPas;
 int g_curNetworkType;
+volatile int g_loginsuccess;
+extern volatile int  g_exit_waitting; //检测自动登录或登录时是否失败，退出loading
+
 
 //#define PIPE_WAIT(x) ({ FILE* fp = fopen("wait_signal", "w"); \
 //     if (fp != NULL){ \
@@ -109,7 +112,9 @@ enum LOGIN_STATUS{
     LOGIN_STATUS_PASS_NONULL,  //password not null
     LOGIN_STATUS_VM_DESKTOP, //connect vm desktop failed
     LOGIN_SUCCESSED,
-    LOGIN_SIGNELVM
+    LOGIN_SIGNELVM,
+    LOGIN_RETURN,
+    LOGIN_USER_NORIGHT
  };
 
 volatile int g_loginstatus;
@@ -132,7 +137,8 @@ struct Vms_Node {
     struct list_head list;
 };
 //
-struct Vms  g_vmsComUpdate[MAX_BUFF_SIZE];
+#define  MAX_BUFF_VM   500
+struct Vms  g_vmsComUpdate[MAX_BUFF_VM];
 int  g_vmsComCount;
 
 //登录用户信息
@@ -156,6 +162,7 @@ struct ServerInfo{
    unsigned short resol;
    int  manresol;
    char szResol[MAX_BUFF_SIZE];
+   int  demon;
 };
 
 struct SoundInfo{
@@ -173,10 +180,18 @@ struct StuServerInfo{
 };
 
 struct St_calldata {
+	int login;
 	int flag;
 	char szMsg[1024];
 };
 
+struct St_protype {
+	int showvmlist;
+	int dlnetstr;
+	int binduser;
+	int wuhudx;
+};
+struct St_protype   g_protype;
 struct St_calldata  g_MsgCall;
 char g_szServerIP[MAX_BUFF_SIZE];
 
@@ -267,7 +282,7 @@ void msg_queue_del();
 void msg_send(char* dataTmp);
 void create_msg_queue();
 //#define PIPE_WAIT(x) ({ msg_send(x);})
-extern int g_exit_waitting;
+extern volatile int g_exit_waitting;
 #define PIPE_WAIT(x) ({g_exit_waitting = 1;})
 extern void close_setting_window();
 int Ovirt_ModifyPass(char *url, char *user, char* old_password, char* new_password, char* ret, char* token);

@@ -4,9 +4,11 @@
 #include <unistd.h>
 
 static const gchar*  g_symsgcss = "systhrdmg.css";
-static GtkBuilder *builder;
+static GtkBuilder *builder = NULL;
 static GObject  *window = NULL;
 GtkLabel *labeltext;
+static GThread * loginThrd = NULL;
+static GThread * loginThrdxx = NULL;
 
 extern void setctrlFont(GtkWidget * widget, int nsize);
 extern int ShenCloud_autoLogin();
@@ -42,29 +44,33 @@ static gboolean terminate(GThread *thread)
     }
 	if (g_loginstatus == LOGIN_SUCCESSED)
 	{
-#ifdef SHOWVMLISTONE
-		if (g_selectProto == 0 && g_nVmCount >= 1)
-#else
-		if (g_selectProto == 0 && g_nVmCount > 1)
-#endif
-	    {
-			printf("terminate  44444444  2222222 .\n");
-			//close_loginwindow();
-			clean_ctrlpass();
-			SY_vmlistwindow_main();
-			g_loginstatus = 0;
-	    }
+		if (g_protype.showvmlist == 1)
+		{
+			if (g_selectProto == 0 && g_nVmCount >= 1)
+			{
+				g_loginstatus = 0;
+				clean_ctrlpass();
+			}
+		}
+		else
+		{
+			if (g_selectProto == 0 && g_nVmCount > 1)
+		    {
+		    	g_loginstatus = 0;
+				clean_ctrlpass();
+		    }
+		}
 	}
 	if (g_loginstatus == LOGIN_SIGNELVM)
 	{
-#ifdef WUHUDX
-	 if (g_selectProto == 0 && g_nVmCount == 1)
-	 	{
-	 		clean_ctrlpass();
-			SY_vmlistwindow_main();
-			g_loginstatus = 0;
-	 	}
-#endif 
+	     if (g_protype.wuhudx == 1)
+	     {
+			 if (g_selectProto == 0 && g_nVmCount == 1)
+			 {
+			 	g_loginstatus = 0;
+		 		clean_ctrlpass();
+			 }
+	     }
 	}
     return FALSE;
 }
@@ -73,11 +79,11 @@ static void * MsgThrd(GtkLabel *data){
   char sztmp[MAX_BUFF_SIZE] = {0};
   g_window_exit = 0;
   for(;;){
-  	if (g_loginstatus == LOGIN_SUCCESSED)
+  	if (g_loginstatus == LOGIN_SUCCESSED || g_loginstatus == LOGIN_RETURN)
 		break;
 	if (g_window_exit == 1)
 		break;
-	printf("SYMsgDialog MsgThrd g_loginstatus = %d .\n", g_loginstatus);
+	//printf("SYMsgDialog MsgThrd g_loginstatus = %d .\n", g_loginstatus);
     switch (g_loginstatus) {
       case  LOGIN_STATUS_CONNECTING:
             strcpy(sztmp, "正在连接，请稍后 ... ");
@@ -115,27 +121,61 @@ static void * MsgThrd(GtkLabel *data){
       case SY_OVIRT_GETVMSTICKET_FAILED:
             strcpy(sztmp, "获取连接虚拟机密码失败！");
             break;
+	  case LOGIN_USER_NORIGHT:
+	  		strcpy(sztmp, "当前用户没有权限！");
+	  		break;
     }
 	if (g_loginstatus != 0)
-    		gtk_label_set_text(GTK_LABEL(data), sztmp);
+	{
+    	gtk_label_set_text(GTK_LABEL(data), sztmp);
+	}
 	g_loginstatus = 0;
-    sleep(1);
+    usleep(1000);
   }
   /* Make sure this thread is joined properly */
   gdk_threads_add_idle((GSourceFunc)terminate, g_thread_self());
   return NULL;
 }
 
+static gboolean terminate_login(GThread *thread)
+{
+	 g_thread_join(thread);
+	 return FALSE;
+}
+
+static void * LoginThrdxx()
+{
+	if (ShenCloud_login() < 0)
+	{
+		g_loginsuccess = -1;
+	}
+	gdk_threads_add_idle((GSourceFunc)terminate_login, g_thread_self());
+	return NULL;
+}
+
 static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 {
+	g_window_exit = 1;
+	if (NULL != loginThrd)
+	{
+		g_thread_join(loginThrd);
+		loginThrd = NULL;
+	}
+	/*
+	if (NULL != loginThrdxx)
+	{
+		g_thread_join(loginThrdxx);
+		loginThrdxx = NULL;
+	}*/
+	
     if (window != NULL)
     {
-    		g_window_exit = 1;
+    	g_window_exit = 1;
 	    gtk_widget_destroy((GtkWidget *)window);
 		window = NULL;
 		showSyMsgDlg11 = 0;
 	    gtk_main_quit();
-    	}
+    }
 }
 
 static gboolean OK_button_clicked(GtkButton *button,  gpointer user_data)
@@ -156,12 +196,12 @@ static gboolean OK_button_clicked(GtkButton *button,  gpointer user_data)
 		system("sudo poweroff");
 		if (window != NULL)
 	    {
-	    		g_window_exit = 1;
+	    	g_window_exit = 1;
 		    //gtk_widget_destroy((GtkWidget *)window);
 			window = NULL;
 			showSyMsgDlg11 = 0;
 		    gtk_main_quit();
-	    	}
+	    }
 	}
 }
 
@@ -169,7 +209,7 @@ static gboolean Cancel_button_clicked(GtkButton *button,  gpointer user_data)
 {
     if (window != NULL)
     {
-    		g_window_exit = 1;
+    	g_window_exit = 1;
 	    gtk_widget_destroy((GtkWidget *)window);
 		window = NULL;
 		showSyMsgDlg11 = 0;
@@ -203,6 +243,52 @@ void SYmsgCaller(CallBackFun fun, char *p)
 void SetSymsgContext(int msg)
 {
 	g_loginstatus = msg;
+#if 0
+//171122
+	 char sztmp[MAX_BUFF_SIZE] = {0};
+	 switch (g_loginstatus) {
+      case  LOGIN_STATUS_CONNECTING:
+            strcpy(sztmp, "正在连接，请稍后 ... ");
+            break;
+      case LOGIN_STATUS_GETVMS:
+            strcpy(sztmp, "连接成功，获取虚拟机信息！");
+            break;
+      case LOGIN_STATUS_FAILED:
+            strcpy(sztmp, "登录失败！");
+            break;
+      case LOGIN_STATUS_GETVMS_FAILD:
+            strcpy(sztmp, "获取虚拟机信息失败！");
+            break;
+      case LOGIN_STATUS_USER_PASS_ERROR:
+            strcpy(sztmp, "用户名或密码错误！");
+            break;
+      case LOGIN_STATUS_CONNECT_FAILED_AIR:
+            strcpy(sztmp, "连接失败，请确认信息！");
+            break;
+      case LOGIN_STATUS_IP_ERROR:
+            strcpy(sztmp, "ip 地址错误！");
+            break;
+      case LOGIN_STATUS_IP_NONULL:
+            strcpy(sztmp, "ip 地址不能为空！");
+            break;
+      case LOGIN_STATUS_PORT_NONULL:
+            strcpy(sztmp, "端口不能为空！");
+            break;
+      case LOGIN_STATUS_USERNAME_NONULL:
+            strcpy(sztmp, "用户名不能为空！");
+            break;
+      case LOGIN_STATUS_PASS_NONULL:
+            strcpy(sztmp, "密码不能为空！");
+            break;
+      case SY_OVIRT_GETVMSTICKET_FAILED:
+            strcpy(sztmp, "获取连接虚拟机密码失败！");
+            break;
+	  case LOGIN_USER_NORIGHT:
+	  		strcpy(sztmp, "当前用户没有权限！");
+	  		break;
+    }
+	SYMsgDialog(7, sztmp);
+#endif 
 }
 
 static void loadcss()
@@ -234,11 +320,11 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int win_width = 0;
 	int win_height = 0;
 //	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-//		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+//		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 //	{
 //		win_width = 300;
 //		win_height = 100;
-//	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
+//	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 //	{
 //		win_width = 470;
 //		win_height = 170;
@@ -291,7 +377,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 		layout_thrdtext_height = 90;
 		nsize = 12;
 	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-	  (scr_width == 1600 && scr_height == 1080) )
+	  (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050) )
 	{
 //		win_width = 470;
 //		win_height = 160;
@@ -370,7 +456,7 @@ static void init_ctrl_size(GtkBuilder *builder)
 	int pic_logo_width = 0;
 	int pic_logo_height = 0;
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -430,7 +516,7 @@ static void init_ctrl_image(GtkBuilder *builder)
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		g_pixlogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
 		g_pixclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
@@ -457,16 +543,15 @@ static void init_ctrl_image(GtkBuilder *builder)
 	}
 }
 
-//static pthread_t tid;
-//static void* thrd_login()
-//{
-//	ShenCloud_login();
-//}
-
+void disableclose(int val)
+{
+	GObject * btnsymsg_close;
+    btnsymsg_close = gtk_builder_get_object(builder, "btnsymsg_close");
+	gtk_widget_set_visible(GTK_WIDGET(btnsymsg_close), val);
+	gtk_widget_set_sensitive(GTK_WIDGET(btnsymsg_close), val);
+}
 void SYMsgDialog(int nflag, char *msg)
 {
-	printf("Debug: SYMsgDialog enter, showSyMsgDlg11 000 = %d.\n", showSyMsgDlg11);
-
     if (showSyMsgDlg11 == 1)
 	{
 	    printf("Debug: SYMsgDialog showSyMsgDlg==1 return .\n");
@@ -474,7 +559,7 @@ void SYMsgDialog(int nflag, char *msg)
 	}
     showSyMsgDlg11 = 1;
 	g_window_exit = 0;
-	printf("Debug: SYMsgDialog enter, showSyMsgDlg11 = %d.\n", showSyMsgDlg11);
+	//printf("Debug: SYMsgDialog enter, showSyMsgDlg11 = %d.\n", showSyMsgDlg11);
     builder = gtk_builder_new();
     GError *error1 = NULL;
     gtk_builder_add_from_file (builder, "SYthrdMsgDlg.glade", &error1);
@@ -513,39 +598,33 @@ void SYMsgDialog(int nflag, char *msg)
 		gtk_widget_set_sensitive(GTK_WIDGET(btn_Cancel), FALSE);
     }
 	if (nflag == 0 || nflag == 1 || nflag == 21 || nflag == 23)
-    	{
-    		g_loginstatus = 1001;
-    		g_thread_new("loginthrd",(GThreadFunc)MsgThrd, (GtkLabel *)label_thrdtext);
+    {
+		g_loginstatus = 1001;
+		loginThrd = NULL;
+		loginThrd = g_thread_new("loginthrd",(GThreadFunc)MsgThrd, (GtkLabel *)label_thrdtext);
 		switch(nflag)
 		{
 			case 0:
 				{
-					ShenCloud_login();
-//					{
-//						if ( pthread_create(&tid, NULL, thrd_login, NULL) !=0 ) {
-//						    printf("Create thread error!\n");
-//						};
-//					}
+					if (ShenCloud_login() < 0)
+					{
+						g_loginsuccess = -1;
+					}
+					//add
+					//loginThrdxx = NULL;
+					//loginThrdxx = g_thread_new("shencloud",(GThreadFunc)LoginThrdxx, NULL);
+					//end
 				}
 				break;
-//		   case 23:
-//		   	    	{
-//					wait_net_setup();
-//				}
-//		         break;
-//		   case 3:
-//		   	    	{
-//				    ShenCloud_classLogin();
-//				}
-//		         break;
 		}
-    	}
+    }
     g_signal_connect(GTK_BUTTON(btn_OK), "clicked", G_CALLBACK(OK_button_clicked), nflag);
     g_signal_connect(GTK_BUTTON(btn_Cancel), "clicked", G_CALLBACK(Cancel_button_clicked), NULL);
-	//pthread_join(tid,NULL);
 	gtk_window_set_modal (GTK_WINDOW (window), TRUE);
     gtk_main();
     g_object_unref (G_OBJECT(builder));
-	printf("SYMsgDialog end ^^^^^^^.\n");
+	builder = NULL;
+	window = NULL;
+	LogInfo("SYMsgDialog end ^^^^^^^.\n");
     showSyMsgDlg11 = 0;
 }

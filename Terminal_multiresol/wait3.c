@@ -7,11 +7,10 @@
 #include <gtk/gtk.h>
 #include <math.h>
 
-
 static GdkPixbuf * g_pixbuf = NULL;
 static pthread_t wait_win_tid;
+volatile int  g_exit_waitting; 
 
-int  g_exit_waitting; //检测自动登录或登录时是否失败，退出loading
 
 #define  MAX_TEXT   100
 #define  MAX_SIZE   100
@@ -21,6 +20,7 @@ struct msg_t{
 };
 
 static int g_msgid = -1;
+/*
 static void create_msg_queue()
 {
     g_msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
@@ -54,7 +54,7 @@ static void msg_queue_del()
         }
     }
 }
-
+*/
 //void msg_respose(struct ReportMsg msg)
 //{
 //	switch(msg.action)
@@ -90,7 +90,7 @@ static void msg_queue_del()
 //	fclose(fp);
 //	return TRUE;
 //}
-
+/*
 static void exec_wait_window()
 {
 	//FILE* fp = NULL;
@@ -123,7 +123,7 @@ static void exec_wait_window()
 	//fclose(fp);
 	gtk_main_quit();
 }
-
+*/
 static void do_drawing(cairo_t *, GtkWidget *);
 static cairo_surface_t *surface;
 GtkWidget *darea;
@@ -132,8 +132,9 @@ struct {
   gushort count;
 } glob;
 
-static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, 
-    gpointer user_data)
+//static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr, 
+ //   gpointer user_data)
+static gboolean on_expose_event (GtkWidget * widget, GdkEventExpose *event, gpointer data) 
 { 
      GdkWindow *window;
     cairo_t *cr1 = NULL;
@@ -141,8 +142,8 @@ static gboolean on_draw_event(GtkWidget *widget, cairo_t *cr,
     cr1 = gdk_cairo_create(window);
     cairo_set_source_surface (cr1, surface, 0, 0);
     cairo_paint (cr1);
-    cairo_destroy (cr1);
-    do_drawing(cr, widget);
+    do_drawing(cr1, widget);
+	cairo_destroy (cr1);
   return FALSE;
 }
 
@@ -182,7 +183,9 @@ static void do_drawing(cairo_t *cr, GtkWidget *widget)
 static gboolean time_handler(GtkWidget *widget)
 {
   if (g_exit_waitting == 1)
-  	return FALSE;
+  {
+  		return FALSE;
+  }
   glob.count += 1;
   gtk_widget_queue_draw(widget);
   return TRUE;
@@ -205,8 +208,9 @@ void wait_show(GtkWidget *window, cairo_surface_t *surface1)
 	//y = scr_height/2 - win_height/2;
 	y = scr_height - 20 - 60;
 	gtk_widget_set_app_paintable(GTK_WIDGET(window), TRUE);
-	 g_signal_connect(G_OBJECT(darea), "draw", 
-      G_CALLBACK(on_draw_event), NULL);
+	// g_signal_connect(G_OBJECT(darea), "draw", 
+    //  G_CALLBACK(on_draw_event), NULL);
+	g_signal_connect(G_OBJECT(darea), "expose-event", G_CALLBACK(on_expose_event), NULL);  
 	 g_timeout_add(100, (GSourceFunc) time_handler, (gpointer)window);
 	//gtk_widget_move(darea, x, y);
 }

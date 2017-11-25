@@ -378,7 +378,7 @@ static void create_surfaces()
 	screen = gdk_screen_get_default();
 	int scr_width = gdk_screen_get_width(screen);
 	int scr_height = gdk_screen_get_height(screen);
-	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200)  ||
+	if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) ||
 		(scr_width == 1280 && scr_height == 1024) )
 	{
 	    surface1 = cairo_image_surface_create_from_png (IMAGE_MAIN_BACKGROUD);
@@ -984,7 +984,10 @@ int main(int argc, char *argv[])
     system("sudo chmod +x dhcp.sh");
     system("sudo chmod +x ar_dhcp.sh");
     system("sudo chmod +x netget.sh");
+#ifdef ARM
+#else
     system("sudo xrandr > resol.txt");
+#endif
     //print version info
     g_mainExit = 0;
 	g_thinviewlog = 0;
@@ -1002,19 +1005,11 @@ int main(int argc, char *argv[])
 		    printf("Create thread error!\n");
 	};
 #endif
-
-#if 0
-#ifdef WUHUDX
-	if ( pthread_create(&tidtwo, NULL, thrd_readinput, NULL) !=0 ) {
-		    printf("Create threadtwo error!\n");
-	};
-#endif
-#endif
-
 	SY_loginwindow_main();
 	return 0;
 	/*************************************************************************/
 	//calculate screen resolution
+#if 0
     GdkScreen* screen;
     screen = gdk_screen_get_default();
     int scr_width = gdk_screen_get_width(screen);
@@ -1104,7 +1099,7 @@ int main(int argc, char *argv[])
 //		wait_net_setup();
 //	}
 	//SYMsgDialog2(23, "正在连接， 请稍后...");
-	start_monitor_file_thrd();
+	//start_monitor_file_thrd();
 	gtk_main();
     g_object_unref(G_OBJECT(builder));
 	destroy_surfaces();
@@ -1114,4 +1109,5 @@ int main(int argc, char *argv[])
 	//CloseLog();
 	//close_msg_server(); //close msg server thrd
 	return 0;
+#endif
 }

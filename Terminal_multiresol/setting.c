@@ -13,7 +13,7 @@ enum {
     COLUMN = 0,
     NUM_COLS
 };
-struct ServerInfo g_serverinfo = {"172.16.200.100", 443, "admin@internal", "", 1, 0, "1920x1080"};
+struct ServerInfo g_serverinfo = {"172.16.200.100", 443, "admin@internal", "", 1, 0, "1920x1080", 0};
 GObject * g_layout1;  //服务器Layout
 GObject * g_layout2;  //网络
 GObject * g_layout_about;
@@ -28,6 +28,7 @@ GdkPixbuf *g_checkPressimage;
 static GtkBuilder *g_builder2 = NULL;
 static unsigned short g_checkrepass = 0;
 static unsigned short g_checkmanresol = 0;
+int  g_ndemon_dlnet = 0;
 extern void SY_NetworkDisableCtrl();
 extern unsigned short saveServerInfo();
 int showsettingwindow = 0;
@@ -269,12 +270,21 @@ int setResol()
     GObject *comboresol;
     comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
 #ifdef ARM
+#ifdef HUIMEI
+	g_resolCount = 7;
+#else
 	g_resolCount = 5;
+#endif
 	strcpy(szResol[0], "1920x1080");
 	strcpy(szResol[1], "1440x900");
 	strcpy(szResol[2], "1024x768");
 	strcpy(szResol[3], "1280x1024");
 	strcpy(szResol[4], "1280x720");
+#ifdef HUIMEI
+	strcpy(szResol[5], "1600x900");
+	strcpy(szResol[6], "1680x1050");
+#endif
+
 #else
     GetResol();
 #endif
@@ -364,7 +374,17 @@ int initctrl()
 	       LogInfo("Debug:  setting.c init g_checkmanresol is 0.\n");
 	       gtk_image_set_from_pixbuf(GTK_IMAGE(image_resolution), g_checkNorimage);
 	    }
-    	}
+    }
+	g_ndemon_dlnet = g_serverinfo.demon;
+	GObject *image_demon;
+    image_demon = gtk_builder_get_object (g_builder2, "image_demon");
+	if (g_ndemon_dlnet == 1)
+	{
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image_demon), g_checkPressimage);
+	}else
+	{
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image_demon), g_checkNorimage);
+	}
 }
 
 unsigned short saveServerInfo()
@@ -402,11 +422,17 @@ unsigned short saveServerInfo()
         return -1;
     }
 #ifdef MEETING
+	char sztmp[1024] = {0};
+	sprintf(sztmp, "saveServerInfo, ip change old ip: %s, g_serverinfo.szip: %s.\n", old_ip, g_serverinfo.szIP);
+	LogInfo(sztmp);
 	if (strcmp(old_ip, g_serverinfo.szIP) != 0)
 	{
 		char szMsg[BUF_MSG_LEN]= {0};
 		sprintf(szMsg, "\napagentui.ThinviewServerAddrChange####{\"address\": \"%s\"}\n", g_serverinfo.szIP);
 		write(1, szMsg, strlen(szMsg));
+		memset(sztmp, 0, sizeof(sztmp));
+		sprintf(sztmp, "saveServerInfo, ip change send java msg: %s.\n", szMsg);
+	    LogInfo(sztmp);
 	}
 #endif
 	LogInfo("debug: wirte setting checkmanresol=%d, checkclientresol=%d.\n" ,g_checkrepass, g_checkmanresol);
@@ -422,7 +448,6 @@ unsigned short saveServerInfo()
 static gboolean gtk_main_quit_setting(GtkWidget * widget, GdkEventExpose * event, gpointer data)
 {
     gtk_main_quit();
-    //SetLoginWindowFocus();
     return TRUE;
 }
 
@@ -476,6 +501,27 @@ static gboolean checkbutton_manualresol_press_callback(GtkWidget *event_box, Gdk
     return TRUE;
 }
 
+
+static gboolean checkbutton_image_demon_press_callback(GtkWidget *event_box, GdkEventButton *event, gpointer data)
+{
+	if (event->type == GDK_BUTTON_PRESS)
+	{
+		g_ndemon_dlnet = !g_ndemon_dlnet;
+		LogInfo("Debug: checkbutton double net demon gtkimage check: %d.\n", g_ndemon_dlnet);
+		if (g_ndemon_dlnet == 1)
+		{
+			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
+		}
+		else
+		{
+			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+		}
+		g_serverinfo.demon = g_ndemon_dlnet;
+	}
+	return TRUE;
+}
+
+
 void on_changed(GtkWidget * widget, gpointer statusbar)
 {
     GtkTreeIter iter;
@@ -494,11 +540,11 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
 #ifdef MEETING
 			//gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
 #endif
-        		initctrl();
+        	initctrl();
 		}
 		if (strcmp((char *)(gchar *)value, "网络") == 0)
 		{
-        		saveServerInfo();
+        	saveServerInfo();
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 1);
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
@@ -528,7 +574,7 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
 #ifdef MEETING
 		if (strcmp((char *)(gchar *)value, "修改密码") == 0)
 		 {
-         		saveServerInfo();
+         	saveServerInfo();
    			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
    			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 		 	gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
@@ -540,7 +586,7 @@ void on_changed(GtkWidget * widget, gpointer statusbar)
 
 		if (strcmp((char *)(gchar *)value, "关于") == 0)
 		{
-        		saveServerInfo();
+        	saveServerInfo();
   			gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   			gtk_widget_set_visible((GtkWidget *)g_layout1, 0);
 			gtk_widget_set_visible((GtkWidget *)g_layout_about, 1);
@@ -765,7 +811,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(label_title), 14);
 	}
 	else if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-		 (scr_width == 1600 && scr_height == 1080))
+		 (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		win_width = 500;
 	 	win_height = 400 + 60;
@@ -852,7 +898,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	image_close = gtk_builder_get_object(builder, "image_close");
 
 	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-		(scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gdk_pixbuf_get_file_info("images2/1024x768/close_set_22.png", &pic_close_width, &pic_close_height);
 		gdk_pixbuf_get_file_info("images2/1024x768/logo22.png", &pic_logo_width, &pic_logo_height);
@@ -883,7 +929,7 @@ static void init_ctrl_pos(GtkBuilder *builder)
 	LogInfo("init_ctrl_pos  pic_close_width = %d, pic_close_height =%d .\n", pic_close_width, pic_close_height);
 	LogInfo("init_ctrl_pos  pic_logo_width = %d, pic_logo_height =%d .\n", pic_logo_width, pic_logo_height);
 	if ((scr_width == 1024 && scr_height == 768)  || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-		(scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		gtk_widget_set_size_request(GTK_WIDGET(label_tip), label_tip_width, label_tip_height);
 		//cal position
@@ -1015,7 +1061,7 @@ static void loadimage(GtkBuilder *builder)
 	int scr_height = gdk_screen_get_height(screen);
 
 	if ((scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-		(scr_width == 1600 && scr_height == 1080) )
+		(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050) )
 	{
 		g_imageclose = gdk_pixbuf_new_from_file("images2/1024x768/close_set_22.png", NULL);
 	    g_imagelogo = gdk_pixbuf_new_from_file("images2/1024x768/logo22.png", NULL);
@@ -1048,6 +1094,17 @@ void hide_logo_ctrl(GtkBuilder *builder)
 	{
 		gtk_widget_hide(GTK_WIDGET(image_logo));
 	}
+#ifdef HUIMEI
+	GObject *label_demon = gtk_builder_get_object (builder, "label_demon");
+	GObject *eventbox_demon = gtk_builder_get_object (builder, "eventbox_demon");
+	GObject *image_demon = gtk_builder_get_object (builder, "image_demon");
+	gtk_widget_set_visible((GtkWidget *)label_demon, 0);
+	gtk_widget_set_visible((GtkWidget *)eventbox_demon, 0);
+	gtk_widget_set_visible((GtkWidget *)image_demon, 0);
+	gtk_widget_set_sensitive(GTK_WIDGET(label_demon), 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(eventbox_demon), 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(image_demon), 1);
+#endif
 }
 
 void hide_resol_ctrl(GtkBuilder *builder)
@@ -1086,6 +1143,11 @@ void int_tmp(GtkBuilder *builder)
 	GObject *comboboxtext_resol = gtk_builder_get_object (builder, "comboboxtext_resol");
 	GObject *label_sysresol = gtk_builder_get_object (builder, "label_sysresol");
 	GObject *btn_save = gtk_builder_get_object (builder, "btn_save");
+	//demonstrate
+	GObject *eventbox_demon = gtk_builder_get_object (builder, "eventbox_demon");
+	GObject *label_demon = gtk_builder_get_object (builder, "label_demon");
+	GObject *image_demon = gtk_builder_get_object (builder, "image_demon");
+		
 	GdkScreen* screen;
 	screen = gdk_screen_get_default();
 	int scr_width = gdk_screen_get_width(screen);
@@ -1110,9 +1172,14 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(comboboxtext_resol), 12);
 		setctrlFont(GTK_WIDGET(label_sysresol), 12);
 		setctrlFont(GTK_WIDGET(label_resolution), 12);
+#ifdef DEMONMODE
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_demon), 15, 15);
+		gtk_widget_set_size_request(GTK_WIDGET(label_demon), 100, 30);
+		setctrlFont(GTK_WIDGET(label_demon), 12);
+#endif
 	}
 	else if ( (scr_width == 1024 && scr_height == 768) || (scr_width == 1440 && scr_height == 900) ||
-		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 	    layout2_width = 500;
 		layout2_height = 30;
@@ -1131,22 +1198,26 @@ void int_tmp(GtkBuilder *builder)
 		int width_image = 15;
 		int height_image = 15;
 		int top = layout3_height - 240;
+		int dex = 0;
+		int dey = 0;
 		x = left;
 		y = top;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(separator2), x, y);
 		x = left * 2;
 		y = top + delay_height * 2;
-		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_resolution), x, y);
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_resolution), x, y+5);
 		x = left * 2 + width_image + delay_width;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_resolution), x, y);
 		//manual_resol
 		x = left * 2;
+		dex = x;
 		y = top + delay_height * 2 + height_image + delay_height;
-		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_manualresol), x, y);
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_manualresol), x, y + 5);
 		x = left *2 + width_image;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_sysresol), x, y);
 		x = left *2 + width_image + delay_width + 60 + delay_width;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(comboboxtext_resol), x, y);
+		dey = y;
 		//btn_save
 		x = 420 - delay_width - 62;
 		y = 370 - 29 - delay_height*2;
@@ -1165,6 +1236,16 @@ void int_tmp(GtkBuilder *builder)
 			gtk_widget_set_sensitive(GTK_WIDGET(eventbox_manualresol), TRUE);
 			gtk_widget_set_sensitive(GTK_WIDGET(comboboxtext_resol), TRUE);
 		}
+
+#ifdef DEMONMODE
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_demon), 8, 8);
+		gtk_widget_set_size_request(GTK_WIDGET(label_demon), 60, 20);
+		dey =  dey + height_image + delay_height*2;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_demon), dex, dey + 5);
+		dex = dex + width_image + delay_width - 5;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_demon), dex, dey);
+		setctrlFont(GTK_WIDGET(label_demon), 9);
+#endif
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || (scr_width == 1280 && scr_height == 1024)|| (scr_width == 1366 && scr_height == 768) ||
 		(scr_width == 1368 && scr_height == 768) || (scr_width == 1360 && scr_height == 768))
 	{
@@ -1185,6 +1266,8 @@ void int_tmp(GtkBuilder *builder)
 		int width_image = 15;
 		int height_image = 15;
 		int top = layout3_height - 240;
+		int dex = 0;
+		int dey = 0;
 		x = left;
 		y = top;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(separator2), x, y);
@@ -1195,12 +1278,14 @@ void int_tmp(GtkBuilder *builder)
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_resolution), x, y);
 		//manual_resol
 		x = left * 2;
+		dex = x;
 		y = top + delay_height * 2 + height_image + delay_height;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_manualresol), x, y);
 		x = left *2 + width_image;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_sysresol), x, y);
 		x = left *2 + width_image + delay_width + 60 + delay_width;
 		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(comboboxtext_resol), x, y);
+		dey = y;
 		//btn_save
 		x = 420 - delay_width - 62;
 		y = 370 - 29 - delay_height*2;
@@ -1214,6 +1299,15 @@ void int_tmp(GtkBuilder *builder)
 		setctrlFont(GTK_WIDGET(comboboxtext_resol), 9);
 		setctrlFont(GTK_WIDGET(label_resolution), 9);
 		setctrlFont(GTK_WIDGET(btn_save), 9);
+#ifdef DEMONMODE
+		gtk_widget_set_size_request(GTK_WIDGET(eventbox_demon), 8, 8);
+		gtk_widget_set_size_request(GTK_WIDGET(label_demon), 60, 20);
+		dey =  dey + height_image + delay_height;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(eventbox_demon), dex, dey + 5);
+		dex = dex + width_image + delay_width;
+		gtk_layout_move((GtkLayout *)layout_base, GTK_WIDGET(label_demon), dex - 5, dey);
+		setctrlFont(GTK_WIDGET(label_demon), 9);
+#endif
 	}
 }
 
@@ -1310,7 +1404,7 @@ int  SY_Setting_main ()
   if ((scr_width == 1024 && scr_height == 768) ||
   	   (scr_width == 1440 && scr_height == 900) ||
   	   (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   ||
-  	  (scr_width == 1600 && scr_height == 1080) )
+  	  (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050) )
   {
 	 setctrlFont(GTK_WIDGET(view), 10);
   }else if ((scr_width == 1280 && scr_height == 720) ||
@@ -1347,6 +1441,7 @@ int  SY_Setting_main ()
   GObject * label_pass;
   GObject * label_resolution;
   GObject * label_sysresol;
+  GObject * label_demon;
   label_tip = gtk_builder_get_object (builder, "label_tip");
   label_serverip = gtk_builder_get_object (builder, "label_serverip");
   label_port = gtk_builder_get_object (builder, "label_port");
@@ -1354,10 +1449,12 @@ int  SY_Setting_main ()
   label_pass = gtk_builder_get_object (builder, "label_pass");
   label_resolution = gtk_builder_get_object (builder, "label_resolution");
   label_sysresol = gtk_builder_get_object (builder, "label_sysresol");
+  label_demon = gtk_builder_get_object (builder, "label_demon");
   gtk_label_set_justify(GTK_LABEL(label_serverip), GTK_JUSTIFY_RIGHT);
   gtk_label_set_justify(GTK_LABEL(label_port), GTK_JUSTIFY_RIGHT);
   gtk_label_set_justify(GTK_LABEL(label_user), GTK_JUSTIFY_RIGHT);
   gtk_label_set_justify(GTK_LABEL(label_pass), GTK_JUSTIFY_RIGHT);
+  gtk_label_set_justify(GTK_LABEL(label_demon), GTK_JUSTIFY_LEFT);
 
   gtk_label_set_text(GTK_LABEL(label_tip), "在首次使用之前请正确设置服务器地址和端口，\n 如果您不了解这些设置，请联系你的管理员。");
   gtk_label_set_text(GTK_LABEL(label_serverip), "服务器地址");
@@ -1366,6 +1463,7 @@ int  SY_Setting_main ()
   gtk_label_set_text(GTK_LABEL(label_pass), "密码");
   gtk_label_set_text(GTK_LABEL(label_resolution), "根据客户端分辨率调整");
   gtk_label_set_text(GTK_LABEL(label_sysresol), "手动调整");
+  gtk_label_set_text(GTK_LABEL(label_demon), "演示模式");
 
   GObject * btn_save;
   btn_save = gtk_builder_get_object (builder, "btn_save");
@@ -1393,6 +1491,19 @@ int  SY_Setting_main ()
   g_signal_connect (G_OBJECT (eventbox_manualresol), "button_press_event",
                   G_CALLBACK (checkbutton_manualresol_press_callback), (GtkWidget *)image_manualresol);
 
+
+#ifdef DEMONMODE
+	GObject *eventbox_demon;
+	eventbox_demon = gtk_builder_get_object (builder, "eventbox_demon");
+		gtk_widget_set_events((GtkWidget *)eventbox_demon, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK); // 捕获鼠标点击事件
+		 GObject *image_demon;
+	image_demon = gtk_builder_get_object (builder, "image_demon");
+	gtk_image_set_from_pixbuf(GTK_IMAGE(image_demon), g_checkNorimage);
+	g_signal_connect (G_OBJECT (eventbox_demon), "button_press_event",
+	              G_CALLBACK (checkbutton_image_demon_press_callback), (GtkWidget *)image_demon);
+
+#endif
+
   gtk_window_set_icon(GTK_WINDOW(window), create_pixbuf("images2/logo.png"));
   gtk_widget_add_events(GTK_WIDGET(window), GDK_BUTTON_PRESS_MASK);
   g_signal_connect(G_OBJECT(window), "button-press-event", G_CALLBACK(window_drag), NULL);
@@ -1411,6 +1522,12 @@ int  SY_Setting_main ()
   gtk_widget_show_all((GtkWidget *)window);
   gtk_widget_set_visible((GtkWidget *)g_layout2, 0);
   gtk_widget_set_visible((GtkWidget *)g_layout_about, 0);
+#ifdef DEMONMODE
+  gtk_widget_set_visible((GtkWidget *)label_demon, 1);
+  gtk_widget_set_visible((GtkWidget *)eventbox_demon, 1);
+  gtk_widget_set_visible((GtkWidget *)image_demon, 1);
+#endif
+
 #ifdef MEETING
   gtk_widget_set_visible((GtkWidget *)g_modiypassWindow, 0);
 #endif

@@ -428,7 +428,7 @@ void SY_logincit_main()
 	{
 		g_loginPress = gdk_pixbuf_new_from_file("images2/1280x720/btnlogin_press.png", NULL);
 	    g_loginNor = gdk_pixbuf_new_from_file("images2/1280x720/btnlogin_nor.png", NULL);
-		if (scr_width == 1280 && scr_height == 1024)
+		if ((scr_width == 1280 && scr_height == 1024))
 			surface = cairo_image_surface_create_from_png ("images2/1280x1024/cit_login.png");
 		else 
 			surface = cairo_image_surface_create_from_png ("images2/1280x720/cit_login.png");

@@ -15,7 +15,7 @@ while var == 1:
 	    print(output.decode('utf-8'))
 	    print('Exit code: ', p.returncode)
 	if num == "netchange":
-		str = "apagentui.ThinviewNetworkTypeChange####{\"current\":\"1\",\"pre\":\"2\"}"
-		output, err = p.communicate(str)
+	    str = "apagentui.ThinviewNetworkTypeChange####{\"current\":\"2\",\"pre\":\"2\"}"
+	    output, err = p.communicate(str)
 	    print(output.decode('utf-8'))
 	    print('Exit code: ', p.returncode)
