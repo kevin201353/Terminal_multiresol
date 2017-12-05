@@ -116,7 +116,6 @@ void linux_key_press2()
 	            ioctl(fd, EVIOCGVERSION, &version);
 	            ioctl(fd, EVIOCGNAME(sizeof(buf)), buf);
 	            ioctl(fd, EVIOCGBIT(0, sizeof(mask)), mask);
-	            //LogInfo("linux_key_press2, %s\n", buf);
 	           char *p = strstr(buf, "USB Keyboard");
 	           if (NULL != p)
 	            {
@@ -151,24 +150,6 @@ void linux_key_press2()
 						}
 						if(event_kb.code == KEY_W)
 							LogInfo("list_key_press xxxxx  W\n");
-#if 0
-#ifdef WUHUDX
-						if (event_kb.code == KEY_LEFTSHIFT)
-							nshift = 1;
-						if (event_kb.code == KEY_U)
-							key_u = 1;
-						if (event_kb.code == KEY_I)
-							key_i = 1;
-						if (key_u == 1 && key_i == 1 && nshift == 1)
-						{
-							nshift = 0;
-							key_u = 0;
-							key_i = 0;
-							LogInfo("list_key_press xxxxx  shift + u + i \n");
-							g_idle_add(show_vmlist_dialog, NULL);
-						}
-#endif
-#endif
 					}
 				}
 			}
@@ -177,13 +158,3 @@ void linux_key_press2()
 		}
 	}
 }
-
-
-void read_input()
-{
-   //do where
-}
-//int main()
-//{
-//	return 0;
-//}

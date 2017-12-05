@@ -102,7 +102,7 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 
 extern void setctrlFont(GtkWidget * widget, int nsize);
 extern void shell_exec(char *cmd);
-static int g_flushState = 0;
+static volatile int g_flushState = 0;
 static void connectVm22();
 
 static float g_scr_old_width = 1920.0;
@@ -113,6 +113,7 @@ static GtkTreeIter * g_iter = NULL;
 static void initUpdateVms();
 static void adddata();
 GObject *g_label_login;
+extern int detect_process();
 
 
 void set_vm_network_type()
@@ -539,46 +540,22 @@ void cleanVms()
 #endif
 }
 
-void *thrd_checkstate(void *arg)
-{
-  //  printf("New process:  PID: %d,TID: %u.\n",getpid(),pthread_self()); //why pthread_self
-  //  printf("New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state); //why pthread_self
-    LogInfo("debug: New process checkstate:  PID: %d, TID: %u.\n", getpid(), tid_state);
-    //for(;;)
-    g_flushState = 1;
-    {
-      vmstate_update();
-//      if (g_exitvm)
-//      {
-//         break;
-//      }
-//      sleep(8);
-    }
-//	printf("exit tid_state thrd func .\n");
-	g_flushState = 0;
-    pthread_exit(NULL); //退出线程
-}
-
 void *thrd_func(void *arg)
 {
-  //  printf("New process:  PID: %d,TID: %u.\n",getpid(),pthread_self()); //why pthread_self
-  //  printf("New process11 :  PID: %d, TID: %u.\n", getpid(), tid); //why pthread_self
-  //  LogInfo("debug: New process11 :  PID: %d, TID: %u.\n", getpid(), tid);
+	init_long_session();
     for(;;)
     {
       if (g_sUpdateVmStatus)
       {
-      	  //LogInfo(" Debug: vmlist window thrd_func 000, start upadate vm status.... .\n");
           UpdateVmsStatus();
       }
       if (g_exitvm)
       {
          break;
       }
-	  //LogInfo(" Debug: vmlist window thrd_func 000 g_szUser : %s,  g_szPass: %s .\n", g_szUser, g_szPass);
-      sleep(1);
+      sleep(3);
     }
-	//printf("exit thrd func .\n");
+	close_long_session();
     pthread_exit(NULL); //退出线程
 }
 
@@ -586,7 +563,7 @@ static void initUpdateVms()
 {
 	for (int i=0; i<MAX_BUFF_VM; i++)
     {
-    	   memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE);
+   		memset(g_upVms[i].szvmid, 0, MAX_BUFF_SIZE);
     }
 }
 
@@ -682,56 +659,67 @@ void GetVmsId()
 
 int UpdateVmsStatus()
 {
-    for (int i=0; i<g_vmsCount; i++)
-    {
-         if (g_exitvm)
+	if (Ovirt_GetLongVms(ovirt_url, g_szUser, g_szPass) < 0)
+	{
+	  LogInfo("UpdateVmsStatus Ovirt get vms failed.\n");
+	  return -1;
+	}
+	if (SY_GetVms() < 0)
+	{
+	    LogInfo("UpdateVmsStatus SY_GetVms failed.\n");
+	    return -1;
+	}
+	int cur_vmsCount = 0;
+	int nstate = 0;
+	list_for_each(plist, &head)
+	{
+	    if (g_exitvm)
 			break;
-        int nstate = 0;
-		if (Ovirt_GetVms(ovirt_url, g_szUser, g_szPass) < 0)
+	    struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+		if (NULL != node)
 		{
-		  LogInfo("UpdateVmsStatus Ovirt get vms failed.\n");
-		  return -1;
-		}
-		if (SY_GetVms() < 0)
-		{
-		    LogInfo("UpdateVmsStatus SY_GetVms failed.\n");
-		    return -1;
-		}
-        list_for_each(plist, &head)
-        {
-            if (g_exitvm)
+		   //LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
+		   	if (cur_vmsCount >= g_vmsCount)
+		   	{
 				break;
-            struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-			if (NULL != node)
-			{
-			   //LogInfo("UpdateVmsStatus, node->val.vmid: %s, g_upVms[%d].szvmid: %s.", node->val.vmid, i, g_upVms[i].szvmid);
-	            if (strcmp(node->val.vmid, g_upVms[i].szvmid) == 0)
-	            {
-	                //LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
-	                char szTmp[20] = {0};
-	                if (node->val.status != g_upVms[i].state)
-	                {
-	                    nstate = node->val.status;
-	                    if (nstate == 0)
-	                        strcpy(szTmp, "关闭");
-	                    else if (nstate == 1)
-	                        strcpy(szTmp, "运行中");
-	                    else if (nstate == 2)
-	                        strcpy(szTmp, "待机");
-	                    else if (nstate == 3)
-	                        strcpy(szTmp, "正在启动");
-	                    else if (nstate == 4)
-	                        strcpy(szTmp, "正在关闭");
-	                    else if (nstate == 5)
-	                        strcpy(szTmp, "正在保存");
-	                    gtk_list_store_set(g_store, &g_upVms[i].iter, STATUS, (GValue *)szTmp, -1);
-					    gtk_list_store_set(g_store, &g_upVms[i].iter, IP, (GValue *)node->val.ip, -1);
-	                    g_upVms[i].state = node->val.status;
-	                }//if
-	            }
 			}
-        } //list
-    }//for
+	        if (strcmp(node->val.vmid, g_upVms[cur_vmsCount].szvmid) == 0)
+	        {
+	            //LogInfo("Debug: UpdateVmsStatus, vms status : %d , old nstate : %d.\n.", node->val.status, g_upVms[i].state);
+	            char szTmp[20] = {0};
+	            if (node->val.status != g_upVms[cur_vmsCount].state)
+	            {
+	                nstate = node->val.status;
+					if (nstate == 1)
+						strcpy(szTmp, "运行");
+					else if (nstate == 0)
+						strcpy(szTmp, "已关机");
+					else if (nstate == 2)
+						strcpy(szTmp, "已暂停");
+					else if (nstate == 3)
+						strcpy(szTmp, "正在启动");
+					else if (nstate == 4)
+						strcpy(szTmp, "正在关机");
+					else if (nstate == 7)
+						strcpy(szTmp, "正在重启");
+					else if (nstate == 8)
+						strcpy(szTmp, "初始化中");
+					else if (nstate == 10)
+						strcpy(szTmp, "正在迁移");
+					else if (nstate == 11)
+						strcpy(szTmp, "错误");
+					else if (nstate == 12)
+						strcpy(szTmp, "镜像锁定");
+					else if (nstate == 13)
+						strcpy(szTmp, "非法镜像");
+	                gtk_list_store_set(g_store, &g_upVms[cur_vmsCount].iter, STATUS, (GValue *)szTmp, -1);
+	                g_upVms[cur_vmsCount].state = node->val.status;
+	            }//if
+	            gtk_list_store_set(g_store, &g_upVms[cur_vmsCount].iter, IP, (GValue *)node->val.ip, -1);
+	        }
+			cur_vmsCount++;
+		}
+	} //list
     return 0;
 }
 
@@ -744,48 +732,45 @@ int vmstate_update()
       LogInfo("debug: vmsstate_update thrd enter.\n");
       if (Ovirt_GetVmsTmp(ovirt_url, g_szUser, g_szPass) < 0)
       {
-          //printf("vmsstate_update: get vms failed.\n");
           LogInfo("debug: vmsstate_update: get vms failed.\n");
           return -1;
       }
       if (SY_GetVms2() < 0)
       {
-          //printf("vmsstate_update: get vms xml data failed.\n");
           LogInfo("debug: vmsstate_update: get vms xml data failed.\n");
           return -1;
       }
       LogInfo("debug: vmsstate_update thrd enter 1111.\n");
-
       if (g_vmsComCount <= 0)
       {
           LogInfo("debug: vmsstate_update vms arrary is == null .\n");
           return -1;
       }
-     for (int i=0; i<g_vmsComCount; i++)
-     {
-          list_for_each(plist, &head)
-          {
-                if (g_exitvm)
-					break;
-                //LogInfo("debug: vmsstate_update thrd enter 3333.\n");
-                struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
-                if (strcmp(node->val.vmid, g_vmsComUpdate[i].vmid) == 0 /*&&
-                     strcmp(node->val.name, g_vmsComUpdate[i].name) == 0*/)
-                {
-                    //printf("vms old status : %d , new nstate : %d.\n", node->val.status, g_vmsComUpdate[i].status);
-                    LogInfo("debug: vms status : %d , nstate : %d.\n", node->val.status, g_vmsComUpdate[i].status);
-                    if (node->val.status != g_vmsComUpdate[i].status)
-                    {
-                        //do something;
-                        //printf("vmlist window UpdateVmsStatus vms name: %s, vms old status : %d , new nstate : %d.\n", node->val.name, node->val.status, g_vmsComUpdate[i].status);
-                        LogInfo("debug: vmlist window UpdateVmsStatus vms name: %s, vms old status : %d , new nstate : %d.\n", node->val.name, node->val.status, g_vmsComUpdate[i].status);
-                        SetState(node->val.name, g_vmsComUpdate[i].status);
-                        node->val.status = g_vmsComUpdate[i].status;
-                    }
-                }
-          }//list
-      } //for
-      LogInfo("debug: vmsstate_update thrd enter 4444.\n");
+	  int cur_vmscount = 0;
+      list_for_each(plist, &head)
+      {
+            if (g_exitvm)
+				break;
+			if (cur_vmscount >= g_vmsComCount)
+				break;
+            struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
+			if (NULL != node)
+			{
+	            if (strcmp(node->val.vmid, g_vmsComUpdate[cur_vmscount].vmid) == 0 /*&&
+	                 strcmp(node->val.name, g_vmsComUpdate[cur_vmscount].name) == 0*/)
+	            {
+	                LogInfo("debug: vms status : %d , nstate : %d.\n", node->val.status, g_vmsComUpdate[cur_vmscount].status);
+	                if (node->val.status != g_vmsComUpdate[cur_vmscount].status)
+	                {
+	                    LogInfo("debug: vmlist window UpdateVmsStatus vms name: %s, vms old status : %d , new nstate : %d.\n", node->val.name, node->val.status, g_vmsComUpdate[cur_vmscount].status);
+	                    SetState(node->val.name, g_vmsComUpdate[cur_vmscount].status);
+	                    node->val.status = g_vmsComUpdate[cur_vmscount].status;
+	                }
+	            }
+			}
+			cur_vmscount++;
+      }//list
+      g_flushState = 0;
       return 0;
 }
 
@@ -799,18 +784,28 @@ void SetState(char *vmName, const unsigned short nstate)
     store = GTK_LIST_STORE(model);
     char* pitem;
     char szTmp[MAX_BUFF_SIZE] = {0};
-    if (nstate == 0)
-        strcpy(szTmp, "关闭");
-    else if (nstate == 1)
-        strcpy(szTmp, "运行中");
-    else if (nstate == 2)
-        strcpy(szTmp, "待机");
-    else if (nstate == 3)
-        strcpy(szTmp, "正在启动");
-    else if (nstate == 4)
-        strcpy(szTmp, "正在关闭");
-    else if (nstate == 5)
-        strcpy(szTmp, "正在保存");
+	if (nstate == 1)
+	 strcpy(szTmp, "运行");
+	else if (nstate == 0)
+	 strcpy(szTmp, "已关机");
+	else if (nstate == 2)
+	 strcpy(szTmp, "已暂停");
+	else if (nstate == 3)
+	 strcpy(szTmp, "正在启动");
+	else if (nstate == 4)
+	 strcpy(szTmp, "正在关机");
+	else if (nstate == 7)
+	 strcpy(szTmp, "正在重启");
+	else if (nstate == 8)
+	 strcpy(szTmp, "初始化中");
+	else if (nstate == 10)
+	 strcpy(szTmp, "正在迁移");
+	else if (nstate == 11)
+	 strcpy(szTmp, "错误");
+	else if (nstate == 12)
+	 strcpy(szTmp, "镜像锁定");
+	else if (nstate == 13)
+	 strcpy(szTmp, "非法镜像");
     //遍历虚拟机列表所有行
     do {
          gtk_tree_model_get (model, &iter, NAME_1, &pitem, -1);
@@ -903,9 +898,8 @@ static void on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_da
     {
         case GDK_KEY_Return:
             {
-             		g_sUpdateVmStatus = 0;
-				//SYMsgDialogVm(21, "connect");
-				connectVm22();
+             	//g_sUpdateVmStatus = 0;
+				//connectVm22();
             }
             break;
 	   case GDK_KEY_Up:
@@ -990,10 +984,45 @@ static void  on_btn_restart_released(GtkButton *button,  gpointer   user_data)
    gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_restartNor);
 }
 
+void  vm_oper_tips(int nflag)
+{
+	char szMsg[MAX_BUFF_SIZE] = {0};
+	int nRet = 0;
+	switch(nflag)
+	{
+		case 0:
+			{
+				Ovirt_ShutdownVms(ovirt_url, g_szUser, g_szPass, g_szVMid);
+			}
+			break;
+		case 1:
+			{
+				Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, g_szVMid);
+			}
+			break;
+		case 2:
+			{
+				Ovirt_SuspendVms(ovirt_url, g_szUser, g_szPass, g_szVMid);
+			}
+			break;
+		case 3:  //reboot
+			{
+				Ovirt_RebootVms(ovirt_url, g_szUser, g_szPass, g_szVMid);
+			}
+			break;
+	}
+	SY_GetPostResult(&nRet, szMsg);
+	if (nRet < 0)
+	{
+		SYMsgDialog2(7, szMsg);
+	}
+}
+
 //nflag:  1 ����  0  �ر�   2  ����
 static void operate_vm(int nflag)
 {
 	int nstatus = 0;
+	LogInfo("operate_vm nflag: %d, g_vmName: %s.", nflag, g_vmName);
 	list_for_each(plist, &head)
 	{
 		struct Vms_Node *node = list_entry(plist, struct Vms_Node, list);
@@ -1003,56 +1032,8 @@ static void operate_vm(int nflag)
 			break;
 		}
 	}
-
-	switch(nflag)
-	{
-		case 0:
-			{
-				if (nstatus == 1 || nstatus == 2)
-				{
-					if (Ovirt_ShutdownVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
-					{
-						SYMsgDialog2(7, "关闭虚拟机失败！");
-					}
-				}
-			}
-			break;
-		case 1:
-			{
-				if (nstatus == 0 || nstatus == 2)
-				{
-					if (Ovirt_StartVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
-					{
-						SYMsgDialog2(7, "启动虚拟机失败！");
-					}
-				}
-			}
-			break;
-		case 2:
-			{
-				if (nstatus == 1)
-				{
-					if (Ovirt_SuspendVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
-					{
-					 	SYMsgDialog2(7, "虚拟机待机失败！");
-					}
-				}
-			}
-			break;
-		case 3:  //reboot
-			{
-				if (nstatus != 0)
-				{
-					if (Ovirt_RebootVms(ovirt_url, g_szUser, g_szPass, g_szVMid) < 0)
-					{
-					 	SYMsgDialog2(7, "虚拟机重启失败！");
-					}
-				}
-			}
-			break;
-	}
+	vm_oper_tips(nflag);
 	g_sUpdateVmStatus = 1;
-	//AddUpdateVms(g_szVMid);
 }
 
 static void  on_btn_start_clicked(GtkButton *button,  gpointer   user_data)
@@ -1122,9 +1103,12 @@ static void connectVm22()
 #endif
 
 				system(g_shellcmd);
+ 
 #ifdef  ARM
-				system("sudo rk3188_clean_display");
+				system("sudo hk-rk3188_clean_display");
 #endif
+				LogInfo("spicy end,  hk-rk3188_clean_display");
+
 				if (g_workflag == 1)
 				{
 					report.action = 3;
@@ -1182,20 +1166,27 @@ void dlnet_vm_connect()
 	g_sUpdateVmStatus = 1;
 }
 
-static void  on_btn_btn_desktop_clicked(GtkButton *button,  gpointer   user_data)
+void *thrd_connect_vmdesktop(void *arg)
 {
-   g_sUpdateVmStatus = 0;
-   connectVm22();
+    connectVm22();
+}
+
+
+static void  on_btn_desktop_clicked(GtkButton *button,               gpointer user_data)
+{
+	g_sUpdateVmStatus = 0;
+	if (detect_process() == 0)
+	{
+		if ( pthread_create(&tid_state, NULL, thrd_connect_vmdesktop, NULL) !=0 ) 
+		{
+			LogInfo("on_btn_desktop_clicked, Create checkstate thread error!\n");
+		}
+		LogInfo("on_btn_desktop_clicked end !!!!!!!");
+	}
 }
 
 static void  on_btn_sleep_clicked(GtkButton *button,  gpointer   user_data)
 {
-   if (g_flushState == 0)
-   {
-	   if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
-	        printf("Create checkstate thread error!\n");
-	    }
-   }
 }
 
 static void  on_btn_reboot_clicked(GtkButton *button,  gpointer   user_data)
@@ -1423,7 +1414,16 @@ static void init_vmctrlbtn_pos(GtkBuilder *builder, GtkWidget* widget, int lay_w
 	int x,y = 0;
 	x = center - delay/2 - sz_close_width/2 + delay;
 	y = top;
-	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_reboot), x, y);
+	if (scr_width == 1280 && scr_height == 1024)
+	{
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_reboot), x - 6, y - 4);
+	}else if (scr_width == 1024 && scr_height == 768)
+	{
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_reboot), x - 11, y - 4);
+	}else
+	{
+		gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(label_reboot), x - 3, y - 2);
+	}
 	x = center - delay/2 - sz_close_width/2 - delay - pic_close_width + delay*2;
 	gtk_layout_move((GtkLayout *)widget, GTK_WIDGET(btn_reboot), x, y);
 
@@ -1747,31 +1747,149 @@ static gint my_button_handler(GtkWidget *widget,GdkEvent *event)
 	      return TRUE;
 	    }
 	}
-
 	return FALSE;
 }
 
-#if 0
-void on_flush_vmlist()
+static gboolean on_label_start_clicked(GtkButton *button,  gpointer user_data)
 {
-	LogInfo("vml list window button start clicked,  on_flush_vmlist ..........\n");
-	//g_sUpdateVmStatus = 1;
-	if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
-        printf("Create checkstate thread error!\n");
-    }
+	LogInfo("on_label_start_clicked start.");
+	on_btn_start_clicked(NULL, NULL);
+	return TRUE;
 }
-#endif
+static gboolean on_label_close_clicked(GtkButton *button,  gpointer user_data)
+{
+	on_btn_close_clicked(NULL, NULL);
+	return TRUE;
+}
+
+static gboolean on_label_desktop_clicked(GtkButton *button,  gpointer user_data)
+{
+	on_btn_desktop_clicked(NULL, NULL);
+	return TRUE;
+}
+
+static gboolean on_label_sleep_clicked(GtkButton *button,  gpointer user_data)
+{
+	on_btn_sleep_clicked(NULL, NULL);
+	return TRUE;
+}
+static gboolean on_label_reboot_clicked(GtkButton *button,  gpointer user_data)
+{
+	on_btn_reboot_clicked(NULL, NULL);
+	return TRUE;
+}
+
+static void  on_label_start_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_startPress);
+}
+static void  on_label_start_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_startNor);
+}
+static void  on_label_close_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_closePress);
+}
+static void  on_label_close_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_closeNor);
+}
+
+static void  on_label_desktop_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_desktopPress);
+}
+static void  on_label_desktop_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_desktopNor);
+}
+static void  on_label_sleep_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_sleepPress);
+}
+static void  on_label_sleep_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_sleepNor);
+}
+static void  on_label_restart_pressed(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_restartPress);
+}
+static void  on_label_restart_released(GtkButton *button,  gpointer   user_data)
+{
+   gtk_image_set_from_pixbuf(GTK_IMAGE(user_data), g_restartNor);
+}
+
+
+
+void bind_ctrl_event(GtkBuilder *builder)
+{
+	if (NULL == builder)
+		return;
+	GObject *label_start = NULL;
+    GObject *label_close = NULL;
+    GObject *label_desktop = NULL;
+    GObject *label_sleep = NULL;
+    GObject *label_reboot = NULL;
+	label_start = gtk_builder_get_object (builder, "label_start");
+    label_close = gtk_builder_get_object (builder, "label_close");
+    label_desktop = gtk_builder_get_object (builder, "label_desktop");
+    label_sleep = gtk_builder_get_object (builder, "label_sleep");
+    label_reboot = gtk_builder_get_object (builder, "label_reboot");
+	
+	GObject *image_start = NULL;
+    GObject *image_close = NULL;
+    GObject *image_desktop = NULL;
+    GObject *image_sleep = NULL;
+    GObject *image_reboot = NULL;
+
+    image_start = gtk_builder_get_object (builder, "image_start");
+    image_close = gtk_builder_get_object (builder, "image_close");
+    image_desktop = gtk_builder_get_object (builder, "image_desktop");
+    image_sleep = gtk_builder_get_object (builder, "image_sleep");
+	image_reboot = gtk_builder_get_object (builder, "image_reboot");
+	
+	if (NULL != label_start)
+	{
+		g_signal_connect(G_OBJECT(label_start), "clicked", G_CALLBACK(on_label_start_clicked), NULL);
+		g_signal_connect(G_OBJECT(label_start), "pressed", G_CALLBACK(on_label_start_pressed), (GtkWidget *)image_start);
+    	g_signal_connect(G_OBJECT(label_start), "released", G_CALLBACK(on_label_start_released), (GtkWidget *)image_start);
+	}
+	if (NULL != label_close)
+	{
+		g_signal_connect(G_OBJECT(label_close), "clicked", G_CALLBACK(on_label_close_clicked), NULL);
+		g_signal_connect(G_OBJECT(label_close), "pressed", G_CALLBACK(on_label_close_pressed), (GtkWidget *)image_close);
+    	g_signal_connect(G_OBJECT(label_close), "released", G_CALLBACK(on_label_close_released), (GtkWidget *)image_close);
+	}
+	if (NULL != label_desktop)
+	{
+		g_signal_connect(G_OBJECT(label_desktop), "clicked", G_CALLBACK(on_label_desktop_clicked), NULL);
+		g_signal_connect(G_OBJECT(label_desktop), "pressed", G_CALLBACK(on_label_desktop_pressed), (GtkWidget *)image_desktop);
+    	g_signal_connect(G_OBJECT(label_desktop), "released", G_CALLBACK(on_label_desktop_released), (GtkWidget *)image_desktop);
+	}
+	if (NULL != label_sleep)
+	{
+		g_signal_connect(G_OBJECT(label_sleep), "clicked", G_CALLBACK(on_label_sleep_clicked), NULL);
+		g_signal_connect(G_OBJECT(label_sleep), "pressed", G_CALLBACK(on_label_sleep_pressed), (GtkWidget *)image_sleep);
+    	g_signal_connect(G_OBJECT(label_sleep), "released", G_CALLBACK(on_label_sleep_released), (GtkWidget *)image_sleep);
+	}
+	if (NULL != label_reboot)
+	{
+		g_signal_connect(G_OBJECT(label_reboot), "clicked", G_CALLBACK(on_label_reboot_clicked), NULL);
+		g_signal_connect(G_OBJECT(label_reboot), "pressed", G_CALLBACK(on_label_restart_pressed), (GtkWidget *)image_reboot);
+    	g_signal_connect(G_OBJECT(label_reboot), "released", G_CALLBACK(on_label_restart_released), (GtkWidget *)image_reboot);
+	}
+}
 
 void SY_vmlistwindow_main()
 {
     if (showvmlistwindow == 1)
        return;
     showvmlistwindow = 1;
-
     GObject *window;
     GtkBuilder *builder;
     GObject *treeview;
-
     GtkTreeModel *model;
     GtkTreeSelection *selection;
     GObject *btn_start;
@@ -1851,25 +1969,24 @@ void SY_vmlistwindow_main()
                        G_CALLBACK(on_gtk_main_quit_vmlist), NULL);
 
     //button event
-    gtk_label_set_text(GTK_LABEL(label_start), "启动");
-    gtk_label_set_text(GTK_LABEL(label_close), "关闭");
-    gtk_label_set_text(GTK_LABEL(label_desktop), "桌面");
-    gtk_label_set_text(GTK_LABEL(label_sleep), "刷新");
-    gtk_label_set_text(GTK_LABEL(label_reboot), "重启");
+    gtk_button_set_label(GTK_BUTTON(label_start), "启动");
+    gtk_button_set_label(GTK_BUTTON(label_close), "关闭");
+    gtk_button_set_label(GTK_BUTTON(label_desktop), "桌面");
+    gtk_button_set_label(GTK_BUTTON(label_sleep), "刷新");
+    gtk_button_set_label(GTK_BUTTON(label_reboot), "重启");
 
     g_signal_connect(G_OBJECT(btn_start), "clicked", G_CALLBACK(on_btn_start_clicked), NULL);
     g_signal_connect(G_OBJECT(btn_close), "clicked", G_CALLBACK(on_btn_close_clicked), NULL);
-    g_signal_connect(G_OBJECT(btn_desktop), "clicked", G_CALLBACK(on_btn_btn_desktop_clicked), NULL);
+    g_signal_connect(G_OBJECT(btn_desktop), "clicked", G_CALLBACK(on_btn_desktop_clicked), NULL);
     g_signal_connect(G_OBJECT(btn_sleep), "clicked", G_CALLBACK(on_btn_sleep_clicked), NULL);
 	g_signal_connect(G_OBJECT(btn_reboot), "clicked", G_CALLBACK(on_btn_reboot_clicked), NULL);
-    //
+	bind_ctrl_event(builder);
     //
     GObject *image_start;
     GObject *image_close;
     GObject *image_desktop;
     GObject *image_sleep;
     GObject *image_reboot;
-
     image_start = gtk_builder_get_object (builder, "image_start");
     image_close = gtk_builder_get_object (builder, "image_close");
     image_desktop = gtk_builder_get_object (builder, "image_desktop");
@@ -1933,12 +2050,6 @@ void SY_vmlistwindow_main()
     if ( pthread_create(&tid, NULL, thrd_func, NULL) !=0 ) {
         printf("Create thread error!\n");
     }
-
-    //开起向服务器检测虚拟机状态线程， 这与上面的线程处理不一样， 上一个是在启动，关闭，待机
-    //请求后的处理线程。
-  /*  if ( pthread_create(&tid_state, NULL, thrd_checkstate, NULL) !=0 ) {
-        printf("Create checkstate thread error!\n");
-    }*/
     if (g_workflag == 1)
 	{
 		start_tcpclient();
@@ -2082,16 +2193,28 @@ void adddata()
       char szUsb[MAX_BUFF_SIZE] = {0};
       char szvcpu[MAX_BUFF_SIZE] = {0};
       if (node->val.status == 1)
-         memcpy(szStatus, "运行中", MAX_BUFF_SIZE);
+         strcpy(szStatus, "运行");
       else if (node->val.status == 0)
-         memcpy(szStatus, "关闭", MAX_BUFF_SIZE);
+         strcpy(szStatus, "已关机");
       else if (node->val.status == 2)
-         memcpy(szStatus, "待机", MAX_BUFF_SIZE);
+         strcpy(szStatus, "已暂停");
       else if (node->val.status == 3)
-         memcpy(szStatus, "正在启动", MAX_BUFF_SIZE);
+         strcpy(szStatus, "正在启动");
       else if (node->val.status == 4)
-         memcpy(szStatus, "正在关闭", MAX_BUFF_SIZE);
-
+         strcpy(szStatus, "正在关机");
+	  else if (node->val.status == 7)
+		 strcpy(szStatus, "正在重启");
+	  else if (node->val.status == 8)
+		 strcpy(szStatus, "初始化中");
+	  else if (node->val.status == 10)
+		 strcpy(szStatus, "正在迁移");
+	  else if (node->val.status == 11)
+		 strcpy(szStatus, "错误");
+	  else if (node->val.status == 12)
+		 strcpy(szStatus, "镜像锁定");
+	  else if (node->val.status == 13)
+		 strcpy(szStatus, "非法镜像");
+	  
 	  if ((node->val.memory - (int)node->val.memory) > 0)
       	sprintf(szMemory, "%.2f GB", node->val.memory);
 	  else

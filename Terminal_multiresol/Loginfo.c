@@ -22,6 +22,7 @@
 static void *thrd_func(void *arg);
 static pthread_t tid;
 
+#define   PATH_COOKIES_FILE   "/tmp/cookies.txt"
 
 //extern int g_mainExit;
 void LogInfo(const char* ms, ... )
@@ -79,23 +80,8 @@ static del_back_file(char *path)
 	//LogInfo("debug: del_back_file:  file size xxxxxxx = %d.\n", shlog_size);
 	int compare_size = (int)shlog_size/(1024 *1024); //mb
 	if (compare_size > 10)
-	{ 
-//	    char sztmp[100] = {0};
-//		strcpy(sztmp, path);
-//	    strcat(sztmp, "bk");
-//		if (!access(sztmp, F_OK) && !access(path, F_OK))
-//		{
-//		    sprintf(szCmd, "sudo rm -rf %s", sztmp);
-//		}else
-//		{
-//	 		sprintf(szCmd, "sudo cp %s %s", path, sztmp);
-//		}
-//	 	system(szCmd);
-         LogInfo("debug: start open back file 00000 .\n", shlog_size);
-//		FILE* fd = open(path, "w");
-//		ftruncate(fd, 0);
-//		lseek(fd, 0, SEEK_SET);
-//		close(fd);
+	{
+        LogInfo("debug: start open back file 00000 .\n", shlog_size);
 		remove(path);
 		LogInfo("debug: start del back file xxxxxxx .\n", shlog_size);
 	}
@@ -116,7 +102,6 @@ static void *thrd_func(void *arg)
       sleep(3);
 #endif
     }
-	printf("exit checking log thrd func .\n");
     pthread_exit(NULL); //退出线程
 }
 
@@ -132,4 +117,12 @@ void Checking_log()
 	if ( pthread_create(&tid, NULL, thrd_func, NULL) !=0 ) {
         printf("Create checking_log thread error!\n");
     }
+}
+
+void del_cookies()
+{
+	if (access(PATH_COOKIES_FILE, F_OK) == 0)
+	{
+		remove(PATH_COOKIES_FILE);
+	}
 }

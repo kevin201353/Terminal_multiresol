@@ -457,10 +457,10 @@ static gboolean checkbutton_resolution_press_callback(GtkWidget *event_box, GdkE
     {
 		g_checkrepass = !g_checkrepass;
 		LogInfo("Debug: checkbutton resolution gtkimage check: %d.\n", g_checkrepass);
+		GObject *object;
 		if (g_checkrepass == 1)
 		{
 			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
-			GObject *object;
 			object = gtk_builder_get_object (g_builder2, "image_manualresol");
 			gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
 			g_checkmanresol = 0;
@@ -471,6 +471,14 @@ static gboolean checkbutton_resolution_press_callback(GtkWidget *event_box, GdkE
 		else
 		{
 			gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+			//add
+			object = gtk_builder_get_object (g_builder2, "image_manualresol");
+			gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkPressimage);
+			GObject *comboresol;
+			comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+			gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 1);
+			//add end
+			g_checkmanresol = 1;
 		}
     }
     return TRUE;
@@ -480,12 +488,12 @@ static gboolean checkbutton_manualresol_press_callback(GtkWidget *event_box, Gdk
 {
     if (event->type == GDK_BUTTON_PRESS)
     {
+    	GObject *object;
 		g_checkmanresol = !g_checkmanresol;
 		LogInfo("Debug: checkbutton manualresol gtkimage check: %d.\n", g_checkmanresol);
 		if (g_checkmanresol == 1)
 		{
 		    gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkPressimage);
-		    GObject *object;
 		    object = gtk_builder_get_object (g_builder2, "image_resolution");
 		    gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkNorimage);
 		    g_checkrepass = 0;
@@ -496,6 +504,14 @@ static gboolean checkbutton_manualresol_press_callback(GtkWidget *event_box, Gdk
 		else
 		{
 		    gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+			g_checkrepass = 1;
+			//add 171128
+			object = gtk_builder_get_object (g_builder2, "image_resolution");
+		    gtk_image_set_from_pixbuf(GTK_IMAGE(object), g_checkPressimage);
+			GObject *comboresol;
+		    comboresol = gtk_builder_get_object (g_builder2, "comboboxtext_resol");
+		    gtk_widget_set_sensitive(GTK_WIDGET(comboresol), 0);
+			//add end
 		}
     }
     return TRUE;

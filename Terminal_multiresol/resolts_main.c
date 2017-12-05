@@ -81,19 +81,10 @@ extern void wait_net_setup();
 extern void GetManufactureType();
 extern void linux_key_press();
 extern void linux_key_press2();
-extern void read_input();
 static void* thrd_keypress()
 {
 	linux_key_press2();
 }
-
-static void* thrd_readinput()
-{
-	read_input();
-	return NULL;
-}
-
-
 static void setfontcolor(GtkWidget * widget, char *value)
 {
 	GdkRGBA color1;	
@@ -1006,6 +997,7 @@ int main(int argc, char *argv[])
 	};
 #endif
 	SY_loginwindow_main();
+	Unit_Curlc();
 	return 0;
 	/*************************************************************************/
 	//calculate screen resolution

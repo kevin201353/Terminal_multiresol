@@ -14,7 +14,7 @@
 
 char g_szUrl[MAX_DATA_SIZE] = {0};
 
-int  g_working = 0;
+volatile int  g_working = 0;
 extern int Http_Post2(char *url, char *user, char* password, char* data);
 
 int Ovirt_Login(char *url, char *user, char* password)
@@ -32,7 +32,7 @@ int Ovirt_Login(char *url, char *user, char* password)
     strcat(g_szUrl, url);
     strcat(g_szUrl, STR_OVIRT_LOGIN);
     LogInfo("Debug: Ovirt_Login url : %s.\n", g_szUrl);
-#if 1
+#if 0
 	char * p = strstr(user, "admin@internal");
 	if (NULL == p)
 	{
@@ -77,12 +77,38 @@ int Ovirt_GetVms(char *url, char *user, char* password)
 	   {
 	       printf("Ovirt get vms failed.\n");
 	       LogInfo("Debug: Ovirt get vms failed.\n");
-		   g_working = 0;
+		   //g_working = 0;
 	       return SY_OVIRT_GETVMS_FAILED;
        	}
     }
 	LogInfo("Debug: Ovirt_getvms url, http request success.\n");
 	g_working = 0;
+    return 0;
+}
+
+
+int Ovirt_GetLongVms(char *url, char *user, char* password)
+{
+    if (url == NULL && strlen(url) <= 0)
+        return -1;
+    if (user == NULL && strlen(user) <= 0)
+    {
+        return SY_USER_ISNULL;
+    }
+    memset(g_szUrl, 0, MAX_DATA_SIZE);
+    strcat(g_szUrl, url);
+    strcat(g_szUrl, STR_OVIRT_GET_VMS);
+    LogInfo("Debug: Ovirt_GetLongVms url : %s.\n", g_szUrl);
+    if (http_login_request(g_szUrl, user, password) < 0)
+    {
+       LogInfo("Debug: Ovirt_GetLongVms url, http request first failed, start second request.\n");
+       if (http_login_request(g_szUrl, user, password) < 0)
+	   {
+	       LogInfo("Debug: Ovirt_GetLongVms failed.\n");
+	       return SY_OVIRT_GETVMS_FAILED;
+       	}
+    }
+	LogInfo("Debug: Ovirt_GetLongVms url, http request success.\n");
     return 0;
 }
 
@@ -213,6 +239,7 @@ int Ovirt_StartVms(char *url, char *user, char* password, char *vm)
   {
       return SY_USER_ISNULL;
   }
+  LogInfo("Debug: Ovirt_startVms g_working : %d.\n", g_working);
   if (g_working == 1)
 		return 0;
 	g_working = 1;
@@ -233,7 +260,7 @@ int Ovirt_StartVms(char *url, char *user, char* password, char *vm)
 	 g_working = 0;
      return SY_OVIRT_STARTVMS_FAILED;
   }
-  g_working = 0;
+  g_working = 0;  
   return 0;
 }
 
@@ -449,6 +476,7 @@ int Ovirt_Login_Pass(char *url, char *user, char* password, char* ret)
 	}
 	if (g_working == 1)
 		return 0;
+	g_working = 1;
 	char sz_data[512] = {0};
 	memset(g_szUrl, 0, MAX_DATA_SIZE);
 	strcat(g_szUrl, url);

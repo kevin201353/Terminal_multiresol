@@ -111,21 +111,49 @@
 }
 
 #label_start {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
    font-size: 10px;
    font-family: "Microsoft YaHei"
 }
 
 #label_close {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
    font-size: 10px;
    font-family: "Microsoft YaHei"
 }
 
 #label_desktop {
+	background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
    font-size: 10px;
    font-family: "Microsoft YaHei"
 }
 
 #label_sleep, #label_reboot {
+   background-color: transparent;
+   background-image: none;
+   border-style: none;
+   border-color: none;
+   border-image: none;
+   padding: 0px;
+   border-radius: 0px;
    font-size: 10px;
    font-family: "Microsoft YaHei"
 }

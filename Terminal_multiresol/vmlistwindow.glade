@@ -250,15 +250,14 @@
                     </child>
 					
 					<child>
-                      <object class="GtkLabel" id="label_reboot">
+                      <object class="GtkButton" id="label_reboot">
                         <property name="name">label_reboot</property>
                         <property name="width_request">60</property>
                         <property name="height_request">30</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="xalign">0.20999999344348907</property>
-                        <property name="yalign">0.34000000357627869</property>
+                        <property name="can_focus">True</property>
+						<property name="receives_default">True</property>
+						<property name="relief">none</property>
                       </object>
                       <packing>
                         <property name="x">18</property>
@@ -267,15 +266,14 @@
                     </child>
 					
                     <child>
-                      <object class="GtkLabel" id="label_start">
+                      <object class="GtkButton" id="label_start">
                         <property name="name">label_start</property>
                         <property name="width_request">60</property>
                         <property name="height_request">30</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="xalign">0.20999999344348907</property>
-                        <property name="yalign">0.34000000357627869</property>
+                        <property name="can_focus">True</property>
+						<property name="receives_default">True</property>
+						<property name="relief">none</property>
                       </object>
                       <packing>
                         <property name="x">38</property>
@@ -283,15 +281,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_close">
+                      <object class="GtkButton" id="label_close">
                         <property name="name">label_close</property>
                         <property name="width_request">60</property>
                         <property name="height_request">30</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="xalign">0.17000000178813934</property>
-                        <property name="yalign">0.37000000476837158</property>
+                        <property name="can_focus">True</property>
+						<property name="receives_default">True</property>
+						<property name="relief">none</property>
                       </object>
                       <packing>
                         <property name="x">128</property>
@@ -299,15 +296,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_desktop">
+                      <object class="GtkButton" id="label_desktop">
                         <property name="name">label_desktop</property>
                         <property name="width_request">60</property>
                         <property name="height_request">30</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="xalign">0.18999999761581421</property>
-                        <property name="yalign">0.37000000476837158</property>
+                        <property name="can_focus">True</property>
+						<property name="receives_default">True</property>
+						<property name="relief">none</property>
                       </object>
                       <packing>
                         <property name="x">228</property>
@@ -315,15 +311,12 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_sleep">
+                      <object class="GtkButton" id="label_sleep">
                         <property name="name">label_sleep</property>
                         <property name="width_request">60</property>
                         <property name="height_request">30</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
-                        <property name="xalign">0.20999999344348907</property>
-                        <property name="yalign">0.34999999403953552</property>
+                        <property name="can_focus">True</property>
                       </object>
                       <packing>
                         <property name="x">323</property>

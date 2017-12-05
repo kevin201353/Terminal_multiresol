@@ -99,29 +99,6 @@ static void init_ctrl_size(GtkBuilder *builder)
     int scr_height = gdk_screen_get_height(screen);
 	int win_width = 0;
 	int win_height = 0;
-//	if ((scr_width == 1024 && scr_height == 768) || 
-//		(scr_width == 1440 && scr_height == 900) || 
-//		(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || 
-//		(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
-//	{
-//		win_width = 300;
-//		win_height = 100;
-//	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
-//	{
-//		win_width = 470;
-//		win_height = 170;
-//	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) || 
-//	   (scr_width == 1280 && scr_height == 1024))
-//	{
-//		win_width = 300;
-//		win_height = 100;
-//	}else if ((scr_width == 1366 && scr_height == 768) || 
-//	       (scr_width == 1368 && scr_height == 768) ||
-//	        (scr_width == 1360 && scr_height == 768) )
-//	{
-//		win_width = 300;
-//		win_height = 100;
-//	}
 	GObject *layout_thrdtitle = gtk_builder_get_object(builder, "layout_thrdtitle");
 	GObject *layout_thrdtext = gtk_builder_get_object(builder, "layout_thrdtext");
 	GObject *fixed_thrdmsg = gtk_builder_get_object(builder, "fixed_thrdmsg");
@@ -167,17 +144,6 @@ static void init_ctrl_size(GtkBuilder *builder)
 			(scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || 
 			(scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
-//		win_width = 470;
-//		win_height = 160;
-//		btn_Cancel_width = 60;
-//		btn_Cancel_height = 20;
-//		btn_OK_width = 60;
-//		btn_OK_height = 20;
-//		label_text_width = 350;
-//		label_text_height = 80;
-//		layout_thrdtitle_height = 30;
-//		layout_thrdtext_height = 90;
-//		nsize = 10;
 		win_width = 300;
 		win_height = 100;
 		btn_OK_width = 30;

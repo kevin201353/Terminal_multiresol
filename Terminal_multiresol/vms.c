@@ -173,18 +173,55 @@ void FindNode(char* value)
                      {
                         //LogInfo("Debug: findNode vms status : %s. \n", tmp_node->child->value.text.string);
                         if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UP) == 0)
-                          pNode->val.status = 1;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0)
-                          pNode->val.status = 0;
+                        {
+                        	pNode->val.status = 1;
+                        }
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_POWEREDDOWN) == 0)
+                        {
+                        	pNode->val.status = 0;
+						}
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
-							strcmp(tmp_node->child->value.text.string, VMS_STATE_PAUSED) == 0 )
-                          pNode->val.status = 2;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGUP) == 0)
-                          pNode->val.status = 3;
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_PAUSED) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_RESTORING) == 0)
+                        {
+                        	pNode->val.status = 2;
+						}
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGUP) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_WAITFORLAUNCH) == 0)
+                        {
+                        	pNode->val.status = 3;
+						}
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
-                          pNode->val.status = 4;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0)
-                          pNode->val.status = 5;
+                        {
+                        	pNode->val.status = 4;
+                        }
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_REBOOTINPROCESS) == 0)
+                        {
+                        	pNode->val.status = 7;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UNASSIGNED) == 0)
+						{
+							pNode->val.status = 8;
+						}
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UNKNOW) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_NOT_RESPONDING) == 0)
+						{
+							pNode->val.status = 11;
+						}
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_MIGRATING) == 0)
+						{
+							pNode->val.status = 10;
+						}
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_IMAGE_LOCKED) == 0)
+						{
+							pNode->val.status = 12;
+						}
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_IMAGE_ILLEGAL) == 0)
+						{
+							pNode->val.status = 13;
+						}
                      }//status
 
                      //get cpu count
@@ -272,16 +309,22 @@ void FindNode(char* value)
 
 void FindNode2(char* value)
 {
-    if (g_treeTmp == NULL)
-    {
-        printf("findNode g_treeTmp == NULL , return.\n");
-        return ;
-    }
+	FILE *fp = fopen(FILE_OVIRT_INFOTMP_PATH, "r");
+	if (fp == NULL)
+	{
+		LogInfo("SY_LoadxmlTmp open file failed.\n");
+		return -1;
+	}
+	g_treeTmp = mxmlLoadFile(NULL, fp, MXML_NO_CALLBACK);
+	if (g_treeTmp == NULL)
+	{
+		printf("sy_loadxml failed.\n");
+		fclose(fp);
+		return -1;
+	}
     mxml_node_t *node = NULL;
     mxml_node_t *heading = NULL;
-    node = mxmlFindElement(g_treeTmp, g_treeTmp, value,
-                              NULL, NULL,
-                              MXML_DESCEND);
+    node = mxmlFindElement(g_treeTmp, g_treeTmp, value, NULL, NULL, MXML_DESCEND);
    if (node)
    {
      for (heading = mxmlGetFirstChild(node);
@@ -330,18 +373,55 @@ void FindNode2(char* value)
                       //  LogInfo("Debug: pNode-val.os :%s.\n", tmp_node->child->value.text.string);
                       //  printf(" vms status : %s. \n", tmp_node->child->value.text.string);
                         if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UP) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 1;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 0;
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 1;
+                        }
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_DOWN) == 0 ||
+								strcmp(tmp_node->child->value.text.string, VMS_STATE_POWEREDDOWN) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 0;
+                        }
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
-							strcmp(tmp_node->child->value.text.string, VMS_STATE_PAUSED) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 2;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGUP) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 3;
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_PAUSED) == 0 ||
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_RESTORING) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 2;
+						}
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGUP) == 0 ||
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_WAITFORLAUNCH) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 3;
+                        }
                         else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 4;
-                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0)
-                          g_vmsComUpdate[g_vmsComCount].status = 5;
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 4;
+                        }
+                        else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_REBOOTINPROCESS) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 7;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UNASSIGNED) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 8;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_UNKNOW) == 0 || 
+							strcmp(tmp_node->child->value.text.string, VMS_STATE_NOT_RESPONDING) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 11;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_MIGRATING) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 10;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_IMAGE_LOCKED) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 12;
+                        }
+						else if (strcmp(tmp_node->child->value.text.string, VMS_STATE_IMAGE_ILLEGAL) == 0)
+                        {
+                        	g_vmsComUpdate[g_vmsComCount].status = 13;
+                        }
                      }//status
 
                     //get memory
@@ -383,7 +463,7 @@ void FindNode2(char* value)
                                               MXML_DESCEND);
                     if (tmp_node)
                     {
-                    	mxml_node_t * typeNode = mxmlFindElement(tmp_node, heading, "enabled",
+                    	mxml_node_t * typeNode = mxmlFindElement(tmp_node, heading, "address",
                                                  NULL, NULL,
                                                  MXML_DESCEND);
                         //printf(" vms address : %s. \n", tmp_node->child->value.text.string);
@@ -407,23 +487,21 @@ void FindNode2(char* value)
              }//if null
           }
    }
+	if (NULL != g_treeTmp)
+	{
+		mxmlDelete(g_treeTmp);
+		g_treeTmp = NULL;
+	}
+   fclose(fp);
     return ;
 	
 }
 
 int SY_GetVms()
 {
-    //printf("SY_Get Vms @@@@@ 11.\n");
     INIT_LIST_HEAD(&head);
     SY_FreeVmsList();
     g_nVmCount = 0;
-    //printf("SY_Get Vms @@@@@ 22.\n");
-#if 0
-    //test
-    memset(g_szServerIP, 0, MAX_BUFF_SIZE);
-	GetServerInfo2(&serverInfo);
-	strcpy(g_szServerIP, serverInfo.szIP);
-#endif
     if (SY_Loadxml(FILE_OVIRT_INFO_PATH) < 0)
     {
         return -1;
@@ -436,18 +514,7 @@ int SY_GetVms()
 int SY_GetVms2()
 {
     InitVmsUpdate();
-    if (SY_LoadxmlTmp(FILE_OVIRT_INFOTMP_PATH) < 0)
-    {
-        return -1;
-    }
-#if 0
-    //test
-    memset(g_szServerIP, 0, MAX_BUFF_SIZE);
-	GetServerInfo2(&serverInfo);
-	strcpy(g_szServerIP, serverInfo.szIP);
-#endif
     FindNode2("vms");
-    SY_Unloadxml(g_treeTmp);
     return 0;
 }
 
@@ -516,19 +583,56 @@ unsigned short SY_GetVmState(char* vmid)
                  //printf("SY_GetVmsState: %s.\n", node->child->value.text.string);
                  if (node->child)
                  {
-	                 if (strcmp(node->child->value.text.string, VMS_STATE_UP) == 0)
-	                   state = 1;
-	                 else if (strcmp(node->child->value.text.string, VMS_STATE_DOWN) == 0)
-	                   state = 0;
-	                 else if (strcmp(node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
-					 	strcmp(node->child->value.text.string, VMS_STATE_PAUSED) == 0 )
-	                   state = 2;
-	                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGUP) == 0)
-	                   state = 3;
-	                 else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
-	                   state = 4;
-	                 else if (strcmp(node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0)
-	                   state = 5;
+					    if (strcmp(node->child->value.text.string, VMS_STATE_UP) == 0)
+		                {
+		                	state = 1;
+		                }
+		                else if (strcmp(node->child->value.text.string, VMS_STATE_DOWN) == 0 || 
+							strcmp(node->child->value.text.string, VMS_STATE_POWEREDDOWN) == 0)
+		                {
+		                	state = 0;
+						}
+		                else if (strcmp(node->child->value.text.string, VMS_STATE_SUSPENDED) == 0 ||
+							strcmp(node->child->value.text.string, VMS_STATE_PAUSED) == 0 || 
+							strcmp(node->child->value.text.string, VMS_STATE_SAVINGSTATE) == 0 || 
+							strcmp(node->child->value.text.string, VMS_STATE_RESTORING) == 0)
+		                {
+		                	state = 2;
+						}
+		                else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGUP) == 0 || 
+							strcmp(node->child->value.text.string, VMS_STATE_WAITFORLAUNCH) == 0)
+		                {
+		                	state = 3;
+						}
+		                else if (strcmp(node->child->value.text.string, VMS_STATE_POWERINGDOWN) == 0)
+		                {
+		                	state = 4;
+		                }
+		                else if (strcmp(node->child->value.text.string, VMS_STATE_REBOOTINPROCESS) == 0)
+		                {
+		                	state = 7;
+		                }
+						else if (strcmp(node->child->value.text.string, VMS_STATE_UNASSIGNED) == 0)
+						{
+							state = 8;
+						}
+						else if (strcmp(node->child->value.text.string, VMS_STATE_UNKNOW) == 0 || 
+							strcmp(node->child->value.text.string, VMS_STATE_NOT_RESPONDING) == 0)
+						{
+							state = 11;
+						}
+						else if (strcmp(node->child->value.text.string, VMS_STATE_MIGRATING) == 0)
+						{
+							state = 10;
+						}
+						else if (strcmp(node->child->value.text.string, VMS_STATE_IMAGE_LOCKED) == 0)
+						{
+							state = 12;
+						}
+						else if (strcmp(node->child->value.text.string, VMS_STATE_IMAGE_ILLEGAL) == 0)
+						{
+							state = 13;
+						}
                  }
             }//if
         }
@@ -541,3 +645,47 @@ unsigned short SY_GetVmState(char* vmid)
     }
     return state;
 }
+
+void SY_GetPostResult(int* ret, char* msg)
+{
+	if (NULL == msg || NULL == ret)
+	{
+		return;
+	}
+	FILE *fp = NULL;
+	fp = fopen(FILE_OVIRT_TICKET_PATH, "r");
+	if (NULL == fp)
+	{
+		return;
+	}
+	char szTmp[1024]= {0};
+	mxml_node_t *g_tree = mxmlLoadFile(NULL, fp, MXML_OPAQUE_CALLBACK); 
+	if (NULL != g_tree)
+	{
+		mxml_node_t *node = mxmlFindElement(g_tree, g_tree, "state", NULL, NULL, MXML_DESCEND);
+		if (NULL != node && NULL != node->child)
+		{
+		    LogInfo("SY_GetPostResult 1111, state=%s", node->child->value.opaque);
+			if (strcmp(node->child->value.opaque, "failed") == 0)
+			{
+				*ret = -1;
+				node = mxmlFindElement(g_tree, g_tree, "detail", NULL, NULL, MXML_DESCEND);
+				if (NULL != node && NULL != node->child)
+				{
+				    LogInfo("SY_GetPostResult 1111, detail=%s", node->child->value.opaque);
+					snprintf(msg, MAX_BUFF_SIZE, "%s", node->child->value.opaque);
+				}
+			}else
+			{
+				*ret = 0;
+			}
+		}
+	}
+	if (NULL != g_tree)
+	{
+		mxmlDelete(g_tree);
+		g_tree = NULL;
+	}
+	fclose(fp);
+}
+

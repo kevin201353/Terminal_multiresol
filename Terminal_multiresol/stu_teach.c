@@ -36,10 +36,8 @@ int detect_process()
 	char buf[BUF_SIZE];
 	char command[BUF_SIZE];
 	sprintf(command, "ps -ef | grep spicy | grep -v grep | wc -l" );
-
 	if((fp = popen(command,"r")) == NULL)
 		err_quit("popen");
-
 	if( (fgets(buf, BUF_SIZE, fp))!= NULL )
 	{  
 		count = atoi(buf);

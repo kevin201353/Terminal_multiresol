@@ -295,6 +295,12 @@ void dlnet_vm_connect();
 void dlnet_login();
 void GetDlnet(char * sznet);
 void SaveDlnet(char* sznet);
+void del_cookies();
+
+void init_long_session();
+void close_long_session();
+int  http_login_request();
+int Ovirt_GetLongVms(char *url, char *user, char* password);
 
 
 #endif //_GLOBAL_H

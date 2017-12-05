@@ -99,10 +99,11 @@ static pthread_t g_readdataid;
 
 extern void exit_vimlist_win();
 
-extern int  g_working;
+extern volatile int  g_working;
 static GtkWidget *label_nettype;
 static void* read_data();
 extern void set_vm_network_type();
+extern int detect_process();
 int checklogin()
 {
 #if 1
@@ -170,7 +171,7 @@ static void* read_data()
 		int len;
 		if((len = read(0,buf,1024)) == -1)
 		{
-		    write(2,"ThinView read stdin error\n",11) ;
+		    LogInfo("ThinView read stdin error.") ;
 		}
 		LogInfo("ThinView read stdin java value 0000: %s.", buf);
 		if (NULL != strstr(buf, "apagentui.ThinviewLogout####{}"))
@@ -305,21 +306,17 @@ void setctrlFont(GtkWidget * widget, int nsize)
 
 static gboolean update_label (GtkLabel *label)
 {
-	//gtk_entry_progress_pulse (label);
-	// time_t   timep;
-	// time   (&timep);
-	// printf( "%s ",ctime(&timep));
 	struct tm *ptm;
 	long ts;
 	int y,m,d,h,n,s;
 	ts = time(NULL);
 	ptm = localtime(&ts);
-	y = ptm-> tm_year+1900;     //��
-	m = ptm-> tm_mon+1;        //��
-	d = ptm-> tm_mday;         //��
-	h = ptm-> tm_hour;         //ʱ
-	n = ptm-> tm_min;          //��
-	s = ptm-> tm_sec;          //��
+	y = ptm-> tm_year+1900;
+	m = ptm-> tm_mon+1;   
+	d = ptm-> tm_mday;    
+	h = ptm-> tm_hour;     
+	n = ptm-> tm_min;       
+	s = ptm-> tm_sec;
 	char sztime[100] = {0};
 	sprintf(sztime, "%d : %02d", h, n);
 	gtk_label_set_text(label, sztime);
@@ -587,6 +584,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
     {
 		case GDK_KEY_Return:
 			{
+#if 0
 				if (showSyMsgDlg11 == 0)
 				{
 					LogInfo("Debug zhaosenhua test reconnect: key press enter , gdk_key_return.\n");
@@ -599,6 +597,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
 						return FALSE;
 					SY_vmlistwindow_main();
 				}
+#endif
 			}
 			break;
     }
@@ -677,8 +676,8 @@ static gboolean checkbutton_repass_press_callback(GtkWidget *event_box, GdkEvent
         }
         else
         {
-            GObject *image_auto = NULL;
-            gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
+           GObject *image_auto = NULL;
+           gtk_image_set_from_pixbuf(GTK_IMAGE(data), g_checkNorimage);
 		   image_auto = gtk_builder_get_object(g_builder, "image_auto");
 		   gtk_image_set_from_pixbuf(GTK_IMAGE(image_auto), g_checkNorimage);
 		   g_checkautologin = 0;
@@ -866,10 +865,12 @@ void shell_exec(char *cmd)
 	    printf("shell_exec , Create thread error!\n");
 	};
    pthread_join(g_xtid, NULL);
-   LogInfo("shell_exec thrd finish , arm rk3188_clean_display.\n");
+   LogInfo("shell_exec thrd finish , arm hk-rk3188_clean_display.\n");
 #ifdef  ARM
-	system("sudo rk3188_clean_display");
+	//system("sudo rk3188_clean_display");
+	system("sudo hk-rk3188_clean_display");
 #endif
+
 }
 
 static int connectDisVm(char *ip, int port, char *vmid, int nstate)
@@ -984,6 +985,9 @@ static int connectDisVm(char *ip, int port, char *vmid, int nstate)
 		write(1, szMsg, strlen(szMsg));
 #endif
     shell_exec(shellcmd);
+	if (detect_process() == 0)
+		return -1;
+
     if (g_workflag == 1)
     {
 		report.action = 3;
@@ -1165,6 +1169,7 @@ void start_wait_window()
 
 int ShenCloud_autoLogin()
 {
+   del_cookies();
    g_selectProto = 0;
    GetLoginInfo(&g_loginfo);
    if (g_loginfo.autologin == 0)
@@ -1420,6 +1425,7 @@ void dlnet_login()
 int ShenCloud_login()
 {
 	LogInfo("ShenCloud_login, start manual login.\n");
+	del_cookies();
 	g_selectProto = 0;
 	initOvirtUrl();
     if (get_ctrldata() < 0)

@@ -33,6 +33,7 @@ void SetSymsgContext(int msg);
 extern void connectVms();
 extern void clean_ctrlpass();
 static int g_window_exit = 0;
+static volatile int g_exitlogin = 0;
 static gboolean terminate(GThread *thread)
 {
     g_thread_join(thread);
@@ -83,7 +84,8 @@ static void * MsgThrd(GtkLabel *data){
 		break;
 	if (g_window_exit == 1)
 		break;
-	//printf("SYMsgDialog MsgThrd g_loginstatus = %d .\n", g_loginstatus);
+	if (g_exitlogin == 1)
+		break;
     switch (g_loginstatus) {
       case  LOGIN_STATUS_CONNECTING:
             strcpy(sztmp, "正在连接，请稍后 ... ");
@@ -143,31 +145,19 @@ static gboolean terminate_login(GThread *thread)
 	 return FALSE;
 }
 
-static void * LoginThrdxx()
-{
-	if (ShenCloud_login() < 0)
-	{
-		g_loginsuccess = -1;
-	}
-	gdk_threads_add_idle((GSourceFunc)terminate_login, g_thread_self());
-	return NULL;
-}
-
 static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 {
 	g_window_exit = 1;
+	g_exitlogin = 1;
+	/*
 	if (NULL != loginThrd)
 	{
 		g_thread_join(loginThrd);
 		loginThrd = NULL;
-	}
-	/*
-	if (NULL != loginThrdxx)
-	{
-		g_thread_join(loginThrdxx);
-		loginThrdxx = NULL;
 	}*/
 	
+	//add by kevin 171204
+	/*
     if (window != NULL)
     {
     	g_window_exit = 1;
@@ -175,7 +165,8 @@ static gboolean close_button_clicked(GtkButton *button,  gpointer user_data)
 		window = NULL;
 		showSyMsgDlg11 = 0;
 	    gtk_main_quit();
-    }
+    }*/
+    //add end
 }
 
 static gboolean OK_button_clicked(GtkButton *button,  gpointer user_data)
@@ -214,7 +205,7 @@ static gboolean Cancel_button_clicked(GtkButton *button,  gpointer user_data)
 		window = NULL;
 		showSyMsgDlg11 = 0;
 	    gtk_main_quit();
-    	}
+    }
 }
 
 int SYMsgFun(char *p)
@@ -559,7 +550,7 @@ void SYMsgDialog(int nflag, char *msg)
 	}
     showSyMsgDlg11 = 1;
 	g_window_exit = 0;
-	//printf("Debug: SYMsgDialog enter, showSyMsgDlg11 = %d.\n", showSyMsgDlg11);
+	g_exitlogin = 0;
     builder = gtk_builder_new();
     GError *error1 = NULL;
     gtk_builder_add_from_file (builder, "SYthrdMsgDlg.glade", &error1);
@@ -610,10 +601,6 @@ void SYMsgDialog(int nflag, char *msg)
 					{
 						g_loginsuccess = -1;
 					}
-					//add
-					//loginThrdxx = NULL;
-					//loginThrdxx = g_thread_new("shencloud",(GThreadFunc)LoginThrdxx, NULL);
-					//end
 				}
 				break;
 		}

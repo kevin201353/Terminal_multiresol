@@ -4,8 +4,8 @@
 #include "buildtime.h"
 #include <string.h>
 
-#define MAIN_VERSION "Thin View"
-#define SUBVERSION_NUMBER "1.0."
+#define MAIN_VERSION "ThinView_"
+#define SUBVERSION_NUMBER "9.3.1."
 GtkLayout *g_aboutlayout;
 int about_win_width = 0;
 int about_win_height = 0;
@@ -78,10 +78,10 @@ void SY_AboutWindow()
 	if (scr_width == 1024 && scr_height == 768)
 	{
 		nsize = 9;
-	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200) )
+	}else if ((scr_width == 1920 && scr_height == 1080) || (scr_width == 1920 && scr_height == 1200))
 	{
 		nsize = 12;
-	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 )   || (scr_width == 1600 && scr_height == 1080))
+	}else if ((scr_width == 1440 && scr_height == 900) || (scr_width == 1600 && scr_height == 900) ||  (scr_width == 1600 && scr_height == 896 ) || (scr_width == 1600 && scr_height == 1080) || (scr_width == 1680 && scr_height == 1050))
 	{
 		nsize = 10;
 	}else if ((scr_width == 1280 && scr_height == 720) || (scr_width == 1280 && scr_height == 768) ||
