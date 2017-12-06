@@ -1048,6 +1048,13 @@ static void  on_btn_close_clicked(GtkButton *button,  gpointer   user_data)
    operate_vm(0);
 }
 
+gboolean show_tips_dialog(gpointer* message)
+{
+	SYMsgDialog2(7, "连接失败!");
+	return FALSE;
+}
+
+
 static void connectVm22()
 {
     list_for_each(plist, &head)
@@ -1118,7 +1125,7 @@ static void connectVm22()
 				break;
 		   	}else
 		   	{
-		   		SYMsgDialog2(7, "连接失败!");
+		   		g_idle_add(show_tips_dialog, NULL);
 				g_sUpdateVmStatus = 1;
 			}
         	}
